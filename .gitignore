@@ -1,0 +1,8 @@
+# Ignoriere sensible Umgebungsvariablen
+.env
+
+# Ignoriere den node_modules Ordner
+node_modules
+
+# Ignoriere Systemdateien
+.DS_Store

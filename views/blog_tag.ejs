@@ -1,0 +1,49 @@
+<%- include('partials/header') %>
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12 text-center mb-5" data-aos="fade-down">
+            <h1>Blog-Beiträge mit dem Tag: "<%= tagName %>"</h1>
+            <p class="lead"><a href="/blog">Zurück zur Blog-Übersicht</a></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <% if (posts && posts.length > 0) { %>
+                <% posts.forEach(function(post) { %>
+                    <div class="card mb-4" id="post-<%= post.id %>" data-aos="fade-up">
+                        <% if (post.image_filename) { %>
+                            <img src="/uploads/<%= post.image_filename %>" class="card-img-top" alt="<%= post.title %>" style="height: 200px; object-fit: cover;">
+                        <% } %>
+                        <div class="card-body">
+                            <h2 class="card-title"><%= post.title %></h2>
+                            <p class="card-subtitle mb-2 text-muted">
+                                Veröffentlicht am: <%= new Date(post.createdAt).toLocaleDateString('de-DE') %>
+                            </p>
+                            <div class="card-text blog-post-content">
+                                <% if (post.content) { %>
+                                    <%- post.content.replace(/<[^>]*>?/gm, '').substring(0, 250) %>...
+                                <% } %>
+                            </div>
+                            <% if (post.tags) { %>
+                                <div class="mt-3">
+                                    <% post.tags.split(',').forEach(function(tag) { %>
+                                        <a href="/blog/tag/<%= tag %>" class="btn btn-sm btn-outline-secondary me-1"><%= tag %></a>
+                                    <% }); %>
+                                </div>
+                            <% } %>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-3 read-more-btn" data-bs-toggle="modal" data-bs-target="#blogPostModal" data-post-id="<%= post.id %>">
+                                Ganzen Beitrag lesen
+                            </button>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p class="text-center text-muted">Keine Beiträge mit diesem Tag gefunden.</p>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

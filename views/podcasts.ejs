@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12 text-center mb-5" data-aos="fade-down">
+            <h1>Podcast: Data Security Decoded</h1>
+            <p class="lead">Spannende Einblicke für die Ohren.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <% if (podcasts && podcasts.length > 0) { %>
+                <% podcasts.forEach(function(podcast) { %>
+                    <div class="podcast-item" data-aos="fade-up">
+                        <h3><%= podcast.title %></h3>
+                        <p class="text-muted"><%= podcast.description %></p>
+                        <audio controls>
+                            <source src="/audio/<%= podcast.audio_filename %>" type="audio/mpeg">
+                            Ihr Browser unterstützt das Audio-Element nicht.
+                        </audio>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="text-center text-muted" data-aos="fade-up">
+                    <p>Momentan sind keine Podcasts verfügbar. Schauen Sie bald wieder vorbei!</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

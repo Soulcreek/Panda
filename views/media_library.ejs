@@ -1,0 +1,79 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Medienbibliothek</h2>
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#uploadCollapse" aria-expanded="false" aria-controls="uploadCollapse">
+            <i class="bi bi-plus-circle me-2"></i>Neue Medien hochladen
+        </button>
+    </div>
+
+    <!-- Upload-Formular (einklappbar) -->
+    <div class="collapse mb-4" id="uploadCollapse">
+        <div class="card card-body">
+            <h5 class="card-title">Datei-Upload</h5>
+            <form action="/admin/media/upload" method="POST" enctype="multipart/form-data" id="media-upload-form">
+                <div class="mb-3">
+                    <label for="mediaFiles" class="form-label">Bilder oder Icons auswählen</label>
+                    <input class="form-control" type="file" id="mediaFiles" name="mediaFiles" required multiple>
+                    <div class="form-text">Sie können mehrere Dateien gleichzeitig auswählen.</div>
+                </div>
+                <!-- KORREKTUR: Feld für Alt-Text wieder hinzugefügt -->
+                <div class="mb-3">
+                    <label for="altText" class="form-label">Alternativtext (für SEO, nur für erstes Bild)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="altText" name="altText" placeholder="Wird für Barrierefreiheit & SEO genutzt">
+                        <button class="btn btn-outline-secondary" type="button" id="generate-alt-text-btn">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Automatisch generieren
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Kategorie / Ordner</label>
+                    <select class="form-select" id="category" name="category">
+                        <% categories.forEach(function(cat) { %>
+                            <option value="<%= cat %>"><%= cat %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Hochladen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filter-Buttons -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="/admin/media" class="btn btn-sm <%= !currentCategory ? 'btn-primary' : 'btn-outline-primary' %>">Alle anzeigen</a>
+        <% categories.forEach(function(cat) { %>
+            <a href="/admin/media?category=<%= encodeURIComponent(cat) %>" class="btn btn-sm <%= currentCategory === cat ? 'btn-primary' : 'btn-outline-primary' %>"><%= cat %></a>
+        <% }); %>
+    </div>
+
+    <!-- Galerie der hochgeladenen Medien -->
+    <div class="row g-3">
+        <% if (mediaItems && mediaItems.length > 0) { %>
+            <% mediaItems.forEach(function(item) { %>
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <img src="/uploads/<%= item.filename %>" class="card-img-top" alt="<%= item.alt_text %>" style="height: 150px; object-fit: contain; padding: 10px;">
+                        <div class="card-body">
+                            <p class="card-text small text-muted" style="word-break: break-all;"><%= item.filename %></p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">ID: <%= item.id %></span>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/admin/media/edit/<%= item.id %>" class="btn btn-outline-secondary" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                                <form action="/admin/media/delete/<%= item.id %>" method="POST" onsubmit="return confirm('Sind Sie sicher, dass Sie diese Datei endgültig löschen möchten?');">
+                                    <button type="submit" class="btn btn-outline-danger" title="Löschen"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <p class="text-muted">Keine Medien in dieser Kategorie gefunden.</p>
+        <% } %>
+    </div>
+</div>
+<%- include('partials/footer') %>

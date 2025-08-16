@@ -1,0 +1,119 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <h2 class="mb-4">Beitrag bearbeiten: "<%= post.title_de %>"</h2>
+
+    <div class="card mb-5">
+        <div class="card-body">
+            <form action="/admin/post/edit/<%= post.id %>" method="POST" enctype="multipart/form-data">
+                <!-- Tabs for languages -->
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="de-tab-edit" data-bs-toggle="tab" data-bs-target="#de-pane-edit" type="button" role="tab">Deutsch</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="en-tab-edit" data-bs-toggle="tab" data-bs-target="#en-pane-edit" type="button" role="tab">Englisch</button>
+                  </li>
+                </ul>
+                <div class="tab-content border border-top-0 p-3 rounded-bottom mb-3" id="myTabContentEdit">
+                  <div class="tab-pane fade show active" id="de-pane-edit" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="title_de_edit" class="form-label">Titel (Deutsch)</label>
+                        <input type="text" class="form-control" id="title_de_edit" name="title_de" value="<%= post.title_de || '' %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="content_de_edit" class="form-label mb-0">Inhalt (Deutsch)</label>
+                            <button type="button" class="btn btn-sm btn-outline-secondary translate-btn" data-source="content_de_edit" data-target="content_en_edit" data-title-source="title_de_edit" data-title-target="title_en_edit"><i class="bi bi-translate me-1"></i> Alles nach Englisch übersetzen</button>
+                        </div>
+                        <textarea class="form-control" id="content_de_edit" name="content_de" rows="10"><%- post.content_de || '' %></textarea>
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="en-pane-edit" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="title_en_edit" class="form-label">Titel (Englisch)</label>
+                        <input type="text" class="form-control" id="title_en_edit" name="title_en" value="<%= post.title_en || '' %>">
+                    </div>
+                    <div class="mb-3">
+                        <label for="content_en_edit" class="form-label">Inhalt (Englisch)</label>
+                        <textarea class="form-control" id="content_en_edit" name="content_en" rows="10"><%- post.content_en || '' %></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Titelbild</label>
+                        <div class="btn-group btn-group-sm mb-2" role="group">
+                            <input type="radio" class="btn-check" name="titleImageSource" id="sourceUpload" value="upload" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="sourceUpload">Neue Datei hochladen</label>
+                            <input type="radio" class="btn-check" name="titleImageSource" id="sourceLibrary" value="library" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="sourceLibrary">Aus Bibliothek wählen</label>
+                        </div>
+                        <div id="upload-container">
+                            <input class="form-control" type="file" id="titleImageUpload" name="titleImage">
+                        </div>
+                        <div id="library-container" style="display: none;">
+                            <button class="btn btn-outline-secondary" type="button" id="select-from-library-btn">
+                                <i class="bi bi-images me-1"></i> Bibliothek öffnen
+                            </button>
+                            <input type="hidden" name="selectedTitleImage" id="selectedTitleImage">
+                        </div>
+                        <div class="mt-2">
+                            <p class="small text-muted">Aktuelles Bild:</p>
+                            <img src="/uploads/<%= post.image_filename || '' %>" id="titleImagePreview" class="img-fluid rounded" style="max-height: 150px; <%= !post.image_filename ? 'display: none;' : '' %>" alt="Vorschau Titelbild">
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="published_at" class="form-label">Veröffentlichen am</label>
+                        <% const pubDate = post.published_at ? new Date(post.published_at).toISOString().slice(0, 16) : ''; %>
+                        <input type="datetime-local" class="form-control" id="published_at" name="published_at" value="<%= pubDate %>">
+                        <div class="form-text">Leer lassen, um sofort zu veröffentlichen.</div>
+                        <div class="form-check form-switch mt-3">
+                          <input class="form-check-input" type="checkbox" role="switch" id="is_featured" name="is_featured" value="true" <%= post.is_featured ? 'checked' : '' %>>
+                          <label class="form-check-label" for="is_featured">Auf Startseite hervorheben</label>
+                        </div>
+                    </div>
+                </div>
+                 <!-- NEU: Feld für Tags -->
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags / Schlagwörter</label>
+                    <input type="text" class="form-control" id="tags" name="tags" value="<%= post.tags || '' %>">
+                    <div class="form-text">Mehrere Tags mit Komma trennen.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Änderungen speichern</button>
+                <a href="/admin/posts" class="btn btn-secondary">Abbrechen</a>
+            </form>
+
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Medien-Schnellzugriff</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary media-filter-btn active" data-category="all">Alle</button>
+                        <button class="btn btn-outline-secondary media-filter-btn" data-category="Blog-Inhalt">Inhalt</button>
+                        <button class="btn btn-outline-secondary media-filter-btn" data-category="Icons">Icons</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2" id="media-quick-access-grid" style="max-height: 250px; overflow-y: auto;">
+                        <% if (mediaItems && mediaItems.length > 0) { %>
+                            <% mediaItems.forEach(function(item) { %>
+                                <div class="col-6 col-md-3 col-lg-2 media-item" data-item-category="<%= item.category %>">
+                                    <div class="card h-100 text-center">
+                                        <img src="/uploads/<%= item.filename %>" class="card-img-top" style="height: 80px; object-fit: contain; padding: 5px;" alt="<%= item.alt_text %>">
+                                        <div class="card-body p-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary copy-media-link-btn" data-link="/uploads/<%= item.filename %>">Link kopieren</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">Keine Medien gefunden.</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<%- include('partials/footer') %>

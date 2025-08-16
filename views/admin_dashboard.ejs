@@ -1,0 +1,48 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <h2 class="mb-4">Admin Dashboard</h2>
+
+    <!-- Statistiken -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-file-post text-primary me-2"></i>Blog-Beiträge</h5>
+                    <p class="display-4"><%= postCount %></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-images text-success me-2"></i>Mediendateien</h5>
+                    <p class="display-4"><%= mediaCount %></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-mic-fill text-info me-2"></i>Podcasts</h5>
+                    <p class="display-4"><%= podcastCount %></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Letzte Beiträge -->
+    <h4>Zuletzt bearbeitete Beiträge</h4>
+    <div class="list-group">
+        <% if (latestPosts && latestPosts.length > 0) { %>
+            <% latestPosts.forEach(function(post) { %>
+                <a href="/admin/post/edit/<%= post.id %>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <%= post.title %>
+                    <span class="badge bg-secondary rounded-pill"><%= new Date(post.createdAt).toLocaleDateString('de-DE') %></span>
+                </a>
+            <% }); %>
+        <% } else { %>
+            <p class="text-muted">Noch keine Beiträge erstellt.</p>
+        <% } %>
+    </div>
+</div>
+<%- include('partials/footer') %>

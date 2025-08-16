@@ -1,0 +1,75 @@
+<%- include('partials/header') %>
+
+<div class="admin-container container my-5">
+    <h2 class="mb-4">Podcasts verwalten</h2>
+
+    <!-- Formular für neue Podcasts -->
+    <div class="card mb-5">
+        <div class="card-header">
+            Neuen Podcast hinzufügen
+        </div>
+        <div class="card-body">
+            <form action="/admin/add_podcast" method="POST">
+                <!-- Tabs for languages -->
+                <ul class="nav nav-tabs" id="podcastTab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="de-podcast-tab" data-bs-toggle="tab" data-bs-target="#de-podcast-pane" type="button" role="tab">Deutsch</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="en-podcast-tab" data-bs-toggle="tab" data-bs-target="#en-podcast-pane" type="button" role="tab">Englisch</button>
+                  </li>
+                </ul>
+                <div class="tab-content border border-top-0 p-3 rounded-bottom mb-3" id="podcastTabContent">
+                  <div class="tab-pane fade show active" id="de-podcast-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="title_de" class="form-label">Titel (Deutsch)</label>
+                        <input type="text" class="form-control" id="title_de" name="title_de" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description_de" class="form-label">Beschreibung (Deutsch)</label>
+                        <textarea class="form-control" id="description_de" name="description_de" rows="3" required></textarea>
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="en-podcast-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="title_en" class="form-label">Titel (Englisch)</label>
+                        <input type="text" class="form-control" id="title_en" name="title_en">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description_en" class="form-label">Beschreibung (Englisch)</label>
+                        <textarea class="form-control" id="description_en" name="description_en" rows="3"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="audio_filename" class="form-label">Audio-Dateiname (z.B. "folge3.mp3")</label>
+                    <input type="text" class="form-control" id="audio_filename" name="audio_filename" required>
+                    <div class="form-text">Legen Sie die MP3-Datei in den Ordner `httpdocs/audio`.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Podcast speichern</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bestehende Podcasts -->
+    <h4 class="mt-5">Bestehende Podcasts</h4>
+    <div class="list-group">
+        <% if (podcasts && podcasts.length > 0) { %>
+            <% podcasts.forEach(function(podcast) { %>
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1"><%= podcast.title %></h5>
+                        <small><%= new Date(podcast.createdAt).toLocaleDateString('de-DE') %></small>
+                    </div>
+                    <p class="mb-1"><%= podcast.description %></p>
+                    <small class="text-muted">Dateiname: <%= podcast.audio_filename %></small>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <p class="text-muted">Es sind noch keine Podcasts vorhanden.</p>
+        <% } %>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

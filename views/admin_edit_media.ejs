@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <h2 class="mb-4">Mediendatei bearbeiten</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <img src="/uploads/<%= item.filename %>" class="img-fluid rounded border" alt="<%= item.alt_text %>">
+                </div>
+                <div class="col-md-8">
+                    <form action="/admin/media/edit/<%= item.id %>" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Dateiname</label>
+                            <input type="text" class="form-control" value="<%= item.filename %>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="altText" class="form-label">Alternativtext (für SEO)</label>
+                            <input type="text" class="form-control" id="altText" name="altText" value="<%= item.alt_text || '' %>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Kategorie / Ordner</label>
+                            <select class="form-select" id="category" name="category">
+                                <% categories.forEach(function(cat) { %>
+                                    <option value="<%= cat %>" <%= item.category === cat ? 'selected' : '' %>><%= cat %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Änderungen speichern</button>
+                        <a href="/admin/media" class="btn btn-secondary">Abbrechen</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('partials/footer') %>

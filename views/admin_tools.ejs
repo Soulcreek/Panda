@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <h2 class="mb-4">Werkzeuge &amp; Debug</h2>
+    <p class="text-muted">Diese Seite bietet erweiterte Ansichten und Aktionen zur Verwaltung Ihrer Webseiten-Daten.</p>
+
+    <!-- Umschalter für Ansichten -->
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="structured-tab" data-bs-toggle="tab" data-bs-target="#structured-view" type="button" role="tab">Strukturierte Ansicht</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="raw-tab" data-bs-toggle="tab" data-bs-target="#raw-view" type="button" role="tab">Rohdaten-Ansicht</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+      <!-- Strukturierte Ansicht -->
+      <div class="tab-pane fade show active" id="structured-view" role="tabpanel">
+        <div class="table-responsive mt-3">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titel</th>
+                        <th>Sichtbar?</th>
+                        <th>Hervorgehoben?</th>
+                        <th>Gelöscht?</th>
+                        <th>Veröffentlicht am</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (posts && posts.length > 0) { %>
+                        <% posts.forEach(function(post) { %>
+                            <tr>
+                                <td><%= post.id %></td>
+                                <td><%= post.title %></td>
+                                <td><span class="badge <%= post.is_visible ? 'bg-success' : 'bg-danger' %>"><%= post.is_visible ? 'Ja' : 'Nein' %></span></td>
+                                <td><span class="badge <%= post.is_featured ? 'bg-primary' : 'bg-secondary' %>"><%= post.is_featured ? 'Ja' : 'Nein' %></span></td>
+                                <td><span class="badge <%= post.is_deleted ? 'bg-danger' : 'bg-secondary' %>"><%= post.is_deleted ? 'Ja' : 'Nein' %></span></td>
+                                <td><%= post.published_at ? new Date(post.published_at).toLocaleString('de-DE') : 'Nicht gesetzt' %></td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Keine Beiträge in der Datenbank gefunden.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+      </div>
+      <!-- Rohdaten-Ansicht -->
+      <div class="tab-pane fade" id="raw-view" role="tabpanel">
+        <pre class="bg-dark text-light p-3 rounded mt-3"><code><%- JSON.stringify(posts, null, 2) %></code></pre>
+      </div>
+    </div>
+</div>
+<%- include('partials/footer') %>

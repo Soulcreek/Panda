@@ -1,0 +1,173 @@
+<%- include('partials/header') %>
+<div class="admin-container container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Blog-Inhalte verwalten</h2>
+        <div class="btn-group">
+            <button class="btn btn-info" id="generate-content-btn">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <i class="bi bi-robot me-2"></i>"What's New" generieren
+            </button>
+            <!-- NEU: Button für Testinhalte -->
+            <form action="/admin/add-test-posts" method="POST" onsubmit="return confirm('Möchten Sie 3 Test-Beiträge hinzufügen?');">
+                <button type="submit" class="btn btn-secondary">
+                    <i class="bi bi-plus-square-dotted me-2"></i>Testinhalte hinzufügen
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mb-5">
+        <div class="card-header">
+            Neuen Blog-Eintrag erstellen
+        </div>
+        <div class="card-body">
+            <form action="/admin/add_post" method="POST" enctype="multipart/form-data">
+                <!-- Tabs for languages -->
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="de-tab" data-bs-toggle="tab" data-bs-target="#de-pane" type="button" role="tab">Deutsch</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="en-tab" data-bs-toggle="tab" data-bs-target="#en-pane" type="button" role="tab">Englisch</button>
+                  </li>
+                </ul>
+                <div class="tab-content border border-top-0 p-3 rounded-bottom mb-3" id="myTabContent">
+                  <div class="tab-pane fade show active" id="de-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <label for="title_de" class="form-label">Titel (Deutsch)</label>
+                        <input type="text" class="form-control" id="title_de" name="title_de" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="content_de" class="form-label mb-0">Inhalt (Deutsch)</label>
+                            <button type="button" class="btn btn-sm btn-outline-secondary translate-btn" data-source="content_de" data-target="content_en" data-title-source="title_de" data-title-target="title_en"><i class="bi bi-translate me-1"></i> Alles nach Englisch übersetzen</button>
+                        </div>
+                        <textarea class="form-control" id="content_de" name="content_de" rows="10"></textarea>
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="en-pane" role="tabpanel">
+                     <div class="mb-3">
+                        <label for="title_en" class="form-label">Titel (Englisch)</label>
+                        <input type="text" class="form-control" id="title_en" name="title_en">
+                    </div>
+                    <div class="mb-3">
+                        <label for="content_en" class="form-label">Inhalt (Englisch)</label>
+                        <textarea class="form-control" id="content_en" name="content_en" rows="10"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Titelbild</label>
+                        <div class="btn-group btn-group-sm mb-2" role="group">
+                            <input type="radio" class="btn-check" name="titleImageSource" id="sourceUpload" value="upload" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="sourceUpload">Datei hochladen</label>
+                            <input type="radio" class="btn-check" name="titleImageSource" id="sourceLibrary" value="library" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="sourceLibrary">Aus Bibliothek wählen</label>
+                        </div>
+                        <div id="upload-container">
+                            <input class="form-control" type="file" id="titleImageUpload" name="titleImage">
+                        </div>
+                        <div id="library-container" style="display: none;">
+                            <button class="btn btn-outline-secondary" type="button" id="select-from-library-btn">
+                                <i class="bi bi-images me-1"></i> Bibliothek öffnen
+                            </button>
+                            <input type="hidden" name="selectedTitleImage" id="selectedTitleImage">
+                        </div>
+                        <div class="mt-2">
+                            <img src="" id="titleImagePreview" class="img-fluid rounded" style="max-height: 150px; display: none;" alt="Vorschau Titelbild">
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="published_at" class="form-label">Veröffentlichen am</label>
+                        <input type="datetime-local" class="form-control" id="published_at" name="published_at">
+                        <div class="form-text">Leer lassen, um sofort zu veröffentlichen.</div>
+                        <div class="form-check form-switch mt-3">
+                          <input class="form-check-input" type="checkbox" role="switch" id="is_featured" name="is_featured" value="true">
+                          <label class="form-check-label" for="is_featured">Auf Startseite hervorheben</label>
+                        </div>
+                    </div>
+                </div>
+                <!-- NEU: Feld für Tags -->
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags / Schlagwörter</label>
+                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Sicherheit, Cloud, DSGVO...">
+                    <div class="form-text">Mehrere Tags mit Komma trennen.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Blog-Eintrag speichern</button>
+            </form>
+
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Medien-Schnellzugriff</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary media-filter-btn active" data-category="all">Alle</button>
+                        <button class="btn btn-outline-secondary media-filter-btn" data-category="Blog-Inhalt">Inhalt</button>
+                        <button class="btn btn-outline-secondary media-filter-btn" data-category="Icons">Icons</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2" id="media-quick-access-grid" style="max-height: 250px; overflow-y: auto;">
+                        <% if (mediaItems && mediaItems.length > 0) { %>
+                            <% mediaItems.forEach(function(item) { %>
+                                <div class="col-6 col-md-3 col-lg-2 media-item" data-item-category="<%= item.category %>">
+                                    <div class="card h-100 text-center">
+                                        <img src="/uploads/<%= item.filename %>" class="card-img-top" style="height: 80px; object-fit: contain; padding: 5px;" alt="<%= item.alt_text %>">
+                                        <div class="card-body p-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary copy-media-link-btn" data-link="/uploads/<%= item.filename %>">Link kopieren</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">Keine Medien gefunden.</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <h4 class="mt-5">Bestehende Blog-Einträge</h4>
+    <% if (posts && posts.length > 0) { %>
+        <% posts.forEach(function(post) { %>
+            <div class="card mb-3" id="post-card-<%= post.id %>">
+                <div class="row g-0">
+                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                        <% if (post.image_filename) { %>
+                            <img src="/uploads/<%= post.image_filename %>" class="img-fluid rounded-start" alt="..." style="height: 100px; width: 100px; object-fit: cover;">
+                        <% } else { %>
+                            <div class="text-center p-3 bg-light rounded-start" style="height: 100px; width: 100px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-image text-muted fs-2"></i>
+                            </div>
+                        <% } %>
+                    </div>
+                    <div class="col-md-10">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5 class="card-title">
+                                    <%= post.title %>
+                                    <% if (post.is_featured) { %><span class="badge bg-primary">Hervorgehoben</span><% } %>
+                                </h5>
+                                <div class="btn-group btn-group-sm">
+                                    <!-- NEU: "Auf Seite ansehen"-Button -->
+                                    <a href="/blog#post-<%= post.id %>" target="_blank" class="btn btn-outline-info"><i class="bi bi-box-arrow-up-right"></i> Ansehen</a>
+                                    <a href="/admin/post/edit/<%= post.id %>" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Bearbeiten</a>
+                                    <button class="btn btn-outline-primary toggle-featured-btn" data-id="<%= post.id %>" <%= post.is_featured ? 'disabled' : '' %>><i class="bi bi-star"></i> Hervorheben</button>
+                                    <button class="btn <%= post.is_visible ? 'btn-outline-secondary' : 'btn-outline-warning' %> toggle-visibility-btn" data-id="<%= post.id %>"><i class="bi <%= post.is_visible ? 'bi-eye-slash' : 'bi-eye' %>"></i> <%= post.is_visible ? 'Verbergen' : 'Anzeigen' %></button>
+                                    <button class="btn btn-outline-danger delete-post-btn" data-id="<%= post.id %>"><i class="bi bi-trash"></i> Löschen</button>
+                                </div>
+                            </div>
+                            <p class="card-text"><small class="text-muted">Veröffentlicht am: <%= post.published_at ? new Date(post.published_at).toLocaleString('de-DE') : 'Sofort' %></small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p class="text-muted mt-3">Es sind noch keine Blog-Einträge vorhanden.</p>
+    <% } %>
+</div>
+<%- include('partials/footer') %>

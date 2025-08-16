@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+
+<div class="container my-5">
+    <div class="text-center">
+        <% if (dbError) { %>
+            <h1 class="text-danger">Schritt 4 fehlgeschlagen: Datenbankfehler!</h1>
+            <p>Der Server konnte die Datenbank nicht abfragen. Der Fehler lautet:</p>
+            <pre class="bg-light p-3 rounded text-start"><%= dbError %></pre>
+        <% } else { %>
+            <h1>Schritt 4 erfolgreich: Die Datenbankverbindung funktioniert.</h1>
+            <p>Der Server konnte erfolgreich Daten aus der `posts.db` lesen.</p>
+            <% if (posts && posts.length > 0) { %>
+                <p>Erster gefundener Beitrag: <strong><%= posts[0].title %></strong></p>
+            <% } else { %>
+                <p class="text-muted">Die `posts`-Tabelle ist leer, aber die Abfrage war erfolgreich.</p>
+            <% } %>
+        <% } %>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

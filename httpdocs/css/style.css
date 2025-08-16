@@ -1,0 +1,174 @@
+/* Generelle Stile & Purview Panda Branding */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+}
+
+:root {
+    --panda-primary: #0d6efd; /* Helles Blau */
+    --panda-secondary: #0dcaf0; /* Türkis / Cyan */
+    --panda-light: #e7f5ff; /* Sehr helles Blau */
+}
+
+.navbar-brand img {
+    transition: transform 0.2s ease-in-out;
+}
+.navbar-brand:hover img {
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background-color: var(--panda-primary);
+    border-color: var(--panda-primary);
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    transform: translateY(-2px);
+}
+
+/* Hero-Bereich auf der Startseite */
+.hero-section {
+    background: linear-gradient(45deg, rgba(13, 110, 253, 0.7), rgba(13, 202, 240, 0.6)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2070&auto-format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 120px 0;
+    text-align: center;
+}
+
+.hero-section h1 {
+    font-size: 3.8rem;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Fly-in Animationen mit AOS */
+[data-aos] {
+    transition-property: transform, opacity;
+}
+
+/* Spezifische Sektionen */
+.feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    font-size: 2rem;
+    color: white;
+    background: linear-gradient(45deg, var(--panda-primary), var(--panda-secondary));
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.feature-icon:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.5);
+}
+
+.card-blog {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.card-blog:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.podcast-item {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+audio {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+/* Admin & Login Seite */
+.login-container, .admin-container {
+    max-width: 960px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+/* Footer */
+.footer {
+    background-color: #212529;
+    color: #f8f9fa;
+}
+
+/* Stile für Bilder innerhalb des Blog-Contents */
+.blog-post-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 1rem auto;
+}
+
+/* --- Stile für The Panda's Way (Original & Erweitert) --- */
+.pandas-way-hero-section, .basics-hero-section {
+    min-height: 60vh;
+    background: linear-gradient(45deg, rgba(13, 110, 253, 0.8), rgba(13, 202, 240, 0.7));
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+#level-switcher .btn {
+    padding: .5rem 1.5rem;
+    font-weight: 500;
+}
+
+.level-content {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.basics-section {
+    padding: 80px 0;
+}
+
+.basics-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 6rem;
+    height: 6rem;
+    font-size: 3rem;
+    color: white;
+    background: linear-gradient(45deg, var(--panda-primary), var(--panda-secondary));
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+    margin-bottom: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    60% {
+        transform: translateY(-10px);
+    }
+}
+
+.bounce {
+    animation: bounce 2s infinite;
+}

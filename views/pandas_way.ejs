@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+
+<!-- Hero-Sektion -->
+<div class="pandas-way-hero-section d-flex align-items-center justify-content-center text-center">
+    <div data-aos="fade-up">
+        <h1 class="display-2 fw-bold">The Panda's Way</h1>
+        <p class="lead fs-3">Datensicherheit in der richtigen Komplexitätsstufe für Sie erklärt.</p>
+        <i class="bi bi-chevron-down fs-1 mt-4 bounce"></i>
+    </div>
+</div>
+
+<div class="container my-5">
+    <!-- Level-Umschalter -->
+    <div class="d-flex justify-content-center my-5" data-aos="fade-up">
+        <div class="btn-group shadow-sm" role="group" id="level-switcher">
+            <button type="button" class="btn btn-outline-primary level-btn" data-level="1">Level 1: Neugierige</button>
+            <button type="button" class="btn btn-primary level-btn active" data-level="2">Level 2: Interessierte</button>
+            <button type="button" class="btn btn-outline-primary level-btn" data-level="3">Level 3: IT-Affine</button>
+            <button type="button" class="btn btn-outline-primary level-btn" data-level="4">Level 4: Experten</button>
+        </div>
+    </div>
+
+    <!-- Inhalts-Container -->
+    <div id="level-content-container">
+    <% if (levels && levels.length > 0) { %>
+        <% levels.forEach(function(level) { %>
+            <div class="level-content" id="level-<%= level.level %>" style="<%= level.level !== 2 ? 'display: none;' : '' %>">
+                <%- level.content %>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p class="text-center text-muted">Inhalte für "The Panda's Way" konnten nicht geladen werden.</p>
+    <% } %>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
