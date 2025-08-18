@@ -64,6 +64,18 @@
  };
  const tabs = document.getElementById('alt2Tabs');
  const mount = document.getElementById('alt2Content');
+ // IntersectionObserver zuerst definieren (sonst TDZ wenn render vor Deklaration observe() aufruft)
+ const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.25, rootMargin:'0px 0px -20%' });
+ function observe(){ document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(p=>observer.observe(p)); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.top < vh*0.9){
+       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
+     }
+   });
+ }
  function render(level){
   mount.innerHTML='';
   const data = CONTENT[level]; if(!data) return; 
@@ -90,17 +102,6 @@
    tabs.appendChild(btn);
  });
  render(2);
- const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.25, rootMargin:'0px 0px -20%' });
- function observe(){ document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(p=>observer.observe(p)); }
- function immediateReveal(){
-   const vh = window.innerHeight || document.documentElement.clientHeight;
-   document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(el=>{
-     const r=el.getBoundingClientRect();
-     if(r.top < vh*0.9){
-       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
-     }
-   });
- }
 })();
 </script>
 <%- include('partials/footer') %>

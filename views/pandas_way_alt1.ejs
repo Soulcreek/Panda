@@ -61,6 +61,13 @@
  };
  const switchWrap = document.getElementById('alt1Switch');
  const content = document.getElementById('alt1Content');
+ // Observer vor erstem render deklarieren
+ const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.2});
+ function observeBlocks(){ document.querySelectorAll('.alt1-block:not(.reveal)').forEach(b=>observer.observe(b)); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt1-block:not(.reveal)').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.top < vh*0.9){ const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal'); }});
+ }
  function renderLevel(l){
   content.innerHTML='';
   const lvl = LEVELS[l];
@@ -85,17 +92,6 @@
    switchWrap.appendChild(btn);
  });
  renderLevel(2);
- const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.2});
- function observeBlocks(){ document.querySelectorAll('.alt1-block:not(.reveal)').forEach(b=>observer.observe(b)); }
- function immediateReveal(){
-   const vh = window.innerHeight || document.documentElement.clientHeight;
-   document.querySelectorAll('.alt1-block:not(.reveal)').forEach(el=>{
-     const r=el.getBoundingClientRect();
-     if(r.top < vh*0.9){
-       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
-     }
-   });
- }
 })();
 </script>
 <%- include('partials/footer') %>

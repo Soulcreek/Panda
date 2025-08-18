@@ -55,6 +55,10 @@
  };
  const switchWrap=document.getElementById('alt3Switch');
  const mount=document.getElementById('alt3Content');
+ // Observer vor render definieren
+ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); io.unobserve(en.target);} }),{threshold:.22});
+ function observe(){ document.querySelectorAll('.alt3-block:not(.reveal)').forEach(b=>io.observe(b)); }
+ function immediateReveal(){ const vh=window.innerHeight||document.documentElement.clientHeight; document.querySelectorAll('.alt3-block:not(.reveal)').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.top<vh*0.9){ const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal'); }}); }
  function render(l){
   mount.innerHTML='';
   const lvl=LEVELS[l]; if(!lvl) return; lvl.blocks.forEach((b,i)=>{
@@ -68,17 +72,6 @@
  }
  Object.entries(LEVELS).forEach(([k,v],i)=>{ const btn=document.createElement('button'); btn.type='button'; btn.className='alt3-card'; btn.textContent=v.name; btn.addEventListener('click',()=>{document.querySelectorAll('.alt3-card').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); render(k);}); if(i===1) btn.classList.add('active'); switchWrap.appendChild(btn); });
  render(2);
- const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); io.unobserve(en.target);} }),{threshold:.22});
- function observe(){ document.querySelectorAll('.alt3-block:not(.reveal)').forEach(b=>io.observe(b)); }
- function immediateReveal(){
-   const vh = window.innerHeight || document.documentElement.clientHeight;
-   document.querySelectorAll('.alt3-block:not(.reveal)').forEach(el=>{
-     const r=el.getBoundingClientRect();
-     if(r.top < vh*0.9){
-       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
-     }
-   });
- }
 })();
 </script>
 <%- include('partials/footer') %>

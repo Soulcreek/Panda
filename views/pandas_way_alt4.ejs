@@ -65,6 +65,10 @@
  };
  const switchWrap=document.getElementById('alt4Switch');
  const mount=document.getElementById('alt4Content');
+ // Observer vor render definieren
+ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const b=en.target.querySelector('.alt4-bubble'); if(b){ const d=en.target.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } io.unobserve(en.target);} }),{threshold:.25});
+ function observe(){ document.querySelectorAll('.alt4-item:not(.obs)').forEach(b=>{ b.classList.add('obs'); io.observe(b); }); }
+ function immediateReveal(){ const vh=window.innerHeight||document.documentElement.clientHeight; document.querySelectorAll('.alt4-item').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.top<vh*0.9){ const b=el.querySelector('.alt4-bubble'); if(b && !b.classList.contains('reveal')){ const d=el.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } }}); }
  function render(l){
   mount.innerHTML='';
   const lvl=LEVELS[l]; if(!lvl) return; const ul=document.createElement('ul'); ul.className='alt4-timeline';
@@ -74,20 +78,6 @@
  }
  Object.entries(LEVELS).forEach(([k,v],i)=>{ const btn=document.createElement('button'); btn.type='button'; btn.className='alt4-card'; btn.textContent=v.name; btn.addEventListener('click',()=>{document.querySelectorAll('.alt4-card').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); render(k);}); if(i===1) btn.classList.add('active'); switchWrap.appendChild(btn); });
  render(2);
- const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const b=en.target.querySelector('.alt4-bubble'); if(b){ const d=en.target.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } io.unobserve(en.target);} }),{threshold:.25});
- function observe(){ document.querySelectorAll('.alt4-item:not(.obs)').forEach(b=>{ b.classList.add('obs'); io.observe(b); }); }
- function immediateReveal(){
-   const vh = window.innerHeight || document.documentElement.clientHeight;
-   document.querySelectorAll('.alt4-item').forEach(el=>{
-     const r=el.getBoundingClientRect();
-     if(r.top < vh*0.9){
-       const b=el.querySelector('.alt4-bubble');
-       if(b && !b.classList.contains('reveal')){
-         const d=el.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal');
-       }
-     }
-   });
- }
 })();
 </script>
 <%- include('partials/footer') %>

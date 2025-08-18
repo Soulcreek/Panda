@@ -88,7 +88,8 @@ app.use((req, res, next) => {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     // Eine sehr konservative CSP (ggf. später verfeinern – TinyMCE/CDN Skripte erlauben)
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.tiny.cloud https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; frame-ancestors 'self'; connect-src 'self';");
+    // CSP erweitert: bootstrap-icons (cdn.jsdelivr), AOS CSS (unpkg) erlauben. Wenn strenger gewünscht -> Nonces/Hashes statt 'unsafe-inline'.
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.tiny.cloud https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self'; frame-ancestors 'self'; connect-src 'self';");
     next();
 });
 
