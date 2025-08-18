@@ -88,7 +88,7 @@ router.get('/podcasts', async (req, res) => {
   try {
     // Hole alle Podcasts, sortiert nach dem neuesten Datum
     const [podcasts] = await pool.query(
-      `SELECT * FROM podcasts ORDER BY published_at DESC`
+      `SELECT id, title, description, audio_url, published_at FROM podcasts ORDER BY published_at DESC`
     );
     res.render('podcasts', {
       title: 'Podcasts',
@@ -97,6 +97,33 @@ router.get('/podcasts', async (req, res) => {
   } catch (err) {
     console.error("Fehler beim Laden der Podcast-Seite:", err);
     res.status(500).send("Ein interner Fehler ist aufgetreten.");
+  }
+});
+
+// Einzelne Podcast Episode (SEO-freundlich via ID, später slug-spalte möglich)
+router.get('/podcasts/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`SELECT id, title, description, audio_url, published_at FROM podcasts WHERE id = ?`, [req.params.id]);
+    if (!rows.length) return res.status(404).render('partials/error_404', { title: 'Episode nicht gefunden' });
+    res.render('podcast_detail', { title: rows[0].title, episode: rows[0] });
+  } catch (err) {
+    console.error('Fehler beim Laden der Episode:', err);
+    res.status(500).render('partials/error_500', { title: 'Fehler', error: err });
+  }
+});
+
+// RSS Feed (Podcast)
+router.get('/podcast.rss', async (req, res) => {
+  try {
+    const [episodes] = await pool.query(`SELECT id, title, description, audio_url, published_at FROM podcasts ORDER BY published_at DESC LIMIT 50`);
+    const siteUrl = process.env.SITE_URL || 'https://example.com';
+    const rssItems = episodes.map(ep => `\n<item>\n<title><![CDATA[${ep.title}]]></title>\n<link>${siteUrl}/podcasts/${ep.id}</link>\n<guid>${siteUrl}/podcasts/${ep.id}</guid>\n<pubDate>${new Date(ep.published_at).toUTCString()}</pubDate>\n<description><![CDATA[${ep.description || ''}]]></description>\n<enclosure url="${siteUrl}${ep.audio_url}" type="audio/mpeg"/>\n</item>`).join('\n');
+    const rss = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n<channel>\n<title>Purview Panda Podcast</title>\n<link>${siteUrl}/podcasts</link>\n<description>Podcast zu Datensicherheit & Microsoft Purview</description>\n<language>de-de</language>${rssItems}\n</channel>\n</rss>`;
+    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.send(rss);
+  } catch (err) {
+    console.error('Fehler beim Generieren des RSS Feeds:', err);
+    res.status(500).send('RSS Feed Fehler');
   }
 });
 
@@ -131,7 +158,7 @@ router.get('/autor', (req, res) => {
   res.render('autor', { title: 'Über den Autor' });
 });
 
-router.get('/impressum', (res, req) => {
+router.get('/impressum', (req, res) => {
   res.render('impressum', { title: 'Impressum' });
 });
 

@@ -11,6 +11,9 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Vertrauen in Proxy (Netcup Load Balancer) für korrekte req.ip & secure Cookies
+app.set('trust proxy', 1);
+
 // Middleware für POST-Daten und statische Dateien
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'httpdocs')));
@@ -51,14 +54,31 @@ app.use((req, res, next) => {
     next();
 });
 
+// Security Header (leichtgewichtige Variante ohne zusätzliche Abhängigkeit)
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    // Eine sehr konservative CSP (ggf. später verfeinern – TinyMCE/CDN Skripte erlauben)
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.tiny.cloud 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; frame-ancestors 'self'; connect-src 'self';");
+    next();
+});
+
 // Routen einbinden
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);
 
+// 404 Handler
+app.use((req, res) => {
+    res.status(404).render('partials/error_404', { title: 'Seite nicht gefunden' });
+});
+
 // Fehlerbehandlung
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).send('Etwas ist schiefgelaufen!');
+    if (res.headersSent) return next(err);
+    res.status(500).render('partials/error_500', { title: 'Fehler', error: err });
 });
 
 // Server starten

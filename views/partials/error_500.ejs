@@ -1,0 +1,10 @@
+<%- include('partials/header') %>
+<div class="container py-5 text-center">
+  <h1 class="display-5">Fehler</h1>
+  <p class="lead mb-4">Es ist ein interner Fehler aufgetreten.</p>
+  <% if (process.env.NODE_ENV !== 'production' && error) { %>
+    <pre class="text-start bg-light p-3 border rounded small"><%= error.stack %></pre>
+  <% } %>
+  <a href="/" class="btn btn-primary">Zur Startseite</a>
+</div>
+<%- include('partials/footer') %>
