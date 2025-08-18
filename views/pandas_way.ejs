@@ -1,46 +1,75 @@
 <%- include('partials/header') %>
 
-<div class="container my-5">
-    <div class="row text-center mb-5">
-        <div class="col-12" data-aos="fade-up">
-            <h1 class="display-4">Panda's Way</h1>
-            <p class="lead text-muted">Ein schrittweiser Weg zu umfassender Datensicherheit.</p>
-        </div>
-    </div>
-
-    <% if (levels && levels.length > 0) { %>
-        <div class="row">
-            <!-- Tab Navigation an der Seite -->
-            <div class="col-md-3">
-                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                    <% levels.forEach((level, index) => { %>
-                        <button class="nav-link text-start <%= index === 0 ? 'active' : '' %>" id="v-pills-level<%= level.id %>-tab" data-bs-toggle="pill" data-bs-target="#v-pills-level<%= level.id %>" type="button" role="tab">
-                            <%= level.title || `Level ${level.display_order}` %>
-                        </button>
-                    <% }) %>
-                </div>
-            </div>
-
-            <!-- Inhalte der Tabs -->
-            <div class="col-md-9">
-                <div class="tab-content" id="v-pills-tabContent">
-                    <% levels.forEach((level, index) => { %>
-                        <div class="tab-pane fade <%= index === 0 ? 'show active' : '' %>" id="v-pills-level<%= level.id %>" role="tabpanel">
-                            <%- level.content %>
-                        </div>
-                    <% }) %>
-                </div>
-            </div>
-        </div>
-    <% } else { %>
-        <!-- Fallback-Nachricht, falls keine Inhalte in der DB sind -->
+<!-- Wrapper-Div mit der korrekten CSS-Klasse aus Ihrer style.css -->
+<div class="pandas-way-hero-section">
+    <div class="container">
         <div class="row">
             <div class="col-12 text-center">
-                <p>Die Inhalte für Panda's Way werden in Kürze verfügbar sein.</p>
+                <h1 class="display-4">Panda's Way to Data Security</h1>
+                <p class="lead">Ein interaktiver Pfad, um die Grundlagen der Datensicherheit zu verstehen.</p>
             </div>
         </div>
-    <% } %>
+    </div>
+</div>
 
+<div class="container my-5">
+    <% if (levels && levels.length > 0) { %>
+        <div class="row">
+            <!-- Container für die Navigation -->
+            <div class="col-md-3">
+                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <!-- Navigations-Buttons werden per Script eingefügt -->
+                </div>
+            </div>
+
+            <!-- Container für die Inhalte -->
+            <div class="col-md-9">
+                <div class="tab-content" id="v-pills-tabContent">
+                    <!-- Inhalts-Panes werden per Script eingefügt -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Script, um die Inhalte dynamisch und sauber zu erstellen -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const levelsData = <%- JSON.stringify(levels) %>;
+                const navContainer = document.getElementById('v-pills-tab');
+                const contentContainer = document.getElementById('v-pills-tabContent');
+
+                levelsData.forEach((level, index) => {
+                    const isActive = index === 0;
+
+                    // Erstelle den Navigations-Button
+                    const button = document.createElement('button');
+                    button.className = `nav-link text-start ${isActive ? 'active' : ''}`;
+                    button.id = `v-pills-level${level.id}-tab`;
+                    button.setAttribute('data-bs-toggle', 'pill');
+                    button.setAttribute('data-bs-target', `#v-pills-level${level.id}`);
+                    button.type = 'button';
+                    button.role = 'tab';
+                    button.setAttribute('aria-controls', `v-pills-level${level.id}`);
+                    button.setAttribute('aria-selected', isActive.toString());
+                    button.innerText = level.title;
+                    navContainer.appendChild(button);
+
+                    // Erstelle das Inhalts-Pane
+                    const contentPane = document.createElement('div');
+                    contentPane.className = `tab-pane fade ${isActive ? 'show active' : ''}`;
+                    contentPane.id = `v-pills-level${level.id}`;
+                    contentPane.setAttribute('role', 'tabpanel');
+                    contentPane.setAttribute('aria-labelledby', `v-pills-level${level.id}-tab`);
+                    contentPane.innerHTML = level.content;
+                    contentContainer.appendChild(contentPane);
+                });
+            });
+        </script>
+
+    <% } else { %>
+        <div class="text-center">
+            <p>Es konnten keine Inhalte für "Panda's Way" geladen werden.</p>
+        </div>
+    <% } %>
 </div>
 
 <%- include('partials/footer') %>

@@ -1,73 +1,138 @@
-// soulcreek/panda/Panda-master/routes/public.js
-
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const pool = require('../db'); // Unser zentraler MySQL-Connection-Pool
 
-// Home page
+// Middleware, um den aktuellen Pfad für die Navigation verfügbar zu machen
+router.use((req, res, next) => {
+  res.locals.currentPath = req.path;
+  next();
+});
+
+/*
+ * Route für die Startseite
+ * GET /
+ * Ruft die neuesten Blog-Beiträge ab und zeigt sie an.
+ */
 router.get('/', async (req, res) => {
-    try {
-        const [allPosts] = await pool.query("SELECT * FROM posts WHERE status = 'published' ORDER BY created_at DESC LIMIT 5");
-        
-        const featuredPost = allPosts.length > 0 ? allPosts[0] : null;
-        const latestPosts = allPosts.length > 1 ? allPosts.slice(1) : [];
+  try {
+    // Abfrage für den Hauptbeitrag (der neueste veröffentlichte Beitrag)
+    const [featuredPostRows] = await pool.query(
+      `SELECT p.*, m.path as featured_image_path
+       FROM posts p
+       LEFT JOIN media m ON p.featured_image_id = m.id
+       WHERE p.status = 'published'
+       ORDER BY p.created_at DESC
+       LIMIT 1`
+    );
+    
+    const featuredPost = featuredPostRows[0] || null;
 
-        res.render('index', { 
-            featuredPost: featuredPost,
-            latestPosts: latestPosts
-        });
-    } catch (err) {
-        console.error("Fehler auf der Startseite:", err);
-        res.status(500).send("Ein Fehler ist aufgetreten.");
-    }
+    // Abfrage für die Liste der neuesten Beiträge (ohne den Hauptbeitrag)
+    const [latestPostsRows] = await pool.query(
+      `SELECT p.*, m.path as featured_image_path
+       FROM posts p
+       LEFT JOIN media m ON p.featured_image_id = m.id
+       WHERE p.status = 'published' AND p.id != ?
+       ORDER BY p.created_at DESC
+       LIMIT 4`,
+      [featuredPost ? featuredPost.id : 0]
+    );
+
+    // Rendere die index.ejs-Vorlage und übergib die abgerufenen Daten
+    res.render('index', {
+      title: 'Startseite',
+      featuredPost: featuredPost,
+      latestPosts: latestPostsRows
+    });
+
+  } catch (err) {
+    console.error("Fehler beim Laden der Startseite:", err);
+    // Sende den Fehler auch an den Browser, da Logs nicht sichtbar sind
+    res.status(500).json({ 
+        message: "Ein interner Fehler ist aufgetreten.",
+        error: err.message,
+        stack: err.stack
+    });
+  }
 });
 
-// Blog-Übersichtsseite
+/*
+ * Route für die Blog-Übersichtsseite
+ * GET /blog
+ */
 router.get('/blog', async (req, res) => {
-    try {
-        const [posts] = await pool.query("SELECT * FROM posts WHERE status = 'published' ORDER BY created_at DESC");
-        res.render('blog', { posts: posts });
-    } catch (err) {
-        console.error("Fehler auf der Blog-Seite:", err);
-        res.status(500).send("Fehler auf der Blog-Seite.");
-    }
+  try {
+    // Hole alle veröffentlichten Beiträge, sortiert nach dem neuesten Datum
+    const [posts] = await pool.query(
+      `SELECT p.*, m.path as featured_image_path
+       FROM posts p
+       LEFT JOIN media m ON p.featured_image_id = m.id
+       WHERE p.status = 'published'
+       ORDER BY p.created_at DESC`
+    );
+    res.render('blog', {
+      title: 'Blog',
+      posts: posts
+    });
+  } catch (err) {
+    console.error("Fehler beim Laden der Blog-Seite:", err);
+    res.status(500).send("Ein interner Fehler ist aufgetreten.");
+  }
 });
 
-// Podcast-Seite
+/*
+ * Route für die Podcast-Seite
+ * GET /podcasts
+ */
 router.get('/podcasts', async (req, res) => {
-    try {
-        const [podcasts] = await pool.query("SELECT * FROM podcasts ORDER BY published_at DESC");
-        res.render('podcasts', { podcasts: podcasts });
-    } catch (err) {
-        console.error("Fehler auf der Podcast-Seite:", err);
-        res.render('podcasts', { podcasts: [] });
-    }
+  try {
+    // Hole alle Podcasts, sortiert nach dem neuesten Datum
+    const [podcasts] = await pool.query(
+      `SELECT * FROM podcasts ORDER BY published_at DESC`
+    );
+    res.render('podcasts', {
+      title: 'Podcasts',
+      podcasts: podcasts
+    });
+  } catch (err) {
+    console.error("Fehler beim Laden der Podcast-Seite:", err);
+    res.status(500).send("Ein interner Fehler ist aufgetreten.");
+  }
 });
 
-// Panda's Way Seite
+/*
+ * Route für die "Panda's Way"-Seite
+ * GET /pandas-way
+ */
 router.get('/pandas-way', async (req, res) => {
-    try {
-        const [levels] = await pool.query("SELECT * FROM pandas_way_levels ORDER BY display_order ASC");
-        res.render('pandas_way', { levels: levels });
-    } catch (err) {
-        console.error("Fehler auf der Panda's Way Seite:", err);
-        res.render('pandas_way', { levels: [] }); 
-    }
+  try {
+    // Hole alle Inhalts-Level, sortiert nach der Anzeigereihenfolge
+    const [levels] = await pool.query(
+      `SELECT * FROM pandas_way_levels ORDER BY display_order ASC`
+    );
+    res.render('pandas_way', {
+      title: 'Panda\'s Way',
+      levels: levels
+    });
+  } catch (err) {
+    console.error("Fehler beim Laden der Panda's Way Seite:", err);
+    res.status(500).send("Ein interner Fehler ist aufgetreten.");
+  }
 });
 
-// Autorenseite
-router.get('/autor', (req, res) => {
-    res.render('autor');
-});
 
-// Purview-Seite
+// --- Statische Seiten ohne Datenbank-Logik ---
+
 router.get('/purview', (req, res) => {
-    res.render('purview');
+  res.render('purview', { title: 'Microsoft Purview' });
 });
 
-// Impressum
-router.get('/impressum', (req, res) => {
-    res.render('impressum');
+router.get('/autor', (req, res) => {
+  res.render('autor', { title: 'Über den Autor' });
+});
+
+router.get('/impressum', (res, req) => {
+  res.render('impressum', { title: 'Impressum' });
 });
 
 module.exports = router;

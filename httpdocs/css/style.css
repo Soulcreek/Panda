@@ -3,6 +3,9 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
     color: #343a40;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 :root {
@@ -118,20 +121,11 @@ audio {
 }
 
 /* --- Stile für The Panda's Way (Original & Erweitert) --- */
-.pandas-way-hero-section, .basics-hero-section {
-    min-height: 60vh;
-    background: linear-gradient(45deg, rgba(13, 110, 253, 0.8), rgba(13, 202, 240, 0.7));
+.pandas-way-hero-section {
+    padding: 4rem 1.5rem;
     color: white;
+    background: linear-gradient(45deg, rgba(13, 110, 253, 0.8), rgba(13, 202, 240, 0.7));
     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
-
-#level-switcher .btn {
-    padding: .5rem 1.5rem;
-    font-weight: 500;
-}
-
-.level-content {
-    animation: fadeIn 0.5s ease-in-out;
 }
 
 .basics-section {
@@ -155,20 +149,4 @@ audio {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-20px);
-    }
-    60% {
-        transform: translateY(-10px);
-    }
-}
-
-.bounce {
-    animation: bounce 2s infinite;
 }
