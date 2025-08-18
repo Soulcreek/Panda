@@ -1,1 +1,96 @@
-Projektdokumentation & Onboarding: Purview PandaDieses Dokument dient als zentrale Anlaufstelle für Entwickler, um die Struktur, die Architektur und die Kernkomponenten der "Purview Panda"-Webanwendung schnell zu verstehen.1. ProjektübersichtProjektname: Purview PandaZweck: Eine informative Website mit Blog, Podcast und interaktiven Inhalten zum Thema Datensicherheit und Microsoft Purview. Die Seite verfügt über einen öffentlichen Bereich und einen passwortgeschützten Admin-Bereich zur Inhaltsverwaltung.Technologie-Stack:Backend: Node.js mit dem Express.js FrameworkFrontend: EJS (Embedded JavaScript) als Template-Engine, Bootstrap 5 für das StylingDatenbank: MySQL (via Netcup Webhosting)Server-Umgebung: Netcup Webhosting 4000 mit Node.js-Unterstützung2. Wichtige Dateien & AnwendungsstrukturDie Verzeichnisstruktur ist klassisch für eine Express-Anwendung aufgebaut:server.js: Der Startpunkt der Anwendung. Diese Datei initialisiert den Express-Server, konfiguriert die Middleware (z.B. für Sessions, CSRF-Schutz, statische Dateien) und bindet die Routing-Dateien ein.db.js: Das Herz der Datenbankverbindung. Hier wird der MySQL-Connection-Pool mithilfe der Daten aus der .env-Datei erstellt. Alle Datenbankabfragen in der Anwendung laufen über dieses Modul./routes/: Dieser Ordner trennt die Anwendungslogik für verschiedene Bereiche.public.js: Definiert alle öffentlich zugänglichen URLs (z.B. /, /blog, /pandas-way). Hier wird die Logik für das Abrufen und Anzeigen von Inhalten für die Besucher implementiert.admin.js: Definiert alle URLs für den Admin-Bereich (z.B. /admin, /admin/posts/edit/:id). Dieses Modul kümmert sich um die Authentifizierung und die Logik zum Erstellen, Bearbeiten und Löschen von Inhalten./views/: Enthält alle EJS-Template-Dateien. Diese werden vom Server mit Daten aus der Datenbank befüllt und als fertige HTML-Seiten an den Browser des Nutzers gesendet./httpdocs/: Der "Document Root" des Webservers. Alle Dateien in diesem Ordner sind direkt über den Browser erreichbar. Hier liegen CSS-Dateien, clientseitiges JavaScript, Bilder, hochgeladene Medien und Audio-Dateien..env: Die Konfigurationszentrale. Diese Datei enthält alle sensiblen Daten und Umgebungsvariablen. Sie darf niemals im Git-Repository gespeichert werden.3. Datenbankstruktur (MySQL)Die Anwendung verwendet die MySQL-Datenbank k302164_PP_Data. Unten ist die aktuelle und korrekte Struktur beschrieben.usersZweck: Speichert die Anmeldedaten für den Admin-Bereich.Wichtige Spalten:id: Eindeutige ID des Benutzers (Primary Key).username: Der Anmeldename.password: Das gehashte Passwort (mit bcrypt erstellt).postsZweck: Enthält alle Blog-Beiträge. Diese Tabelle ist für eine mehrsprachige Website vorbereitet.Wichtige Spalten:id: Eindeutige ID des Beitrags.title, content: Titel und Hauptinhalt auf Deutsch.title_en, content_en: Titel und Hauptinhalt auf Englisch (optional).slug: Eine "schöne" URL-Version des Titels (z.B. drei-saeulen-datensicherheit).status: Der Veröffentlichungsstatus ('published' oder 'draft').featured_image_id: Verknüpfung zur media-Tabelle für das Beitragsbild (Foreign Key).author_id: Verknüpfung zum Autor in der users-Tabelle (Foreign Key).mediaZweck: Die Medienbibliothek. Speichert Informationen zu allen hochgeladenen Dateien (Bilder, etc.).Wichtige Spalten:id: Eindeutige ID der Mediendatei.name: Der Dateiname (z.B. Panda_Knight.png).path: Der relative Pfad zur Datei im /httpdocs-Ordner (z.B. /uploads/1755288515495-Panda_Knight.png).alt_text: Alternativtext für Bilder (wichtig für SEO und Barrierefreiheit).podcastsZweck: Verwaltung der Podcast-Episoden.Wichtige Spalten:id: Eindeutige ID der Episode.title, description: Titel und Beschreibung der Episode.audio_url: Der Pfad zur M4A-Audiodatei.pandas_way_levelsZweck: Speichert die einzelnen HTML-Inhaltsblöcke für die interaktive Seite "Panda's Way".Wichtige Spalten:id: Eindeutige ID des Levels/Abschnitts.title: Der Titel des Abschnitts (z.B. "Level 1: Die Grundlagen").content: Der vollständige HTML-Code für diesen Abschnitt.display_order: Legt die Reihenfolge der Abschnitte auf der Seite fest.sessionsZweck: Diese Tabelle wird von express-session automatisch verwaltet, um Benutzer-Logins über mehrere Seitenaufrufe hinweg aktiv zu halten.4. Nächste Schritte & EmpfehlungenCode-Anpassung (höchste Priorität):Aufgabe: Die Routen in routes/admin.js und routes/public.js müssen vollständig an die oben beschriebene MySQL-Struktur angepasst werden. Alle Datenbankabfragen (pool.query(...)) müssen so umgeschrieben werden, dass sie die korrekten Tabellen- und Spaltennamen verwenden.Beispiel: Eine Abfrage für alle Blog-Beiträge muss SELECT * FROM posts WHERE status = 'published' lauten und nicht versuchen, auf eine Tabelle posts_content zuzugreifen.Fehlerbehebung (folgt aus 1):CSRF-Fehler beim Upload: Sobald die Admin-Seiten wieder laden, können wir den CSRF-Fehler im Upload-Formular beheben, indem wir das Token korrekt einfügen.Leere öffentliche Seiten: Wenn die Abfragen in public.js korrigiert sind, werden die Inhalte automatisch auf den Seiten angezeigt.Aufräumen:Aufgabe: Löschen Sie die veralteten .db-Dateien (posts.db, media.db etc.) und das alte migrate.js-Skript aus dem Projektverzeichnis, um Verwirrung zu vermeiden.
+Projektdokumentation & Onboarding: Purview Panda
+
+Dieses Dokument dient als zentrale Anlaufstelle für Entwickler.
+
+1. Projektübersicht
+Name: Purview Panda
+Zweck: Öffentliche Informationsseite (Blog, Podcasts, interaktive Lernpfade) + Admin-CMS.
+Stack: Node.js (Express), EJS, Bootstrap 5, MySQL.
+Hosting: Netcup (Webhosting 4000).
+
+2. Struktur (Kurz)
+server.js – App Bootstrap / Middleware / CSP
+db.js – MySQL Pool
+routes/public.js – Öffentliche Routen
+routes/admin.js – Admin & KI Endpunkte
+views/ – EJS Templates
+httpdocs/ – Statische Assets & Uploads
+locales/ – i18n JSON Dateien
+i18n.js – Sprach-Middleware
+
+3. Datenbank Kern-Tabellen
+users(id, username, password)
+posts(id, title, content, title_en, content_en, slug, status, featured_image_id, author_id, published_at, tags, whatsnew)
+media(id, name, path, type, category, alt_text)
+podcasts(id, title, description, audio_url, published_at)
+pandas_way_levels(id, title, content, display_order)
+sessions(session_id, data, expires) – von express-session
+
+4. Aktuelle technische Hinweise
+- Dynamische Schema-Erweiterung per TRY/CATCH beim Schreiben (Adds: published_at, tags, is_deleted …)
+- CSRF aktiviert (POST /admin/upload ausgenommen)
+- Content Security Policy manuell gesetzt
+
+5. Internationalisierung (i18n)
+Middleware `i18n.js`: Query ?lang → Session → Accept-Language → Fallback 'de'.
+Helper: t(key[,fallback]). Fallback: current → default(de) → key.
+Locales: locales/de.json, locales/en.json.
+
+6. KI Features (Gemini API)
+POST /admin/generate-whats-new
+POST /admin/api/translate
+POST /admin/generate-alt-text
+ENV: GEMINI_API_KEY benötigt. JSON Schema Nutzung für strukturierte Antworten.
+
+7. Panda's Way Varianten
+/pandas-way (Basis) + /pandas-way-alt1..alt4
+Unterschiede nur in Content-Layout; Navigation teilweise konsistent.
+Admin Dashboard zeigt alle Varianten.
+Geplant: settings Tabelle zur Aktivierung bevorzugter Variante.
+
+8. Environment (.env Beispiel)
+SESSION_SECRET=change_me
+GEMINI_API_KEY=sk-xxx
+WHITELISTED_IPS=127.0.0.1
+NODE_ENV=production
+PORT=3000
+CLEAR_SESSIONS_ON_START=false
+
+9. Sicherheit
+Headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, CSP.
+TODO: Rate Limiting, Helmet optional, Login Bruteforce Schutz.
+
+10. Performance
+IntersectionObserver statt großer Libs.
+Bilder künftig als WebP/AVIF + srcset.
+Cache-Control für /httpdocs (noch nicht gesetzt).
+
+11. Internationalisierung Ausbau
+Hardcoded Strings in alt2–alt4 → Keys.
+Optional Cookie statt Session (besseres Caching).
+
+12. Roadmap (Auszug)
+- Aktive Panda Variante
+- Post Revisionen
+- Tag Verwaltung UI
+- Related Posts Empfehlung
+- Dark Mode (CSS Vars)
+- Tests & CI Pipeline
+- Rate Limiting / Security Layer
+
+13. Developer Cheats
+Neue Variante: view anlegen → Route → Dashboard Karte.
+Neuer Übersetzungs-Key: locales/de.json & en.json ergänzen.
+Session Reset: CLEAR_SESSIONS_ON_START=true + Restart.
+
+14. KI Erweiterungsideen
+- Caching von Übersetzungen
+- Batch Übersetzung bestehender Posts
+- "Glossary Builder" Endpoint
+
+15. Offene Verbesserungen
+- CSP Verfeinern (Hashes/Nonces)
+- Logging Framework (pino)
+- Tests (Supertest) minimal
+
+Ende der Dokumentation.

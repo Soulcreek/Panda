@@ -1,8 +1,7 @@
-// Initialisiert die "Animate On Scroll" Bibliothek
-AOS.init({
-    duration: 800,
-    once: true,
-});
+// AOS nur initialisieren falls verfügbar (CSP / Lazy)
+if (typeof AOS !== 'undefined') {
+    AOS.init({ duration: 800, once: true });
+}
 
 // Globale Logik für die Medienbibliothek
 const mediaLibraryModalEl = document.getElementById('mediaLibraryModal');
@@ -24,19 +23,22 @@ async function openMediaLibraryModal(options) {
     sizeOptions.style.display = 'none';
     selectedMedia = null;
     
-    let apiUrl = '/api/media';
+    // Admin media API lives under /admin
+    let apiUrl = '/admin/api/media';
     if (options.filter) {
-        apiUrl += `?category=${encodeURIComponent(options.filter)}`;
-        modalTitle.textContent = `Wähle aus Kategorie: "${options.filter}"`;
-    } else {
-        modalTitle.textContent = 'Aus Medienbibliothek auswählen';
-    }
+        if(options.filter==='__featuredCombo'){ // clientseitig Banner + Titelbild
+            modalTitle.textContent = 'Wähle Titel-/Bannerbild';
+        } else {
+            apiUrl += `?category=${encodeURIComponent(options.filter)}`;
+            modalTitle.textContent = `Wähle aus Kategorie: "${options.filter}"`;
+        }
+    } else { modalTitle.textContent = 'Aus Medienbibliothek auswählen'; }
 
     mediaLibraryModal.show();
 
     try {
         const response = await fetch(apiUrl);
-        const mediaItems = await response.json();
+    const mediaItems = await response.json();
         
         grid.innerHTML = '';
         if (mediaItems.length === 0) {
@@ -48,24 +50,41 @@ async function openMediaLibraryModal(options) {
         row.className = 'row g-3';
         
         mediaItems.forEach(item => {
+            if(options.filter==='__featuredCombo'){
+                const cat = (item.category||'').toLowerCase();
+                if(!(cat==='banner' || cat==='titelbild')) return; // skip non matching
+            }
             const col = document.createElement('div');
             col.className = 'col-6 col-sm-4 col-md-3 col-lg-2';
-            
             const card = document.createElement('div');
-            card.className = 'card h-100 media-library-item';
+            card.className = 'card h-100 media-library-item d-flex align-items-center justify-content-center';
             card.style.cursor = 'pointer';
-            card.dataset.filename = item.filename;
+            card.dataset.id = item.id;
+            const filename = item.name || item.filename || (item.path? item.path.split('/').pop(): '');
+            card.dataset.filename = filename;
+            card.dataset.path = item.path;
             card.dataset.alttext = item.alt_text || '';
-
-            const img = document.createElement('img');
-            img.src = `/uploads/${item.filename}`;
-            img.className = 'card-img-top';
-            img.style.height = '120px';
-            img.style.objectFit = 'contain';
-            img.style.padding = '10px';
-            img.alt = item.alt_text;
-
-            card.appendChild(img);
+            if(item.type && item.type.startsWith('image/')){
+                const img = document.createElement('img');
+                const src = item.path && item.path.startsWith('/uploads/') ? item.path : (item.path || '/uploads/'+filename);
+                img.src = src;
+                img.className = 'card-img-top';
+                img.style.height = '120px';
+                img.style.objectFit = 'contain';
+                img.style.padding = '10px';
+                img.alt = item.alt_text || filename;
+                card.appendChild(img);
+            } else if(item.type && item.type.startsWith('audio/')){
+                const wrap = document.createElement('div');
+                wrap.className = 'text-center p-3';
+                wrap.innerHTML = '<i class="bi bi-music-note-beamed" style="font-size:2rem;"></i><div class="small text-muted text-truncate" style="max-width:100%">'+filename+'</div>';
+                card.appendChild(wrap);
+            } else {
+                const wrap = document.createElement('div');
+                wrap.className = 'text-center p-3';
+                wrap.innerHTML = '<i class="bi bi-file-earmark" style="font-size:2rem;"></i><div class="small text-muted">'+filename+'</div>';
+                card.appendChild(wrap);
+            }
             col.appendChild(card);
             row.appendChild(col);
         });
@@ -77,14 +96,20 @@ async function openMediaLibraryModal(options) {
                 this.classList.add('border-primary', 'border-3');
 
                 selectedMedia = {
+                    id: this.dataset.id,
                     filename: this.dataset.filename,
+                    path: this.dataset.path,
                     alt: this.dataset.alttext
                 };
 
                 if (options.tinyMCE) {
                     sizeOptions.style.display = 'flex';
                 } else {
-                    mediaLibraryCallback(selectedMedia.filename);
+                    if(options && options.returnObject){
+                        mediaLibraryCallback(selectedMedia);
+                    } else {
+                        mediaLibraryCallback(selectedMedia.filename);
+                    }
                     mediaLibraryModal.hide();
                 }
             });
@@ -155,12 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const response = await fetch(`/api/blog/${postId}`);
-                if (!response.ok) throw new Error('Post not found');
+                const ct = response.headers.get('content-type')||'';
+                if (!response.ok) throw new Error('HTTP '+response.status);
+                if (!ct.includes('application/json')) throw new Error('Kein JSON ('+ct+')');
                 const post = await response.json();
+                if(!post || !post.content){ console.warn('Leerer Post API Response', post); }
                 modalTitle.textContent = post.title;
                 modalContent.innerHTML = `<div class="blog-post-content">${post.content}</div>`;
-                if (post.image_filename) {
-                    modalImage.src = `/uploads/${post.image_filename}`;
+                if (post.image_path) {
+                    modalImage.src = post.image_path;
                     modalImage.style.display = 'block';
                 }
                 if (post.tags) {
@@ -171,8 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     modalTags.innerHTML = tagsHtml;
                 }
             } catch (error) {
+                console.error('Blog Modal Fehler:', error);
                 modalTitle.textContent = 'Fehler';
-                modalContent.textContent = 'Der Beitrag konnte nicht geladen werden.';
+                modalContent.innerHTML = '<p class="text-danger">Der Beitrag konnte nicht geladen werden ('+error.message+').</p>';
+                const dbg = document.createElement('pre'); dbg.className='small text-muted'; dbg.textContent='ID '+postId+' Fehler: '+error.message; modalContent.appendChild(dbg);
             }
         });
     }
@@ -185,15 +215,26 @@ document.addEventListener('DOMContentLoaded', () => {
             this.disabled = true;
             spinner.classList.remove('d-none');
             try {
-                const response = await fetch('/admin/generate-whats-new', { method: 'POST' });
+                const response = await fetch('/admin/generate-whats-new', { method: 'POST', headers:{'CSRF-Token': (window.CSRF_TOKEN||'')} });
+                const ct = response.headers.get('content-type')||'';
+                if(!ct.includes('application/json')) throw new Error('Server lieferte kein JSON (Session abgelaufen?)');
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.details || data.error);
+                if (!response.ok) throw new Error(data.details || data.error || 'Fehler');
                 document.getElementById('title_de').value = data.title_de;
                 tinymce.get('content_de').setContent(data.content_de);
                 document.getElementById('title_en').value = data.title_en;
                 tinymce.get('content_en').setContent(data.content_en);
             } catch (error) {
-                alert("Der Inhalt konnte nicht generiert werden: " + error.message);
+                // Fallback: einfacher kostenloser Platzhalter (statisch / heuristisch)
+                const fallbackSource = 'Fallback Local Template';
+                const now = new Date().toLocaleDateString('de-DE');
+                const fbTitle = 'Aktuelle Data Security Notizen ('+now+')';
+                const fbContent = '<p>Dieser Inhalt wurde als Fallback generiert, da der KI-Dienst nicht verfügbar war. Kurzer Überblick über aktuelle Trends: Zero Trust, Datenklassifizierung, automatisierte Compliance-Überwachung.</p>';
+                alert("Der Inhalt konnte nicht generiert werden ("+ error.message + "). Fallback verwendet: " + fallbackSource);
+                if (window.tinymce && tinymce.get('content_de')) {
+                    document.getElementById('title_de').value = fbTitle;
+                    tinymce.get('content_de').setContent(fbContent);
+                }
             } finally {
                 this.disabled = false;
                 spinner.classList.add('d-none');
@@ -238,56 +279,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Event Listener für Alt-Text-Generierung
-    const generateAltTextBtn = document.getElementById('generate-alt-text-btn');
-    const mediaFilesInput = document.getElementById('mediaFiles');
-
-    if (generateAltTextBtn && mediaFilesInput) {
-        // Button bei mehr als einer Datei de-/aktivieren
-        mediaFilesInput.addEventListener('change', () => {
-            if (mediaFilesInput.files.length > 1) {
-                generateAltTextBtn.disabled = true;
-            } else {
-                generateAltTextBtn.disabled = false;
+        const generateAltTextBtn = document.getElementById('generate-alt-text-btn');
+        const mediaFilesInput = document.getElementById('mediaFiles');
+        const altTextInput = document.getElementById('altText');
+        const descInput = document.getElementById('mediaDescription');
+        if (generateAltTextBtn && mediaFilesInput) {
+            function updateBtnState() {
+                generateAltTextBtn.disabled = !(mediaFilesInput.files && mediaFilesInput.files.length === 1);
             }
-        });
+            mediaFilesInput.addEventListener('change', updateBtnState);
+            updateBtnState();
+            generateAltTextBtn.addEventListener('click', async function() {
+                if (!(mediaFilesInput.files && mediaFilesInput.files.length === 1)) return;
+                const spinner = this.querySelector('.spinner-border');
+                this.disabled = true; spinner.classList.remove('d-none');
+                const filename = mediaFilesInput.files[0].name;
+                try {
+                    const resp = await fetch('/admin/generate-alt-text', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': (window.CSRF_TOKEN||'')}, body: JSON.stringify({ filename }) });
+                    const ct = resp.headers.get('content-type')||'';
+                    if(!ct.includes('application/json')) throw new Error('Kein JSON (eingeloggt?)');
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || 'Fehler');
+                    if (altTextInput && !altTextInput.value) altTextInput.value = data.alt;
+                    if (descInput && !descInput.value) descInput.value = data.description;
+                } catch(e){
+                    // Fallback Heuristik aus Dateiname
+                    const base = filename.replace(/[-_]/g,' ').replace(/\.[a-zA-Z0-9]+$/,'');
+                    const simpleAlt = 'Bild: '+ base.substring(0,60);
+                    const simpleDesc = 'Auto-Fallback Beschreibung zu '+ base.substring(0,50);
+                    if (altTextInput && !altTextInput.value) altTextInput.value = simpleAlt;
+                    if (descInput && !descInput.value) descInput.value = simpleDesc;
+                    alert('KI Fehler: '+ e.message + ' – Fallback verwendet.');
+                } finally { this.disabled = false; spinner.classList.add('d-none'); }
+            });
+        }
 
-        generateAltTextBtn.addEventListener('click', async function() {
-            const altTextInput = document.getElementById('altText');
-            const spinner = this.querySelector('.spinner-border');
-
-            if (!mediaFilesInput.files || mediaFilesInput.files.length === 0) {
-                alert('Bitte wählen Sie zuerst eine Bilddatei aus.');
-                return;
-            }
-            if (mediaFilesInput.files.length > 1) {
-                alert('Die automatische Text-Generierung funktioniert nur für einzelne Bilder.');
-                return;
-            }
-
-            this.disabled = true;
-            spinner.classList.remove('d-none');
-            
-            const formData = new FormData();
-            formData.append('image', mediaFilesInput.files[0]);
-
-            try {
-                const response = await fetch('/admin/generate-alt-text', {
-                    method: 'POST',
-                    body: formData
+        // Kategorie-Filter in Medienbibliothek (Clientseitig)
+        const mediaCategoryFilters = document.getElementById('media-category-filters');
+            const mediaTypeFilter = document.getElementById('media-type-filter');
+        if (mediaCategoryFilters) {
+            mediaCategoryFilters.addEventListener('click', e => {
+                const btn = e.target.closest('button[data-cat]');
+                if (!btn) return;
+                e.preventDefault();
+                const cat = btn.dataset.cat;
+                mediaCategoryFilters.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                    document.querySelectorAll('.media-grid-item').forEach(item => {
+                    const icat = item.dataset.category || '';
+                        item.style.display = (cat === 'all' || icat === cat) ? '' : 'none';
                 });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.details || data.error || 'Unbekannter Fehler');
-                }
-                altTextInput.value = data.altText;
-            } catch (error) {
-                alert('Fehler beim Generieren des Alternativtextes: ' + error.message);
-            } finally {
-                this.disabled = false;
-                spinner.classList.add('d-none');
+            });
+        }
+            if(mediaTypeFilter){
+                mediaTypeFilter.addEventListener('click', e=>{
+                    const btn = e.target.closest('button[data-type]'); if(!btn) return;
+                    mediaTypeFilter.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const t = btn.dataset.type;
+                    document.querySelectorAll('.media-grid-item').forEach(card=>{
+                        const img = card.querySelector('img');
+                        const isImage = !!img;
+                        const isAudio = card.querySelector('.bi-music-note-beamed') !== null;
+                        if(t==='all' || (t==='image' && isImage) || (t==='audio' && isAudio)) card.style.display=''; else card.style.display='none';
+                    });
+                });
             }
-        });
-    }
 
     // Admin-Buttons (Delegation)
     document.addEventListener('click', async function(e) {
@@ -386,6 +443,68 @@ document.addEventListener('DOMContentLoaded', () => {
                     preview.style.display = 'block';
                     document.getElementById('titleImageUpload').value = ''; 
                 }
+            });
+        });
+    }
+});
+
+// Featured Image Auswahl (Admin Post Editor) über globales Modal
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('selectFeaturedBtn');
+        // Inline Buttons (above editor)
+        const inlineSelect = document.getElementById('inlineSelectFeaturedBtn');
+        const inlineClear = document.getElementById('inlineClearFeaturedBtn');
+        if(inlineSelect){
+            inlineSelect.addEventListener('click', ()=>{
+                openMediaLibraryModal({ filter:'__featuredCombo', returnObject:true, callback:(media)=>{
+                    const hidden = document.getElementById('featured_image_id');
+                    hidden.value = media.id || '';
+                    document.getElementById('inlineFeaturedName').textContent = media.path ? media.path.split('/').pop() : media.filename;
+                    // Falls der seitliche Preview vorhanden ist, aktualisieren
+                    const preview = document.getElementById('featuredPreview'); if(preview){ preview.src = media.path || ('/uploads/'+media.filename); preview.classList.remove('d-none'); }
+                    const wrapper = document.getElementById('featuredPreviewWrapper'); if(wrapper) wrapper.classList.remove('d-none');
+                }});
+            });
+        }
+        if(inlineClear){
+            inlineClear.addEventListener('click', ()=>{
+                document.getElementById('featured_image_id').value='';
+                document.getElementById('inlineFeaturedName').textContent='Keines gewählt';
+            });
+        }
+    if(btn){
+        btn.addEventListener('click', ()=>{
+            openMediaLibraryModal({ filter:'__featuredCombo', returnObject:true, callback:(media)=>{
+                const hidden = document.getElementById('featured_image_id');
+                hidden.value = media.id || '';
+                const preview = document.getElementById('featuredPreview');
+                const imgPath = media.path ? media.path.replace(/^\.\/?httpdocs\//,'') : '/uploads/'+media.filename;
+                preview.src = imgPath.startsWith('/uploads')? imgPath : ('/uploads/'+media.filename);
+                preview.classList.remove('d-none');
+                document.getElementById('featuredPreviewWrapper').classList.remove('d-none');
+                const hint = document.getElementById('noFeaturedHint'); if(hint) hint.style.display='none';
+            }});
+        });
+    }
+    const clearBtn = document.getElementById('clearFeaturedBtn');
+    if(clearBtn){
+        clearBtn.addEventListener('click', ()=>{
+            document.getElementById('featured_image_id').value='';
+            document.getElementById('featuredPreview').classList.add('d-none');
+            const hint = document.getElementById('noFeaturedHint'); if(hint) hint.style.display='';
+        });
+    }
+    // Mini Media Filter
+    const miniFilter = document.getElementById('mini-media-filter');
+    if(miniFilter){
+        miniFilter.addEventListener('click', e=>{
+            const btnEl = e.target.closest('button[data-cat]'); if(!btnEl) return;
+            miniFilter.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+            btnEl.classList.add('active');
+            const cat = btnEl.dataset.cat;
+            document.querySelectorAll('#mini-media-grid .mini-media-item').forEach(item=>{
+                const icat = item.getAttribute('data-cat')||'';
+                item.style.display = (cat==='all'||icat===cat)?'':'none';
             });
         });
     }

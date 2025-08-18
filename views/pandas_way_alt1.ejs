@@ -1,0 +1,101 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container-fluid py-5 px-0" style="--gradA:#0d6efd;--gradB:#6610f2;">
+  <section class="alt-hero position-relative overflow-hidden text-center text-light" style="background:linear-gradient(135deg,var(--gradA),var(--gradB));min-height:55vh;display:flex;align-items:center;justify-content:center;">
+    <div class="container" data-alt-effect="fade-in">
+      <h1 class="display-3 fw-bold mb-3">Panda's Way – ALT Design 1</h1>
+      <p class="lead mb-4">Gleiches Thema. Vier Erklär-Stile. Neon Cards + Glass Morph Segmente.</p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap level-switch" id="alt1Switch"></div>
+    </div>
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background:radial-gradient(circle at 25% 35%,rgba(255,255,255,.25),transparent 60%),radial-gradient(circle at 70% 65%,rgba(255,255,255,.2),transparent 55%);"></div>
+  </section>
+  <section class="container py-5" id="alt1Content"></section>
+</div>
+<style>
+.alt1-card{cursor:pointer;min-width:140px;padding:1rem 1.1rem;border-radius:1rem;backdrop-filter:blur(6px);background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25);transition:.35s;position:relative;overflow:hidden;font-size:.85rem;text-align:left;}
+.alt1-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.25),transparent);opacity:0;transition:.4s;}
+.alt1-card:hover{transform:translateY(-6px);box-shadow:0 1.25rem 2rem -1rem rgba(0,0,0,.6);} 
+.alt1-card.active{border-color:#fff;box-shadow:0 0 0 .25rem rgba(255,255,255,.25);} 
+.alt1-card.active:before{opacity:1;}
+.alt1-block{position:relative;margin-bottom:4rem;padding:3.25rem 2.5rem 2.75rem 2.5rem;border-radius:1.75rem;background:linear-gradient(135deg,#ffffff,#f6f8ff);box-shadow:0 2rem 3.25rem -1.25rem rgba(0,10,40,.18);border:1px solid #e2e8f4;opacity:0;transform:translateY(70px) scale(.95);transition:opacity .9s ease, transform 1s cubic-bezier(.16,.8,.28,.96);} 
+.alt1-block.reveal{opacity:1;transform:translateY(0) scale(1);} 
+.alt1-block h2{font-size:2.1rem;font-weight:600;letter-spacing:.5px;background:linear-gradient(90deg,#0d6efd,#6610f2);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1.25rem;}
+.alt-chip{display:inline-block;padding:.45rem .8rem;background:#0d6efd15;color:#0d6efd;font-size:.75rem;font-weight:500;border-radius:1rem;margin:.15rem .35rem .15rem 0;}
+.alt-divider{height:4px;width:120px;background:linear-gradient(90deg,#0d6efd,#6610f2,#20c997);border-radius:3px;margin:0 0 2rem 0;}
+.alt-glass{background:linear-gradient(145deg,rgba(255,255,255,.75),rgba(255,255,255,.55));backdrop-filter:blur(10px);}
+.alt-icon{font-size:2.2rem;line-height:1;color:#0d6efd;margin-right:.75rem;}
+.alt-gradient-bg{background:linear-gradient(135deg,#eef5ff,#ffffff,#f1e8ff);} 
+</style>
+<script>
+(function(){
+ console.log('alt1 init');
+ const LEVELS = {
+  1:{name:'Level 1', style:'Piktogramm & super kurz', blocks:[
+    {t:'Was sind Daten?', body:'Fotos, Wörter, Zahlen. Alles Information. Dinge die wir teilen oder schützen wollen.', chips:['Daten','Info','Basis']},
+    {t:'Warum schützen?', body:'Richtig bleiben. Privat bleiben. Verfügbar bleiben. Drei Ziele: Vertraulichkeit, Integrität, Verfügbarkeit.', chips:['CIA','Privat']},
+    {t:'Wie starten?', body:'Starkes Passwort. Backup. Geräte sperren. Updates einschalten.', chips:['Passwort','Backup','Sperre']},
+    {t:'Einfache Risiken', body:'Verlust, falsches Teilen, Malware. Minimieren durch Aufmerksamkeit & Grundhygiene.', chips:['Risiko','Malware']},
+    {t:'Mini-Check', body:'Hast du zwei Sicherungen deiner wichtigsten Datei? Ist dein Gerät gesperrt?', chips:['Selbsttest']}
+  ]},
+  2:{name:'Level 2', style:'Kurze Sätze & Mini Modell', blocks:[
+    {t:'Identify', body:'Inventar & Klassifizierung. Sichtbarkeit bevor Kontrolle. Ohne Inventar kein Schutz-Scoping.', chips:['Inventar','Label']},
+    {t:'Protect', body:'Least Privilege, Verschlüsselung, DLP Pilot → Enforcement. Labels tragen Kontext.', chips:['Access','DLP','Crypto']},
+    {t:'Detect/Respond', body:'Telemetrie + Baselines. Alerts → Runbook. Übung reduziert MTTR.', chips:['Telemetry','Alert','Runbook']},
+    {t:'Kleine Gewinne', body:'Zuerst klarer Owner je Datenbereich. Dann fokussierte DLP Policy in Monitor.', chips:['Owner','Pilot']},
+    {t:'Metriken', body:'% klassifizierte Assets, Anzahl High-Risk Shares, Drill Frequenz.', chips:['KPIs','Coverage']}
+  ]},
+  3:{name:'Level 3', style:'Pattern & Architektur', blocks:[
+    {t:'Data Map', body:'Kontinuierliche Scans. Lineage für Impact & Risiko Priorisierung. Automatisierte Klassifizierer.', chips:['Scan','Lineage','Risiko']},
+    {t:'Controls', body:'Policy-as-Code, Sensitivity Labels, Just-in-Time Privilegien → Reduziert stehende Rechte.', chips:['Policy','Label','JIT']},
+    {t:'Analytics', body:'UEBA + Korrelation. Anomalien → Vorfall-Kette. Kontext reduziert False Positives.', chips:['UEBA','SIEM','Korrelation']},
+    {t:'Automatisierung', body:'Pipelines publizieren Policies reproduzierbar (Git Review).', chips:['CI/CD','IaC']},
+    {t:'Resilienz', body:'Backup Prüfsummen & Restore Tests sichern Integrität.', chips:['Backup','Restore']}
+  ]},
+  4:{name:'Level 4', style:'Strategie & KPIs', blocks:[
+    {t:'Governance', body:'Rollenmodell, Funding Zyklen, Maturity Tracking, Steering Board.', chips:['Rollen','KPIs']},
+    {t:'Adaptive Protection', body:'Risk Scoring steuert Eskalationspfade (Progressive Controls).', chips:['Risk','Adaptive']},
+    {t:'Operations', body:'Drills, Runbook Versionierung, Drift Detection, Lessons Learned Loop.', chips:['Drill','Runbook','Drift']},
+    {t:'Portfolio', body:'Priorisierung via Value/Risk vs Effort Matrix.', chips:['Priorisierung']},
+    {t:'Outcome', body:'Transparente KPIs treiben Sponsorship & Budget.', chips:['Outcome','Sponsorship']}
+  ]}
+ };
+ const switchWrap = document.getElementById('alt1Switch');
+ const content = document.getElementById('alt1Content');
+ function renderLevel(l){
+  content.innerHTML='';
+  const lvl = LEVELS[l];
+  if(!lvl) return;
+  lvl.blocks.forEach((b,i)=>{
+    const el=document.createElement('div');
+    el.className='alt1-block alt-gradient-bg';
+    el.dataset.delay = 80*i;
+    el.innerHTML=`<h2>${b.t}</h2><div class='alt-divider'></div><p class='lead mb-3'>${b.body}</p><div>${b.chips.map(c=>`<span class='alt-chip'>${c}</span>`).join('')}</div>`;
+    content.appendChild(el);
+  });
+  observeBlocks();
+  immediateReveal();
+ }
+ Object.entries(LEVELS).forEach(([k,v],i)=>{
+   const btn=document.createElement('button');
+   btn.type='button';
+   btn.className='alt1-card text-start';
+   btn.innerHTML=`<div class='fw-bold mb-1'>${v.name}</div><div class='small opacity-75'>${v.style}</div>`;
+   btn.addEventListener('click',()=>{document.querySelectorAll('.alt1-card').forEach(c=>c.classList.remove('active'));btn.classList.add('active');renderLevel(k);});
+   if(i===1) btn.classList.add('active');
+   switchWrap.appendChild(btn);
+ });
+ renderLevel(2);
+ const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.2});
+ function observeBlocks(){ document.querySelectorAll('.alt1-block:not(.reveal)').forEach(b=>observer.observe(b)); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt1-block:not(.reveal)').forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.top < vh*0.9){
+       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
+     }
+   });
+ }
+})();
+</script>
+<%- include('partials/footer') %>

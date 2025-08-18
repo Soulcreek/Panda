@@ -1,0 +1,84 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container-fluid px-0" id="alt3Root">
+  <section class="py-5 text-center position-relative alt3-hero text-light">
+    <div class="container">
+      <h1 class="display-4 fw-bold mb-3">Panda's Way – ALT Design 3</h1>
+      <p class="lead mb-4"><%= t('pandas.alt1.subtitle') %></p>
+      <div class="d-flex justify-content-center flex-wrap gap-3" id="alt3Switch"></div>
+    </div>
+    <div class="alt3-bg-layer"></div>
+  </section>
+  <section class="container pb-5" id="alt3Content"></section>
+</div>
+<style>
+.alt3-hero{background:linear-gradient(135deg,#111,#222);overflow:hidden;}
+.alt3-bg-layer{position:absolute;inset:0;opacity:.4;background:repeating-linear-gradient(60deg,rgba(255,255,255,.08) 0 12px,transparent 12px 24px),radial-gradient(circle at 70% 30%,rgba(99,102,241,.35),transparent 60%);} 
+.alt3-card{cursor:pointer;min-width:140px;padding:.9rem 1rem;border-radius:1rem;background:#1f2530;color:#e3e9f2;border:1px solid #2e3642;transition:.35s;font-size:.8rem;position:relative;}
+.alt3-card.active{border-color:#6366f1;box-shadow:0 0 0 .25rem #6366f155;}
+.alt3-block{position:relative;margin-bottom:3.5rem;border-radius:1.5rem;overflow:hidden;background:#fff;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));min-height:240px;box-shadow:0 1.75rem 3rem -1.25rem rgba(0,0,0,.25);opacity:0;transform:translateY(70px);transition:opacity 1s ease, transform 1s cubic-bezier(.16,.8,.28,.96);} 
+.alt3-block.reveal{opacity:1;transform:translateY(0);} 
+.alt3-block .media{position:relative;overflow:hidden;}
+.alt3-block .media img{width:100%;height:100%;object-fit:cover;filter:grayscale(.1) saturate(1.15);}
+.alt3-block .body{padding:2.25rem 2rem;display:flex;flex-direction:column;justify-content:center;}
+.alt3-block h2{font-size:2rem;font-weight:600;background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1rem;}
+.alt3-meta{font-size:.65rem;letter-spacing:1px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:1rem;}
+.alt3-chip{display:inline-block;background:#6366f115;color:#6366f1;font-size:.65rem;font-weight:600;padding:.4rem .65rem;margin:.2rem .35rem .2rem 0;border-radius:.75rem;letter-spacing:.4px;}
+</style>
+<script>
+(function(){
+ console.log('alt3 init');
+ const LEVELS={
+  1:{name:'Level 1', blocks:[
+    {t:'Was sind Daten?', body:'Fotos, Wörter, Zahlen. Alles Information & Wertträger.', chips:['Daten','Info'], img:'/uploads/1755282239562-Panda_Cloud6.png'},
+    {t:'Warum schützen?', body:'Privat. Richtig. Verfügbar. Drei Grundziele (CIA).', chips:['Privat','Verfügbar'], img:'/uploads/1755284724625-Panda_Banner2.png'},
+    {t:'Start Schritte', body:'Passwort Manager + Backup + Update Routine.', chips:['Passwort','Backup'], img:'/uploads/1755282215516-Lock.png'}
+  ]},
+  2:{name:'Level 2', blocks:[
+    {t:'Identify', body:'Inventar & Klassifizierung. Sichtbarkeit = Grundlage für Budget.', chips:['Inventar','Label'], img:'/uploads/1755284771544-Panda_Shield.png'},
+    {t:'Protect', body:'Least Privilege & Verschlüsselung. DLP Pilot in Monitor.', chips:['Access','DLP'], img:'/uploads/1755285772877-Panda_Search.png'},
+    {t:'Detect/Respond', body:'Telemetrie, Baselines, Runbooks. Üben senkt MTTR.', chips:['Telemetry','Runbook'], img:'/uploads/1755282215516-Lock.png'},
+    {t:'Metriken', body:'Coverage %, High-Risk Events, Drill Frequenz.', chips:['KPIs','Coverage'], img:'/uploads/1755282239562-Panda_Cloud6.png'}
+  ]},
+  3:{name:'Level 3', blocks:[
+    {t:'Data Map', body:'Scans + Lineage. Impact & Abhängigkeiten transparent.', chips:['Scan','Lineage'], img:'/uploads/1755282239562-Panda_Cloud6.png'},
+    {t:'Controls', body:'Policies, Labels, JIT Privilegien, Secrets Rotation.', chips:['Policy','JIT'], img:'/uploads/1755284724625-Panda_Banner2.png'},
+    {t:'Analytics', body:'UEBA Korrelation + Risk Kontext reduziert Rauschen.', chips:['UEBA','Risk'], img:'/uploads/1755285772877-Panda_Search.png'},
+    {t:'Automation', body:'Pipelines validieren Policy Änderungen vor Rollout.', chips:['CI','IaC'], img:'/uploads/1755282215516-Lock.png'}
+  ]},
+  4:{name:'Level 4', blocks:[
+    {t:'Governance', body:'Rollen, Funding, KPIs, Steering Board.', chips:['Rollen','KPIs'], img:'/uploads/1755284771544-Panda_Shield.png'},
+    {t:'Adaptive', body:'Risk Score steuert Eskalation & Conditional Controls.', chips:['Risk','Adaptive'], img:'/uploads/1755282215516-Lock.png'},
+    {t:'Operations', body:'Drills, Lessons Learned, Drift Detection.', chips:['Drill','Drift'], img:'/uploads/1755285772877-Panda_Search.png'},
+    {t:'Priorisierung', body:'Value/Risk vs Effort Matrix zur Roadmap.', chips:['Matrix','Priorisierung'], img:'/uploads/1755282239562-Panda_Cloud6.png'}
+  ]}
+ };
+ const switchWrap=document.getElementById('alt3Switch');
+ const mount=document.getElementById('alt3Content');
+ function render(l){
+  mount.innerHTML='';
+  const lvl=LEVELS[l]; if(!lvl) return; lvl.blocks.forEach((b,i)=>{
+    const el=document.createElement('div');
+    el.className='alt3-block'; el.dataset.delay=90*i;
+    el.innerHTML=`<div class='media'><img src='${b.img}' alt=''></div><div class='body'><div class='alt3-meta'>${lvl.name}</div><h2>${b.t}</h2><p class='lead mb-3'>${b.body}</p><div>${b.chips.map(c=>`<span class='alt3-chip'>${c}</span>`).join('')}</div></div>`;
+    mount.appendChild(el);
+  });
+  observe();
+  immediateReveal();
+ }
+ Object.entries(LEVELS).forEach(([k,v],i)=>{ const btn=document.createElement('button'); btn.type='button'; btn.className='alt3-card'; btn.textContent=v.name; btn.addEventListener('click',()=>{document.querySelectorAll('.alt3-card').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); render(k);}); if(i===1) btn.classList.add('active'); switchWrap.appendChild(btn); });
+ render(2);
+ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); io.unobserve(en.target);} }),{threshold:.22});
+ function observe(){ document.querySelectorAll('.alt3-block:not(.reveal)').forEach(b=>io.observe(b)); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt3-block:not(.reveal)').forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.top < vh*0.9){
+       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
+     }
+   });
+ }
+})();
+</script>
+<%- include('partials/footer') %>

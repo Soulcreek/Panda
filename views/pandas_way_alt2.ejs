@@ -1,0 +1,106 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="alt2-wrapper">
+  <section class="alt2-hero d-flex align-items-center justify-content-center text-center text-light">
+    <div class="container" data-alt2-effect>
+      <h1 class="display-2 fw-bold mb-3">Panda's Way – ALT Design 2</h1>
+      <p class="lead">Geometrische Segmente, Parallax Layer & Multi-Panel Content.</p>
+      <div class="d-inline-flex flex-wrap gap-2 mt-4" id="alt2Tabs"></div>
+    </div>
+    <div class="geo geo-a"></div><div class="geo geo-b"></div><div class="geo geo-c"></div>
+  </section>
+  <main id="alt2Content" class="container-fluid px-0"></main>
+</div>
+<style>
+.alt2-hero{min-height:60vh;position:relative;background:linear-gradient(135deg,#111827,#1e3a8a 55%,#111827);overflow:hidden;padding:3rem 1rem;}
+.alt2-hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.08),transparent 60%),radial-gradient(circle at 70% 65%,rgba(255,255,255,.06),transparent 55%);} 
+.geo{position:absolute;opacity:.18;filter:blur(2px);mix-blend-mode:screen;}
+.geo-a{width:480px;height:480px;background:conic-gradient(from 45deg,#2563eb,#6366f1,#2563eb);top:-120px;left:-120px;border-radius:50%;animation:spin 28s linear infinite;} 
+.geo-b{width:380px;height:380px;background:linear-gradient(135deg,#9333ea,#3b82f6);bottom:-140px;right:-100px;border-radius:38% 62% 43% 57%/55% 45% 55% 45%;animation:pulse 9s ease-in-out infinite;} 
+.geo-c{width:300px;height:300px;background:radial-gradient(circle,#3b82f6,#111827);top:15%;right:25%;border-radius:50%;animation:float 18s ease-in-out infinite;} 
+@keyframes spin{to{transform:rotate(360deg);} } @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);} } @keyframes float{0%,100%{transform:translateY(-25px);}50%{transform:translateY(25px);} }
+.alt2-tab{background:#1f2937;border:1px solid #374151;color:#fff;padding:.65rem 1rem;font-size:.8rem;border-radius:.75rem;cursor:pointer;transition:.3s;letter-spacing:.5px;}
+.alt2-tab.active{background:#2563eb;border-color:#2563eb;box-shadow:0 0 0 .2rem rgba(37,99,235,.35);} 
+.alt2-section{position:relative;padding:6rem min(8vw,6rem);display:none;}
+.alt2-section.active{display:block;} 
+.alt2-panel{position:relative;margin:0 auto 4.5rem auto;max-width:1200px;padding:3rem clamp(1.5rem,3vw,3rem);border-radius:2rem;background:#ffffff;box-shadow:0 2.25rem 3.5rem -1.5rem rgba(0,0,0,.22);border:1px solid #e5e7eb;opacity:0;transform:translateY(80px) scale(.95);transition:opacity .95s ease, transform 1s cubic-bezier(.16,.8,.28,.96);} 
+.alt2-panel.reveal{opacity:1;transform:translateY(0) scale(1);} 
+.alt2-panel h2{font-size:2.4rem;font-weight:650;letter-spacing:.5px;background:linear-gradient(90deg,#2563eb,#9333ea);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1.25rem;} 
+.alt2-panel .meta{font-size:.7rem;letter-spacing:1px;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:1.5rem;} 
+.alt2-panel .chips span{display:inline-block;background:#2563eb15;color:#2563eb;font-size:.65rem;font-weight:600;padding:.45rem .65rem;margin:.2rem .35rem .2rem 0;border-radius:.75rem;letter-spacing:.4px;} 
+.alt2-panel.alt-dark{background:linear-gradient(135deg,#0f172a,#1e293b);color:#e2e8f0;border-color:#334155;} 
+.alt2-panel.alt-dark h2{background:linear-gradient(90deg,#3b82f6,#06b6d4);-webkit-background-clip:text;background-clip:text;color:transparent;} 
+.alt2-divider{height:5px;width:160px;background:linear-gradient(90deg,#2563eb,#9333ea,#06b6d4,#2563eb);border-radius:3px;margin:1rem 0 2.25rem 0;} 
+.alt2-illus{border-radius:1.25rem;overflow:hidden;margin:1.25rem 0 2rem 0;box-shadow:0 1.5rem 2.25rem -1.25rem rgba(0,0,0,.25);} 
+.alt2-illus img{width:100%;height:320px;object-fit:cover;} 
+</style>
+<script>
+(function(){
+ console.log('alt2 init');
+ const CONTENT = {
+  1:{label:'Level 1', panels:[
+    {meta:'Einfach erklärt', title:'Was sind Daten?', body:'Dinge die wir speichern: Fotos, Texte, Zahlen. Ziel: privat, richtig, verfügbar. Daten haben Wert ähnlich wie Gegenstände.', chips:['Daten','Privat','Richtig'], img:'/uploads/1755282239562-Panda_Cloud6.png'},
+    {meta:'Kurz', title:'Warum schützen?', body:'Schutz verhindert Verlust & falsche Einsicht. Start: Passwort + Backup + Sperrbildschirm.', chips:['Passwort','Backup']},
+    {meta:'Risiken', title:'Grundrisiken', body:'Verlust, Fehlversand, Diebstahl. Minimierung durch Aufmerksamkeit & einfache Routinen.', chips:['Verlust','Fehlversand','Routine']}
+  ]},
+  2:{label:'Level 2', panels:[
+    {meta:'Modell', title:'Identify', body:'Inventar & Klassifizierung liefern Basis. Sichtbarkeit vor Kontrolle – sonst Blindflug.', chips:['Inventar','Label'], img:'/uploads/1755284724625-Panda_Banner2.png'},
+    {meta:'Kontrollen', title:'Protect', body:'Least Privilege, Verschlüsselung, DLP (erst Monitor). Labels tragen Geschäfts-Kontext.', chips:['DLP','Crypto','Labels']},
+    {meta:'Überwachung', title:'Detect/Respond', body:'Telemetrie + Baselines → Anomalien. Playbooks standardisieren Reaktion.', chips:['Telemetry','Anomalie','Runbook']},
+    {meta:'Messung', title:'Metriken', body:'% klassifizierte Dateien, High-Risk Shares, Drill Frequenz.', chips:['KPIs','Coverage']}
+  ]},
+  3:{label:'Level 3', panels:[
+    {meta:'Architektur', title:'Data Map & Lineage', body:'Automatische Scans katalogisieren Quellen. Lineage visualisiert Flüsse & Impact.', chips:['Scan','Lineage','Impact'], img:'/uploads/1755285772877-Panda_Search.png'},
+    {meta:'Automation', title:'Policy & Pipelines', body:'Policy-as-Code + IaC machen Konfiguration prüfbar (Git History).', chips:['Policy-as-Code','IaC']},
+    {meta:'Analytics', title:'UEBA & Korrelation', body:'Verknüpft Verhalten + Sensitivity + Risiko. Reduziert False Positives.', chips:['UEBA','Risk','Signal']},
+    {meta:'Resilienz', title:'Recovery & Tests', body:'Regelmäßige Restore-Tests validieren Backups.', chips:['Backup','Restore']}
+  ]},
+  4:{label:'Level 4', panels:[
+    {meta:'Strategie', title:'Governance & KPIs', body:'Rollen, Funding Zyklen, Metriken (Coverage %, MTTD). Transparenz = Priorisierung.', chips:['Coverage','MTTD','KPIs'], img:'/uploads/1755284771544-Panda_Shield.png'},
+    {meta:'Adaptive', title:'Risk Based Protection', body:'Dynamische Policies skalieren Maßnahmen entlang Risikoscore.', chips:['Risk Score','Adaptive']},
+    {meta:'Reife', title:'Operational Excellence', body:'Drills, Runbook Versionierung, Drift Detection treiben Verbesserung.', chips:['Drills','Drift','Runbooks']},
+    {meta:'Portfolio', title:'Value Fokus', body:'Roadmap priorisiert nach Value/Risk vs Effort.', chips:['Priorisierung']}
+  ]}
+ };
+ const tabs = document.getElementById('alt2Tabs');
+ const mount = document.getElementById('alt2Content');
+ function render(level){
+  mount.innerHTML='';
+  const data = CONTENT[level]; if(!data) return; 
+  const sec = document.createElement('section');
+  sec.className='alt2-section active';
+  sec.dataset.level=level;
+  data.panels.forEach((p,i)=>{
+    const dark = (i%2)&&level>2;
+    const panel=document.createElement('div');
+    panel.className='alt2-panel'+(dark?' alt-dark':'');
+    panel.dataset.delay = 120*i;
+    panel.innerHTML=`<div class='meta'>${p.meta}</div><h2>${p.title}</h2><div class='alt2-divider'></div><p class='lead'>${p.body}</p><div class='chips mb-3'>${(p.chips||[]).map(c=>`<span>${c}</span>`).join('')}</div>${p.img? `<div class='alt2-illus'><img src='${p.img}' alt='Illustration'></div>`:''}`;
+    sec.appendChild(panel);
+  });
+  mount.appendChild(sec);
+  observe();
+  immediateReveal();
+ }
+ Object.entries(CONTENT).forEach(([k,v],i)=>{
+   const btn = document.createElement('button');
+   btn.type='button'; btn.className='alt2-tab'; btn.textContent=v.label;
+   btn.addEventListener('click',()=>{document.querySelectorAll('.alt2-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(k);});
+   if(i===1) btn.classList.add('active');
+   tabs.appendChild(btn);
+ });
+ render(2);
+ const observer=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const d=en.target.dataset.delay||0; en.target.style.transitionDelay=d+'ms'; en.target.classList.add('reveal'); observer.unobserve(en.target);} }),{threshold:.25, rootMargin:'0px 0px -20%' });
+ function observe(){ document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(p=>observer.observe(p)); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt2-panel:not(.reveal)').forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.top < vh*0.9){
+       const d=el.dataset.delay||0; el.style.transitionDelay=d+'ms'; el.classList.add('reveal');
+     }
+   });
+ }
+})();
+</script>
+<%- include('partials/footer') %>

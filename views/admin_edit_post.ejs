@@ -4,12 +4,32 @@
 <div class="container my-5">
     <h1><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %></h1>
 
-    <form action="<%= post ? '/admin/posts/edit/' + post.id : '/admin/posts/new' %>" method="POST">
+    <form action="<%= post ? '/admin/posts/edit/' + post.id : '/admin/posts/new' %>" method="POST" onsubmit="return syncEditors()">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         
         <div class="row">
             <!-- Haupt-Editorbereich -->
             <div class="col-md-8">
+                <!-- Titelbild Vorschau oben -->
+                <div class="mb-4">
+                    <label class="form-label mb-2 d-block"><strong>Titelbild</strong>
+                        <span class="ms-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineSelectFeaturedBtn">Wählen</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="inlineClearFeaturedBtn">X</button>
+                        </span>
+                    </label>
+                    <input type="hidden" name="featured_image_id" id="featured_image_id" value="<%= post ? (post.featured_image_id || '') : '' %>">
+                    <div id="featuredPreviewWrapper" class="border rounded p-2 text-center <%= post && post.featured_image_id ? '' : 'd-none' %>">
+                        <% if (post && post.featured_image_id) { %>
+                            <img id="featuredPreview" src="<%= post.featured_image_path || '' %>" class="img-fluid rounded" style="max-height:240px;object-fit:cover;">
+                        <% } else { %>
+                            <img id="featuredPreview" class="img-fluid rounded d-none" style="max-height:240px;object-fit:cover;">
+                        <% } %>
+                        <div class="small mt-2 text-muted" id="inlineFeaturedName"><%= post && post.featured_image_id ? (post.featured_image_path ? post.featured_image_path.split('/').pop() : '') : 'Keines gewählt' %></div>
+                        <p class="small text-muted mb-0" id="noFeaturedHint" <%= post && post.featured_image_id ? 'style="display:none"' : '' %>>Noch kein Titelbild gewählt.</p>
+                        <button type="button" id="clearFeaturedBtn" class="btn btn-sm btn-outline-danger mt-2 d-none">Entfernen</button>
+                    </div>
+                </div>
                 <!-- Tabs für Sprachen -->
                 <ul class="nav nav-tabs" id="langTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -28,8 +48,13 @@
                             <input type="text" class="form-control" id="title_de" name="title" value="<%= post ? post.title : '' %>" required>
                         </div>
                         <div class="mb-3">
-                            <label for="content_de" class="form-label">Inhalt (DE)</label>
-                            <textarea class="form-control" id="content_de" name="content" rows="15"><%= post ? post.content : '' %></textarea>
+                            <label for="tags" class="form-label">Tags (Komma-getrennt)</label>
+                            <input type="text" class="form-control" id="tags" name="tags" value="<%= post && post.tags ? post.tags : '' %>" placeholder="security, purview, governance">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Inhalt (DE)</label>
+                            <div id="editor_de" class="border rounded p-2" style="min-height:300px;"></div>
+                            <textarea id="content_de" name="content" class="d-none"><%= post ? post.content : '' %></textarea>
                         </div>
                     </div>
                     <!-- Englischer Inhalt -->
@@ -39,8 +64,9 @@
                             <input type="text" class="form-control" id="title_en" name="title_en" value="<%= post ? post.title_en : '' %>">
                         </div>
                         <div class="mb-3">
-                            <label for="content_en" class="form-label">Inhalt (EN)</label>
-                            <textarea class="form-control" id="content_en" name="content_en" rows="15"><%= post ? post.content_en : '' %></textarea>
+                            <label class="form-label">Inhalt (EN)</label>
+                            <div id="editor_en" class="border rounded p-2" style="min-height:300px;"></div>
+                            <textarea id="content_en" name="content_en" class="d-none"><%= post ? post.content_en : '' %></textarea>
                         </div>
                     </div>
                 </div>
@@ -52,6 +78,11 @@
                 <div class="card mb-4">
                     <div class="card-header">Veröffentlichen</div>
                     <div class="card-body">
+                        <div class="mb-3">
+                            <label for="published_at" class="form-label">Veröffentlichungsdatum</label>
+                            <input type="datetime-local" class="form-control" id="published_at" name="published_at" value="<%= post && post.published_at ? new Date(post.published_at).toISOString().slice(0,16) : '' %>">
+                            <div class="form-text">Leer lassen für sofort oder später veröffentlichen.</div>
+                        </div>
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status" name="status">
@@ -66,27 +97,42 @@
                 </div>
                 
                 <div class="card mb-4">
-                    <div class="card-header">What's New</div>
+                    <div class="card-header d-flex justify-content-between align-items-center">What's New
+                        <button type="button" id="generate-whats-new-btn" class="btn btn-sm btn-outline-primary">Auto</button>
+                    </div>
                     <div class="card-body">
-                         <textarea class="form-control" id="whatsnew" name="whatsnew" rows="3"><%= post ? post.whatsnew : '' %></textarea>
+                        <p class="small text-muted">Automatisch generierter Kurz-Teaser (max 140 Zeichen) wird hier eingefügt.</p>
+                        <input type="text" class="form-control" id="whatsnew" name="whatsnew" value="<%= post ? post.whatsnew : '' %>" maxlength="140" placeholder="Noch nichts generiert...">
                     </div>
                 </div>
 
+                <!-- (Ehemalige Seitenleisten-Titelbildkarte entfernt, jetzt oben integriert) -->
+
                 <div class="card">
-                    <div class="card-header">Medien</div>
-                    <div class="card-body" id="media-sidebar" style="max-height: 300px; overflow-y: auto;">
+                    <div class="card-header d-flex justify-content-between align-items-center">Medien
+                        <div class="btn-group btn-group-sm" id="mini-media-filter">
+                            <button class="btn btn-outline-secondary active" data-cat="all" type="button">Alle</button>
+                            <button class="btn btn-outline-secondary" data-cat="Icon" type="button">Icon</button>
+                            <button class="btn btn-outline-secondary" data-cat="Banner" type="button">Banner</button>
+                            <button class="btn btn-outline-secondary" data-cat="Illustration" type="button">Illu</button>
+                        </div>
+                    </div>
+                    <div class="card-body" id="media-sidebar" style="max-height: 320px; overflow-y:auto;">
                         <% if (media && media.length > 0) { %>
-                            <div class="row row-cols-3 g-2">
+                            <div class="row row-cols-3 g-2" id="mini-media-grid">
                                 <% media.forEach(file => { %>
                                     <% if (file.type && file.type.startsWith('image/')) { %>
-                                        <div class="col">
-                                            <img src="/uploads/<%= file.name %>" class="img-fluid rounded" style="cursor: pointer;" onclick="insertMedia('<%= file.name %>')">
+                                        <div class="col mini-media-item" data-cat="<%= file.category || '' %>">
+                                            <div class="position-relative border rounded overflow-hidden">
+                                                <img src="/uploads/<%= file.name %>" class="w-100" style="cursor:pointer;aspect-ratio:1/1;object-fit:cover;" onclick="insertMedia('<%= file.name %>')">
+                                                <button type="button" class="btn btn-xs btn-light position-absolute top-0 end-0 copy-media-link-btn" data-link="/uploads/<%= file.name %>" style="font-size:.6rem;">🔗</button>
+                                            </div>
                                         </div>
                                     <% } %>
                                 <% }); %>
                             </div>
                         <% } else { %>
-                            <p class="text-muted">Keine Bilder in der Mediathek.</p>
+                            <p class="text-muted">Keine Medien.</p>
                         <% } %>
                     </div>
                 </div>
@@ -95,62 +141,154 @@
     </form>
 </div>
 
-<!-- TinyMCE Rich-Text-Editor Skript -->
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- Quill (Open Source Editor) -->
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<style>
+    #editor_de .ql-editor, #editor_en .ql-editor { min-height:260px; font-size:0.95rem; }
+    #editor_de, #editor_en { background:#fff; }
+    #editor_de:focus-within, #editor_en:focus-within { box-shadow:0 0 0 .2rem rgba(13,110,253,.25); }
+</style>
+<style>
+.ql-img-wrap img{max-width:100%;height:auto;}
+.ql-resize-handle{position:absolute;width:10px;height:10px;background:#0d6efd;border:1px solid #fff;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.4);}
+.ql-h-se{bottom:-5px;right:-5px;cursor:se-resize;}
+.ql-h-e{top:50%;right:-5px;transform:translateY(-50%);cursor:e-resize;}
+.ql-h-s{bottom:-5px;left:50%;transform:translateX(-50%);cursor:s-resize;}
+</style>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const commonConfig = {
-        plugins: 'code table lists link image',
-        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | indent outdent | bullist numlist | code | table | link image'
-    };
-    tinymce.init({ ...commonConfig, selector: 'textarea#content_de' });
-    tinymce.init({ ...commonConfig, selector: 'textarea#content_en' });
+let quillDe, quillEn;
+function syncEditors(){
+    if(quillDe){ document.getElementById('content_de').value = quillDe.root.innerHTML; }
+    if(quillEn){ document.getElementById('content_en').value = quillEn.root.innerHTML; }
+    return true;
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const toolbarOptions = [
+        ['bold','italic','underline','strike'],
+        [{ 'header': [1,2,3,false]}],
+        [{'list':'ordered'},{'list':'bullet'}],
+        [{ 'align': [] }],
+        ['link','image','code-block'],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'color': [] }, { 'background': [] }]
+    ];
+    quillDe = new Quill('#editor_de', { theme:'snow', modules:{ toolbar: toolbarOptions } });
+    quillEn = new Quill('#editor_en', { theme:'snow', modules:{ toolbar: toolbarOptions } });
 
-    // Funktion zum Einfügen von Medien
-    window.insertMedia = (filename) => {
-        const activeEditor = tinymce.activeEditor;
-        if (activeEditor) {
-            activeEditor.execCommand('mceInsertContent', false, `<img src="/uploads/${filename}" alt="" style="max-width: 100%;">`);
-        }
-    };
+    // Erweiterte Bildgrößenanpassung: Drag Handles + Doppelklick-Zyklus
+    function addHandles(img){
+        if(img.closest('.ql-img-wrap')) return;
+        const wrap=document.createElement('span'); wrap.className='ql-img-wrap position-relative d-inline-block';
+        img.parentNode.insertBefore(wrap,img); wrap.appendChild(img);
+        ['se','e','s'].forEach(dir=>{ const h=document.createElement('span'); h.className='ql-resize-handle ql-h-'+dir; h.dataset.dir=dir; wrap.appendChild(h); });
+    }
+    function setupResize(quill){
+        quill.root.addEventListener('click', e=>{ const img=e.target.closest('img'); if(img) addHandles(img); });
+        let active=null,startX,startW;
+        quill.root.addEventListener('mousedown', e=>{ const h=e.target.closest('.ql-resize-handle'); if(!h) return; e.preventDefault(); active=h; startX=e.clientX; const img=h.parentElement.querySelector('img'); startW=img.getBoundingClientRect().width; document.body.style.userSelect='none'; });
+        window.addEventListener('mousemove', e=>{ if(!active) return; const img=active.parentElement.querySelector('img'); const delta=e.clientX-startX; const newW=Math.max(40,startW+delta); img.style.width=newW+'px'; });
+        window.addEventListener('mouseup', ()=>{ if(active){ active=null; document.body.style.userSelect=''; }});
+        // Dblclick cycles preset widths
+        quill.root.addEventListener('dblclick', e=>{ const img=e.target.closest('img'); if(!img) return; const sizes=['100%','75%','50%']; const current=img.getAttribute('data-size')||'100%'; let idx=sizes.indexOf(current); idx=(idx+1)%sizes.length; img.style.width=sizes[idx]; img.setAttribute('data-size',sizes[idx]); });
+    }
+    setupResize(quillDe); setupResize(quillEn);
+    // Initial Content
+    quillDe.root.innerHTML = document.getElementById('content_de').value;
+    quillEn.root.innerHTML = document.getElementById('content_en').value;
 
-    // Übersetzungs-Funktion
+    // Übersetzen
     const translateBtn = document.getElementById('translateBtn');
-    if(translateBtn) {
+    if(translateBtn){
         translateBtn.addEventListener('click', async () => {
             const titleDe = document.getElementById('title_de').value;
-            const contentDe = tinymce.get('content_de').getContent();
-            
-            translateBtn.disabled = true;
-            translateBtn.textContent = 'Übersetze...';
-
+            const contentDe = quillDe.root.innerHTML;
+            translateBtn.disabled = true; translateBtn.textContent='Übersetze...';
             try {
-                const response = await fetch('/admin/api/translate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'CSRF-Token': '<%= csrfToken %>'
-                    },
-                    body: JSON.stringify({ text: `Translate the following title and html content to English.\n\nTitle: ${titleDe}\n\nContent: ${contentDe}` })
-                });
+            const response = await fetch('/admin/api/translate', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': window.CSRF_TOKEN}, body: JSON.stringify({ text: `Translate the following title and html content to English.\n\nTitle: ${titleDe}\n\nContent: ${contentDe}` }) });
                 const result = await response.json();
-                
-                // Annahme: Die API gibt ein JSON-Objekt zurück, das wir parsen müssen
                 const translatedParts = JSON.parse(result.translation);
-
                 document.getElementById('title_en').value = translatedParts.title || '';
-                tinymce.get('content_en').setContent(translatedParts.content || '');
-
-            } catch (error) {
-                console.error('Translation error:', error);
-                alert('Übersetzung fehlgeschlagen.');
-            } finally {
-                translateBtn.disabled = false;
-                translateBtn.textContent = 'Deutsch nach Englisch übersetzen';
-            }
+                quillEn.root.innerHTML = translatedParts.content || '';
+            } catch(e){ alert('Übersetzung fehlgeschlagen.'); }
+            finally { translateBtn.disabled=false; translateBtn.textContent='Deutsch nach Englisch übersetzen'; }
         });
     }
-  });
+    // What's New Generator
+    const whatsBtn = document.getElementById('generate-whats-new-btn');
+    if(whatsBtn){
+        whatsBtn.addEventListener('click', async ()=>{
+            whatsBtn.disabled=true; const original=whatsBtn.textContent; whatsBtn.textContent='KI...';
+            try {
+            const resp = await fetch('/admin/generate-whats-new',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}}); const data = await resp.json();
+                if(!resp.ok) throw new Error(data.error||'Fehler');
+                document.getElementById('title_de').value = data.title_de||'';
+                quillDe.root.innerHTML = data.content_de||'';
+                document.getElementById('title_en').value = data.title_en||'';
+                quillEn.root.innerHTML = data.content_en||'';
+                document.getElementById('whatsnew').value = data.whatsnew||'';
+            }catch(e){ alert('KI Fehler: '+e.message); }
+            finally { whatsBtn.disabled=false; whatsBtn.textContent=original; }
+        });
+    }
+});
+</script>
+
+<!-- Einfacher Crop Modal (Canvas) -->
+<div class="modal fade" id="imageCropModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bild zuschneiden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <canvas id="cropCanvas" style="max-width:100%; border:1px solid #ccc; background:#f8f9fa"></canvas>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Seitenverhältnis</label>
+                        <select id="cropAspect" class="form-select form-select-sm mb-3">
+                            <option value="16:9">16:9</option>
+                            <option value="4:3">4:3</option>
+                            <option value="1:1">1:1</option>
+                            <option value="3:4">3:4</option>
+                            <option value="9:16">9:16</option>
+                            <option value="frei">Frei</option>
+                        </select>
+                        <p class="small text-muted">Ziehe mit der Maus ein Rechteck auf dem Bild. Speichern ersetzt das Original im Editor (nur inline, Datei bleibt unverändert).</p>
+                        <button id="applyCropBtn" class="btn btn-sm btn-primary">Zuschneiden</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Einfacher Canvas Cropper (kein externes CDN, rein clientseitig – ersetzt Bild-DataURL)
+let activeQuillImg = null; let startX, startY, endX, endY, isDrawing=false; let imgEl, imgBitmap; const cropCanvas=document.getElementById('cropCanvas'); const ctx=cropCanvas.getContext('2d');
+function openCropperFor(img){
+    activeQuillImg = img;
+    imgEl = new Image();
+    imgEl.onload = () => { cropCanvas.width = imgEl.naturalWidth; cropCanvas.height = imgEl.naturalHeight; draw(); }; imgEl.src = img.src;
+    const m = new bootstrap.Modal(document.getElementById('imageCropModal')); m.show();
+    startX=startY=endX=endY=null;
+}
+function draw(){ ctx.clearRect(0,0,cropCanvas.width,cropCanvas.height); if(imgEl) ctx.drawImage(imgEl,0,0); if(startX!=null && endX!=null){ ctx.strokeStyle='#0d6efd'; ctx.lineWidth=2; ctx.strokeRect(startX,startY,endX-startX,endY-startY); ctx.fillStyle='rgba(13,110,253,.15)'; ctx.fillRect(startX,startY,endX-startX,endY-startY);} }
+cropCanvas.addEventListener('mousedown', e=>{ isDrawing=true; const r=cropCanvas.getBoundingClientRect(); startX=e.clientX-r.left; startY=e.clientY-r.top; endX=startX; endY=startY; draw(); });
+cropCanvas.addEventListener('mousemove', e=>{ if(!isDrawing) return; const r=cropCanvas.getBoundingClientRect(); endX=e.clientX-r.left; endY=e.clientY-r.top; enforceAspect(); draw(); });
+cropCanvas.addEventListener('mouseup', ()=>{ isDrawing=false; });
+function enforceAspect(){ const aspectSel=document.getElementById('cropAspect').value; if(aspectSel==='frei'|| startX==null) return; const parts=aspectSel.split(':'); const aw=parseFloat(parts[0]); const ah=parseFloat(parts[1]); let w=endX-startX; let h=endY-startY; if(Math.abs(w)<5||Math.abs(h)<5) return; const target=h===0?0:(aw/ah); let cur=Math.abs(w/h); if(cur>target){ // zu breit -> anpassen
+        w = Math.sign(w) * Math.abs(h*aw/ah);
+    } else { h = Math.sign(h) * Math.abs(w*ah/aw); }
+    endX = startX + w; endY = startY + h;
+}
+document.getElementById('applyCropBtn').addEventListener('click', ()=>{
+    if(startX==null||endX==null||!activeQuillImg) return; const x=Math.min(startX,endX), y=Math.min(startY,endY), w=Math.abs(endX-startX), h=Math.abs(endY-startY); if(w<10||h<10) return; const out=document.createElement('canvas'); out.width=w; out.height=h; out.getContext('2d').drawImage(imgEl,x,y,w,h,0,0,w,h); activeQuillImg.src = out.toDataURL('image/png'); const modalEl=document.getElementById('imageCropModal'); bootstrap.Modal.getInstance(modalEl).hide(); });
+// Hook: Doppelklick Bild öffnet Cropper
+function attachCropper(quill){ quill.root.addEventListener('dblclick', e=>{ const image=e.target.closest('img'); if(image) openCropperFor(image); }); }
+attachCropper(quillDe); attachCropper(quillEn);
 </script>
 
 <%- include('partials/footer') %>

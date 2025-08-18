@@ -1,75 +1,243 @@
 <%- include('partials/header') %>
 
 <!-- Wrapper-Div mit der korrekten CSS-Klasse aus Ihrer style.css -->
-<div class="pandas-way-hero-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <h1 class="display-4">Panda's Way to Data Security</h1>
-                <p class="lead">Ein interaktiver Pfad, um die Grundlagen der Datensicherheit zu verstehen.</p>
-            </div>
-        </div>
+<section class="pandas-way-hero-section position-relative overflow-hidden">
+    <div class="container py-5 text-center" data-aos="fade-down">
+    <h1 class="display-4 fw-bold mb-3"><%= t('pandas.hero.title') %></h1>
+    <p class="lead mb-0"><%= t('pandas.hero.subtitle') %></p>
     </div>
-</div>
+    <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" style="background:radial-gradient(circle at 30% 40%, #4dabf7 0%, transparent 60%), radial-gradient(circle at 70% 60%, #82c91e 0%, transparent 55%);"></div>
+</section>
 
 <div class="container my-5">
-    <% if (levels && levels.length > 0) { %>
-        <div class="row">
-            <!-- Container für die Navigation -->
-            <div class="col-md-3">
-                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                    <!-- Navigations-Buttons werden per Script eingefügt -->
+        <div class="row g-4 mb-4 path-selector" id="pathSelector" data-default="2">
+                <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="card path-card h-100 border-0 shadow-sm" data-level="1" data-aos="zoom-in">
+                                <img src="/uploads/1755549490973-way_level1.jpg" class="card-img-top" alt="Level 1 Bild" loading="lazy">
+                                <div class="card-body">
+                                        <h5 class="card-title mb-1">Level 1</h5>
+                                        <p class="small text-muted mb-2">Einfach & spielerisch</p>
+                                        <p class="card-text small">Für Kinder, Senioren & alle ohne IT-Vorkenntnisse.</p>
+                                </div>
+                        </div>
                 </div>
-            </div>
-
-            <!-- Container für die Inhalte -->
-            <div class="col-md-9">
-                <div class="tab-content" id="v-pills-tabContent">
-                    <!-- Inhalts-Panes werden per Script eingefügt -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="card path-card h-100 border-primary shadow path-active" data-level="2" data-aos="zoom-in" data-aos-delay="50">
+                                <img src="/uploads/1755549490974-way_level2.jpg" class="card-img-top" alt="Level 2 Bild" loading="lazy">
+                                <div class="card-body">
+                                        <h5 class="card-title mb-1">Level 2</h5>
+                                        <p class="small text-muted mb-2">Fundierte Basis</p>
+                                        <p class="card-text small">Solider Einstieg in Data Security Konzepte.</p>
+                                </div>
+                        </div>
                 </div>
-            </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="card path-card h-100 border-0 shadow-sm" data-level="3" data-aos="zoom-in" data-aos-delay="100">
+                                <img src="/uploads/1755549490970-way_level3.jpg" class="card-img-top" alt="Level 3 Bild" loading="lazy">
+                                <div class="card-body">
+                                        <h5 class="card-title mb-1">Level 3</h5>
+                                        <p class="small text-muted mb-2">Aufstrebend Technisch</p>
+                                        <p class="card-text small">Für angehende Data Security Spezialist:innen.</p>
+                                </div>
+                        </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="card path-card h-100 border-0 shadow-sm" data-level="4" data-aos="zoom-in" data-aos-delay="150">
+                                <img src="/uploads/1755549490976-way_level4-1.jpg" class="card-img-top" alt="Level 4 Bild" loading="lazy">
+                                <div class="card-body">
+                                        <h5 class="card-title mb-1">Level 4</h5>
+                                        <p class="small text-muted mb-2">Experten Tiefe</p>
+                                        <p class="card-text small">Frameworks, Purview & Compliance Vertiefung.</p>
+                                </div>
+                        </div>
+                </div>
         </div>
 
-        <!-- Script, um die Inhalte dynamisch und sauber zu erstellen -->
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const levelsData = <%- JSON.stringify(levels) %>;
-                const navContainer = document.getElementById('v-pills-tab');
-                const contentContainer = document.getElementById('v-pills-tabContent');
-
-                levelsData.forEach((level, index) => {
-                    const isActive = index === 0;
-
-                    // Erstelle den Navigations-Button
-                    const button = document.createElement('button');
-                    button.className = `nav-link text-start ${isActive ? 'active' : ''}`;
-                    button.id = `v-pills-level${level.id}-tab`;
-                    button.setAttribute('data-bs-toggle', 'pill');
-                    button.setAttribute('data-bs-target', `#v-pills-level${level.id}`);
-                    button.type = 'button';
-                    button.role = 'tab';
-                    button.setAttribute('aria-controls', `v-pills-level${level.id}`);
-                    button.setAttribute('aria-selected', isActive.toString());
-                    button.innerText = level.title;
-                    navContainer.appendChild(button);
-
-                    // Erstelle das Inhalts-Pane
-                    const contentPane = document.createElement('div');
-                    contentPane.className = `tab-pane fade ${isActive ? 'show active' : ''}`;
-                    contentPane.id = `v-pills-level${level.id}`;
-                    contentPane.setAttribute('role', 'tabpanel');
-                    contentPane.setAttribute('aria-labelledby', `v-pills-level${level.id}-tab`);
-                    contentPane.innerHTML = level.content;
-                    contentContainer.appendChild(contentPane);
-                });
-            });
-        </script>
-
-    <% } else { %>
-        <div class="text-center">
-            <p>Es konnten keine Inhalte für "Panda's Way" geladen werden.</p>
+        <div id="pathsContent" class="paths-wrapper" data-levels='<%- JSON.stringify(levels||[]) %>'>
+                <!-- Dynamisch gefüllte Pfad-Container -->
         </div>
-    <% } %>
 </div>
+
+<style>
+    .path-card{cursor:pointer;transition:transform .25s, box-shadow .25s, border-color .25s; border:2px solid transparent; font-size:.9rem;}
+    .path-card .card-img-top{height:140px;object-fit:cover;}
+    .path-card:hover{transform:translateY(-4px);box-shadow:0 .75rem 1.25rem -0.5rem rgba(0,0,0,.15);} 
+    .path-active{border-color:#0d6efd;box-shadow:0 0 0 .15rem rgba(13,110,253,.25);} 
+    .paths-wrapper .path-section{display:none;} 
+    .paths-wrapper .path-section.active{display:block;} 
+    @keyframes fadeIn {from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+    .pillar-badge{display:inline-block;background:#0d6efd;color:#fff;padding:.35rem .65rem;border-radius:1rem;font-size:.75rem;margin:.15rem .3rem .15rem 0;}
+    .fly-box{position:relative;padding:1.5rem;border-radius:1rem;background:linear-gradient(135deg,#f8f9fa,#eef7ff);box-shadow:0 0.5rem 1rem -.25rem rgba(0,0,0,.08);overflow:hidden;}
+    .fly-box:before{content:"";position:absolute;top:-40%;right:-20%;width:60%;height:160%;background:radial-gradient(circle at 30% 50%,rgba(13,110,253,.15),transparent 70%);transform:rotate(-15deg);} 
+    .gradient-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,#0d6efd,#82c91e,#fd7e14);} 
+    .content-block{position:relative;margin-bottom:3.5rem;padding:3rem 2rem 2.5rem 2rem;border-radius:1.25rem;background:#fff;box-shadow:0 1.25rem 2.25rem -1rem rgba(0,0,0,.12);border:1px solid #e2e8f0;opacity:0;transform:translateY(55px);transition:opacity .9s ease, transform .9s cubic-bezier(.16,.8,.28,.96);} 
+    .content-block.revealed{opacity:1;transform:translateY(0);} 
+    .content-block:before{content:"";position:absolute;left:1.1rem;top:1.1rem;width:8px;height:46px;border-radius:4px;background:linear-gradient(180deg,#0d6efd,#82c91e);} 
+    .content-block h3{font-size:1.35rem;margin-top:0;margin-bottom:1rem;font-weight:600;letter-spacing:.5px;} 
+    .content-block.large-illustration{padding:0;overflow:hidden;} 
+    .content-block.large-illustration img{width:100%;height:340px;object-fit:cover;display:block;filter:saturate(1.05) contrast(1.05);} 
+    .alt-band{background:linear-gradient(135deg,#f8fbff,#eef7ff);} 
+    .alt-band-2{background:linear-gradient(135deg,#f9f7ff,#f3efff);} 
+    .alt-band-3{background:linear-gradient(135deg,#f8fff9,#eefef3);} 
+    .pillar-badge{font-size:.7rem;} 
+    .lvl-1 .content-block{background:linear-gradient(135deg,#ffffff,#f2faff);} 
+    .lvl-2 .content-block{background:linear-gradient(135deg,#ffffff,#eff5ff);} 
+    .lvl-3 .content-block{background:linear-gradient(135deg,#ffffff,#f5f7ff);} 
+    .lvl-4 .content-block{background:linear-gradient(135deg,#ffffff,#f9f5ff);} 
+    .content-block .mini-glossar span{display:inline-block;background:#0d6efd10;color:#0d6efd;padding:.35rem .55rem;margin:.25rem .4rem .25rem 0;border-radius:.6rem;font-size:.7rem;font-weight:500;} 
+    .content-block em.callout{display:block;background:#0d6efd0d;border-left:4px solid #0d6efd;padding:.75rem 1rem .85rem;margin:1.25rem 0;border-radius:.4rem;font-style:normal;font-size:.92rem;} 
+    .scroll-marker{position:absolute;left:-6px;top:60px;width:12px;height:12px;background:#0d6efd;border-radius:50%;box-shadow:0 0 0 4px #0d6efd30;} 
+    .content-block[data-effect*='flip']{transform-style:preserve-3d;}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+    const rawLevels = document.getElementById('pathsContent').dataset.levels || '[]';
+    let dbLevels=[]; try { dbLevels = JSON.parse(rawLevels); } catch(e) { dbLevels=[]; }
+    const dbLevelMap = {}; dbLevels.forEach(l=>{ dbLevelMap[l.title?.toLowerCase()] = l; dbLevelMap['id_'+l.id]=l; });
+    const pathsContentEl = document.getElementById('pathsContent');
+
+    // SAME TOPIC, DIFFERENT STYLE PER LEVEL
+    const sharedTopic = {
+        keys:['intro','core','example','tools','pitfalls','glossary','selfcheck','dbappend']
+    };
+    const imgFull = (src, alt='Illustration')=>`<div class="content-block large-illustration" data-effect="zoom-in" data-delay="0"><img src="${src}" alt="${alt}" loading="lazy"></div>`;
+    const bandClass = (i)=> i % 3 === 1? 'alt-band': (i % 3 === 2? 'alt-band-2':'');
+    const bandEffect = (i)=> ['fade-up','fade-right','fade-left','zoom-in','flip-left','zoom-in-up','flip-right','fade-up'][i%8];
+
+    const contentByLevel = {
+        1:{
+            title:'Level 1 – Bilder & einfache Worte',
+            cls:'lvl-1',
+            styleNote:'Viele Bilder, sehr kurze Sätze.',
+            blocks:[
+                {k:'intro', title:'Was ist Datensicherheit?', html:'Wir passen auf unsere Sachen auf. Daten sind auch Sachen – nur unsichtbar. <strong>Schützen</strong> heißt: Nur richtige Leute dürfen sie sehen.'},
+                {k:'core', title:'Drei Ideen', html:'<ul><li>Schützen</li><li>Aufpassen</li><li>Verstehen wo sie liegen</li></ul>'},
+                {k:'example', title:'Ein Beispiel', html:'Du hast ein Foto. Du speicherst es. Du machst eine Kopie (Backup). Niemand Fremdes soll es sehen.'},
+                {k:'tools', title:'Werkzeuge', html:'Gutes Passwort. Sperrbildschirm. Kopie auf zweitem Speicher.'},
+                {k:'pitfalls', title:'Fehler vermeiden', html:'Nicht überall dasselbe Passwort. Keine geheimen Sachen teilen.'},
+                {k:'glossary', title:'Mini Glossar', html:'<div class="mini-glossar"><span>Daten</span><span>Backup</span><span>Passwort</span><span>Teilen</span><span>Sicher</span></div>'},
+                {k:'selfcheck', title:'Selbst-Check', html:'Hast du eine Kopie deiner wichtigsten Datei? Ist dein Telefon gesperrt?'}
+            ],
+            images:['/uploads/1755284724625-Panda_Banner2.png','/uploads/1755282239562-Panda_Cloud6.png']
+        },
+        2:{
+            title:'Level 2 – Struktur & kurze Sätze',
+            cls:'lvl-2',
+            styleNote:'Einstieg mit etwas mehr Kontext.',
+            blocks:[
+                {k:'intro', title:'Datensicherheit kurz erklärt', html:'Schützt Vertraulichkeit, Integrität und Verfügbarkeit von Informationen. Fokus: Wissen welche Daten existieren & wer Zugriff hat.'},
+                {k:'core', title:'Modell Identify / Protect / Detect-Respond', html:'Identify: Inventar & Klassifizierung. Protect: Zugriff, Verschlüsselung, DLP. Detect/Respond: Überwachung & Playbooks.'},
+                {k:'example', title:'Szenario: Kundenliste', html:'Klassifizieren als intern vertraulich. Zugriff nur CRM-Rolle. Backup täglich. Alarm bei Massendownload.'},
+                {k:'tools', title:'Werkzeuge / Praktiken', html:'Purview Scans, Sensitivity Labels, DLP Policies (Monitor→Block), MFA & Conditional Access.'},
+                {k:'pitfalls', title:'Typische Stolpersteine', html:'Fehlende Data Map, zu breite Berechtigungen, spätes Logging, keine Übung von Vorfall-Reaktionen.'},
+                {k:'glossary', title:'Begriffe', html:'<div class="mini-glossar"><span>Inventory</span><span>Klassifizierung</span><span>DLP</span><span>Label</span><span>Policy</span><span>Anomalie</span></div>'},
+                {k:'selfcheck', title:'Quick Check', html:'Weißt du: (1) Wo sensible Daten liegen? (2) Wer hat Zugriff? (3) Gibt es ein Alarm-Konzept?'}
+            ],
+            images:['/uploads/1755284771544-Panda_Shield.png']
+        },
+        3:{
+            title:'Level 3 – Technische Perspektive',
+            cls:'lvl-3',
+            styleNote:'Mehr Tiefe & Pattern Sprache.',
+            blocks:[
+                {k:'intro', title:'Scope & Domänen', html:'Quellen (DB, SaaS, Files) werden kontinuierlich gescannt → Data Map. Jede Ressource erhält Sensitivität & Eigentümer. Data Lineage erlaubt Impact-Analysen vor Änderungen.'},
+                {k:'core', title:'Control Layers', html:'<strong>Identify:</strong> Katalog, Klassifizierer, Glossary. <strong>Protect:</strong> Labels, Verschlüsselung, Least Privilege. <strong>Detect:</strong> Telemetrie & ML. <strong>Respond:</strong> Runbooks & Forensik.'},
+                {k:'example', title:'Use Case: Export-Anomalie', html:'UEBA erkennt sprunghaften Download sensibler Dateien. Alert korreliert Label + User Risk Score → Playbook isoliert Session, Notification an Data Owner.'},
+                {k:'tools', title:'Platform Features', html:'Purview (Catalog, Labeling), Defender for Cloud Apps (Session Controls), Sentinel (Analytics), Entra ID (Conditional Access).'},
+                {k:'pitfalls', title:'Antipatterns', html:'Big-Bang Klassifizierung, fehlende Ownership, ungetestete Playbooks, keine Ausnahmeregel-Governance.'},
+                {k:'glossary', title:'Glossar', html:'<div class="mini-glossar"><span>Lineage</span><span>UEBA</span><span>Runbook</span><span>JIT</span><span>Playbook</span><span>Risk Score</span></div>'},
+                {k:'selfcheck', title:'Assessment Fragen', html:'Wie schnell identifizierst du Exfiltration? Anteil klassifizierter Assets? MTTR für Datenvorfall?'}
+            ],
+            images:['/uploads/1755282215516-Lock.png']
+        },
+        4:{
+            title:'Level 4 – Strategische Tiefe',
+            cls:'lvl-4',
+            styleNote:'Narrativ + strategische Metriken.',
+            blocks:[
+                {k:'intro', title:'Strategischer Rahmen', html:'Datensicherheit als kontinuierliche Capability: Governance Strukturen, Funding Zyklen, messbare Outcomes (Coverage %, MTTD, False Positive Rate).'},
+                {k:'core', title:'Operating Model', html:'Data Owners, Security Engineering, Governance Board. RACI klar. Roadmap quartalsweise: Klassifizierungs-Abdeckung, DLP Reife, Incident Drill Frequenz.'},
+                {k:'example', title:'Case: NIS2 & Label Adoption', html:'Mapping regulatorischer Controls → Purview Artefakte. KPI Dashboard zeigt Lücken. Maßnahmenpaket priorisiert nach Risiko/Complexity Ratio.'},
+                {k:'tools', title:'Enablement & Automation', html:'Infra-as-Code für Policy Rollouts, Telemetrie Normalisierung (Common Schema), Analytical Models für Exfiltration Path Prediction.'},
+                {k:'pitfalls', title:'Strategische Risiken', html:'Shadow Data Growth, Tool Fragmentation, fehlende Exec-Sponsorship, Metrik-Drift ohne Baseline Calibration.'},
+                {k:'glossary', title:'Begriffe', html:'<div class="mini-glossar"><span>KRI</span><span>MTTD</span><span>Drift</span><span>Baseline</span><span>Coverage</span><span>Exfiltration</span></div>'},
+                {k:'selfcheck', title:'Strategic Review', html:'Gibt es eine formale Maturity-Progression? Existiert ein KPI/KRI Quartalsreport? Anteil automatisierter Policy Deployments?'}
+            ],
+            images:['/uploads/1755284771544-Panda_Shield.png']
+        }
+    };
+
+    function renderLevel(lvl, data){
+        const sec=document.createElement('section');
+        sec.className=`path-section mb-5 ${data.cls}`;
+        sec.dataset.level=lvl;
+        // Build blocks
+        let blocksHtml = '';
+        // Optionally insert a large hero illustration first per level (if image available)
+        if(data.images && data.images.length){ blocksHtml += imgFull(data.images[0],'Visual '+lvl); }
+        data.blocks.forEach((b,i)=>{
+            const eff = bandEffect(i);
+            const delay = 70 * (i % 7);
+            const extraClass = bandClass(i);
+            blocksHtml += `<div class="content-block ${extraClass}" data-effect="${eff}" data-delay="${delay}">
+                <span class="scroll-marker"></span>
+                <h3>${b.title}</h3>
+                <div class="content-text">${b.html}</div>
+            </div>`;
+            if(i===1 && data.images && data.images[1]){ // mid illustrative break
+                blocksHtml += imgFull(data.images[1],'Zwischenbild '+lvl);
+            }
+        });
+        const dbAppend = dbLevelMap['level '+lvl] ? `<div class="content-block alt-band-3" data-effect="fade-up" data-delay="40"><h3>Original (DB) Zusatz</h3><div>${dbLevelMap['level '+lvl].content}</div></div>` : '';
+        sec.innerHTML = `<div class="fly-box mb-5" data-aos="fade-up"><h2 class="h3 mb-3">${data.title}</h2><div class="gradient-bar mb-3"></div><p class="mb-2 small text-muted">Stil: ${data.styleNote}</p><div class="mb-3">${(data.blocks[0]?.k? ['Identify','Protect','Detect/Respond'].map(p=>`<span class='pillar-badge'>${p}</span>`).join('') : '')}</div></div>${blocksHtml + dbAppend}`;
+        pathsContentEl.appendChild(sec);
+    }
+
+    Object.entries(contentByLevel).forEach(([lvl,data])=>renderLevel(lvl,data));
+
+    // Intersection Observer for new content-block reveal effects
+    const obs = new IntersectionObserver((entries)=>{
+        entries.forEach(en=>{
+            if(!en.isIntersecting) return;
+            const el=en.target; el.classList.add('revealed');
+            const eff = el.dataset.effect; const baseTransform=el.style.transform;
+            const delay = el.dataset.delay||0; el.style.transitionDelay=delay+'ms';
+            switch(eff){
+                case 'fade-right': el.style.transform='translateX(-40px)'; requestAnimationFrame(()=>{ el.style.transform='translateX(0)';}); break;
+                case 'fade-left': el.style.transform='translateX(40px)'; requestAnimationFrame(()=>{ el.style.transform='translateX(0)';}); break;
+                case 'zoom-in': el.style.transform='scale(.82)'; requestAnimationFrame(()=>{ el.style.transform='scale(1)';}); break;
+                case 'flip-left': el.style.transform='rotateY(70deg)'; requestAnimationFrame(()=>{ el.style.transform='rotateY(0deg)';}); break;
+                case 'flip-right': el.style.transform='rotateY(-70deg)'; requestAnimationFrame(()=>{ el.style.transform='rotateY(0deg)';}); break;
+                case 'zoom-in-up': el.style.transform='translateY(60px) scale(.85)'; requestAnimationFrame(()=>{ el.style.transform='translateY(0) scale(1)';}); break;
+                default: ;
+            }
+            obs.unobserve(el);
+        });
+    },{threshold:0.18, rootMargin:'0px 0px -40px 0px'});
+
+    function observeVisibleBlocks(){
+        document.querySelectorAll('.path-section.active .content-block:not(.revealed)').forEach(b=>obs.observe(b));
+    }
+
+    function activate(level){
+        document.querySelectorAll('.path-card').forEach(c=>{
+            const is = c.dataset.level===level;
+            c.classList.toggle('path-active', is);
+            if(is){ c.classList.remove('border-0'); c.classList.add('border-primary'); }
+            else { c.classList.remove('border-primary'); c.classList.add('border-0'); }
+        });
+        document.querySelectorAll('.path-section').forEach(s=>{ s.classList.toggle('active', s.dataset.level===level); });
+        const target=document.querySelector('.path-section.active'); if(target){ target.scrollIntoView({behavior:'smooth', block:'start'}); }
+    observeVisibleBlocks();
+    }
+    const selector=document.getElementById('pathSelector');
+    selector.addEventListener('click', e=>{ const card=e.target.closest('.path-card'); if(!card) return; activate(card.dataset.level); });
+    // Default = 2
+    activate(selector.getAttribute('data-default')||'2');
+    observeVisibleBlocks();
+    window.addEventListener('scroll', observeVisibleBlocks, {passive:true});
+});
+</script>
 
 <%- include('partials/footer') %>

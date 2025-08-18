@@ -2,9 +2,24 @@
 <%- include('partials/admin_nav') %>
 
 <div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Beiträge verwalten</h1>
-        <a href="/admin/posts/new" class="btn btn-primary">Neuen Beitrag erstellen</a>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <h1 class="mb-0"><%= archived ? 'Archivierte Beiträge' : 'Beiträge verwalten' %></h1>
+            <% if (!archived) { %>
+                <a href="/admin/posts?archived=1" class="btn btn-sm btn-outline-secondary">Archiv anzeigen</a>
+            <% } else { %>
+                <a href="/admin/posts" class="btn btn-sm btn-outline-secondary">Zurück</a>
+            <% } %>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/admin/posts/new" class="btn btn-primary">Neuen Beitrag erstellen</a>
+            <% if (!archived) { %>
+            <form action="/admin/posts/sample" method="POST" class="d-inline" onsubmit="return confirm('Beispiel-Posts hinzufügen?')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-outline-primary" type="submit">Beispiel-Posts</button>
+            </form>
+            <% } %>
+        </div>
     </div>
 
     <div class="card">
@@ -14,7 +29,8 @@
                     <tr>
                         <th>Titel</th>
                         <th>Status</th>
-                        <th>Zuletzt aktualisiert</th>
+                        <th>Featured</th>
+                        <th>Plan / Aktualisiert</th>
                         <th>Aktionen</th>
                     </tr>
                 </thead>
@@ -25,21 +41,62 @@
                                 <td><%= post.title %></td>
                                 <td>
                                     <% if (post.status === 'published') { %>
-                                        <span class="badge bg-success">Veröffentlicht</span>
+                                        <% if (post.published_at && new Date(post.published_at) > new Date()) { %>
+                                            <span class="badge bg-info text-dark" title="Geplant">Geplant</span>
+                                        <% } else { %>
+                                            <span class="badge bg-success">Live</span>
+                                        <% } %>
                                     <% } else { %>
                                         <span class="badge bg-secondary">Entwurf</span>
                                     <% } %>
                                 </td>
-                                <td><%= new Date(post.updated_at).toLocaleDateString('de-DE') %></td>
                                 <td>
-                                    <a href="/admin/posts/edit/<%= post.id %>" class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
-                                    <!-- Hier könnte ein Löschen-Button hin -->
+                                    <% if (post.is_featured) { %>
+                                        <span class="badge bg-warning text-dark">Featured</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (post.published_at) { %>
+                                        <div class="small" title="Geplanter/effektiver Zeitpunkt">🗓 <%= new Date(post.published_at).toLocaleString('de-DE') %></div>
+                                    <% } %>
+                                    <div class="text-muted small" title="Zuletzt aktualisiert">⟳ <%= new Date(post.updated_at).toLocaleDateString('de-DE') %></div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <% if (!archived) { %>
+                                            <a href="/admin/posts/edit/<%= post.id %>" class="btn btn-outline-secondary" title="Bearbeiten">Edit</a>
+                                            <% if (post.status === 'published') { %>
+                                                <form action="/admin/posts/<%= post.id %>/draft" method="POST" class="d-inline">
+                                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                    <button class="btn btn-outline-secondary" title="Als Entwurf" onclick="return confirm('Auf Entwurf setzen?')">Unpublish</button>
+                                                </form>
+                                            <% } else { %>
+                                                <form action="/admin/posts/<%= post.id %>/publish" method="POST" class="d-inline">
+                                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                    <button class="btn btn-outline-success" title="Veröffentlichen">Publish</button>
+                                                </form>
+                                            <% } %>
+                                            <form action="/admin/posts/<%= post.id %>/focus" method="POST" class="d-inline">
+                                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                <button class="btn btn-outline-warning" title="Featured umschalten">Featured</button>
+                                            </form>
+                                            <form action="/admin/posts/<%= post.id %>/hide" method="POST" class="d-inline">
+                                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                <button class="btn btn-outline-danger" title="Ausblenden" onclick="return confirm('Beitrag ausblenden? (Soft Delete)')">Hide</button>
+                                            </form>
+                                        <% } else { %>
+                                            <form action="/admin/posts/<%= post.id %>/restore" method="POST" class="d-inline">
+                                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                <button class="btn btn-outline-success" title="Wiederherstellen">Restore</button>
+                                            </form>
+                                        <% } %>
+                                    </div>
                                 </td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="4" class="text-center">Keine Beiträge gefunden.</td>
+                            <td colspan="5" class="text-center">Keine Beiträge gefunden.</td>
                         </tr>
                     <% } %>
                 </tbody>

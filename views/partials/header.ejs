@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<%= locale || 'de' %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,41 +9,78 @@
     <!-- CSS für die Animationen -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><meta name="csrf-token" content="<%= csrfToken %>"><% } %>
+    <script>
+    (function(){
+        var meta=document.querySelector('meta[name="csrf-token"]');
+        window.CSRF_TOKEN = meta? meta.getAttribute('content') : '';
+    })();
+    </script>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="/">
-            <img src="/img/logo.png" alt="Purview Panda Logo" height="30" class="d-inline-block align-text-top">
-            Purview Panda
+        <a class="navbar-brand" href="/" style="display:flex;align-items:center;gap:.5rem;">
+            <img src="/img/logo.png" alt="Purview Panda" height="48" class="d-inline-block align-text-top" style="height:48px;width:auto;">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+                        <ul class="navbar-nav ms-auto align-items-lg-center">
+                <% const __cp = (typeof currentPath === 'undefined' ? '' : currentPath); %>
                 <li class="nav-item">
-                    <a class="nav-link <%= currentPath === '/pandas-way' ? 'active' : '' %>" href="/pandas-way">Panda's Way</a>
+                    <a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="/pandas-way"><%= t('nav.pandas_way') %></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <%= currentPath === '/purview' ? 'active' : '' %>" href="/purview">Purview</a>
+                    <a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview"><%= t('nav.purview') %></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <%= currentPath === '/blog' ? 'active' : '' %>" href="/blog">Blog</a>
+                    <a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="/blog"><%= t('nav.blog') %></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <%= currentPath === '/podcasts' ? 'active' : '' %>" href="/podcasts">Podcasts</a>
+                    <a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="/podcasts"><%= t('nav.podcasts') %></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <%= currentPath === '/autor' ? 'active' : '' %>" href="/autor">Autor</a>
+                    <a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a>
                 </li>
-                <% if (isAdmin) { %>
+                <% if (isAdmin || isWhitelisted) { %>
                     <li class="nav-item">
-                        <a class="nav-link text-primary fw-bold" href="/admin">Admin</a>
+                        <a class="nav-link <%= isAdmin ? 'text-primary fw-bold' : 'text-secondary' %>" href="/admin"><%= t('nav.admin') %></a>
                     </li>
                 <% } %>
+                                <li class="nav-item ms-lg-3">
+                        <form action="/search" method="GET" class="d-flex" role="search" onsubmit="return (this.q.value||'').trim().length>1">
+                            <input class="form-control form-control-sm" type="search" placeholder="<%= t('search.placeholder') %>" aria-label="Search" name="q" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
+                            <button class="btn btn-sm btn-outline-primary ms-2" type="submit"><i class="bi bi-search"></i></button>
+                        </form>
+                    </li>
+                    <li class="nav-item dropdown ms-lg-2">
+                        <a class="nav-link dropdown-toggle" href="#" id="langSwitch" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <%= (locale||'de').toUpperCase() %>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="langSwitch">
+                            <li><a class="dropdown-item" href="?lang=de">DE</a></li>
+                            <li><a class="dropdown-item" href="?lang=en">EN</a></li>
+                        </ul>
+                                </li>
             </ul>
         </div>
     </div>
 </nav>
+<script>
+// Tag Deep Link via URL hash: #tag:Security
+(function(){
+    const hash = decodeURIComponent(location.hash||'');
+    if(hash.startsWith('#tag:')){
+        const tag = hash.substring(5);
+        if(tag){
+            // Direkt zur Tag-Seite navigieren falls nicht schon dort
+            if(!location.pathname.startsWith('/blog/tag/')){
+                location.href = '/blog/tag/' + encodeURIComponent(tag);
+            }
+        }
+    }
+})();
+</script>

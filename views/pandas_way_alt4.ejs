@@ -1,0 +1,93 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div id="alt4Root" class="container-fluid px-0">
+  <section class="alt4-hero text-center text-light py-5 position-relative">
+    <div class="container">
+      <h1 class="display-4 fw-bold mb-3">Panda's Way – ALT Design 4</h1>
+      <p class="lead mb-4"><%= t('pandas.alt2.subtitle') %></p>
+      <div class="d-flex justify-content-center flex-wrap gap-3" id="alt4Switch"></div>
+    </div>
+    <div class="alt4-bg"></div>
+  </section>
+  <section class="container position-relative py-5" id="alt4Content"></section>
+</div>
+<style>
+.alt4-hero{background:linear-gradient(135deg,#182848,#4b6cb7);overflow:hidden;}
+.alt4-bg{position:absolute;inset:0;background:radial-gradient(circle at 25% 40%,rgba(255,255,255,.15),transparent 55%),radial-gradient(circle at 70% 65%,rgba(255,255,255,.15),transparent 55%);} 
+.alt4-card{cursor:pointer;min-width:140px;padding:.85rem 1rem;border-radius:1rem;background:#1d2b3d;color:#d9e4f2;border:1px solid #2d4159;font-size:.8rem;transition:.35s;}
+.alt4-card.active{border-color:#ffb347;box-shadow:0 0 0 .25rem #ffb34755;}
+.alt4-timeline{position:relative;margin:0;padding:0;list-style:none;}
+.alt4-timeline:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;background:linear-gradient(#ffb347,#ffd194);transform:translateX(-50%);} 
+.alt4-item{position:relative;width:50%;padding:2.5rem 2rem;box-sizing:border-box;}
+.alt4-item:nth-child(odd){left:0;text-align:right;}
+.alt4-item:nth-child(even){left:50%;}
+.alt4-bubble{background:#fff;border-radius:1.25rem;padding:1.75rem 1.5rem;box-shadow:0 1.5rem 2.75rem -1.25rem rgba(0,0,0,.25);display:inline-block;max-width:520px;position:relative;opacity:0;transform:translateY(60px) scale(.95);transition:opacity .85s ease, transform .95s cubic-bezier(.16,.8,.28,.96);} 
+.alt4-bubble.reveal{opacity:1;transform:translateY(0) scale(1);} 
+.alt4-bubble:before{content:"";position:absolute;top:1.2rem;width:16px;height:16px;border-radius:50%;background:#ffb347;box-shadow:0 0 0 6px #ffb34733;} 
+.alt4-item:nth-child(odd) .alt4-bubble:before{right:-42px;} .alt4-item:nth-child(even) .alt4-bubble:before{left:-42px;} 
+.alt4-bubble h2{font-size:1.6rem;font-weight:600;background:linear-gradient(90deg,#ffb347,#ffd194,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.9rem;} 
+.alt4-chip{display:inline-block;background:#ffb34715;color:#ff8c00;font-size:.6rem;font-weight:600;padding:.4rem .55rem;margin:.2rem .35rem .2rem 0;border-radius:.6rem;letter-spacing:.4px;} 
+@media (max-width: 880px){
+  .alt4-timeline:before{left:8px;} 
+  .alt4-item,.alt4-item:nth-child(even),.alt4-item:nth-child(odd){width:100%;left:0;text-align:left;padding:2.25rem 0 2.25rem 2.5rem;} 
+  .alt4-bubble{max-width:100%;}
+  .alt4-bubble:before{left:-38px !important;right:auto;}
+}
+</style>
+<script>
+(function(){
+ console.log('alt4 init');
+ const LEVELS={
+ 1:{name:'Level 1', blocks:[
+  {t:'Was sind Daten?', body:'Fotos, Wörter, Zahlen. Alles Information & Wertträger.', chips:['Daten','Basis']},
+  {t:'Warum schützen?', body:'Privat. Richtig. Verfügbar. Grundziele (CIA).', chips:['Privat','Verfügbar']},
+  {t:'Quick Wins', body:'Passwort Manager, Updates, Backup Drill definieren.', chips:['Passwort','Backup']}
+ ]},
+ 2:{name:'Level 2', blocks:[
+  {t:'Identify', body:'Inventar & Klassifizierung. Owner + Sensitivität.', chips:['Inventar','Label']},
+  {t:'Protect', body:'Least Privilege, Verschlüsselung, Secrets Hygiene.', chips:['Access','Crypto']},
+  {t:'Detect/Respond', body:'Telemetrie, Baselines & Runbooks senken MTTR.', chips:['Telemetry','Runbook']},
+  {t:'Metriken', body:'Coverage %, Mean Time to Detect/Respond, Drill Frequenz.', chips:['KPIs','Coverage']}
+ ]},
+ 3:{name:'Level 3', blocks:[
+  {t:'Data Map', body:'Scans + Lineage + Impact Visualisierung.', chips:['Scan','Lineage']},
+  {t:'Controls', body:'Policy-as-Code, Labels, JIT, Secrets Rotation.', chips:['Policy','JIT']},
+  {t:'Analytics', body:'UEBA Korrelation & Anomalien + Kontext.', chips:['UEBA','Anomalie']},
+  {t:'Automation', body:'Pipelines validieren Policies vor Rollout.', chips:['CI','IaC']}
+ ]},
+ 4:{name:'Level 4', blocks:[
+  {t:'Governance', body:'Rollen, Funding, KPIs, Steering Board.', chips:['Rollen','KPIs']},
+  {t:'Adaptive', body:'Risk Scores steuern Eskalation & Conditional Controls.', chips:['Risk','Adaptive']},
+  {t:'Operations', body:'Drills, Lessons Learned, Drift Detection.', chips:['Drill','Drift']},
+  {t:'Priorisierung', body:'Value/Risk vs Effort Matrix für Roadmap.', chips:['Matrix','Priorisierung']},
+  {t:'Improvement', body:'Kontinuierliche Post-Mortems & Pattern Reuse.', chips:['Learning','Reuse']}
+ ]}
+ };
+ const switchWrap=document.getElementById('alt4Switch');
+ const mount=document.getElementById('alt4Content');
+ function render(l){
+  mount.innerHTML='';
+  const lvl=LEVELS[l]; if(!lvl) return; const ul=document.createElement('ul'); ul.className='alt4-timeline';
+  lvl.blocks.forEach((b,i)=>{ const li=document.createElement('li'); li.className='alt4-item'; li.dataset.delay=100*i; li.innerHTML=`<div class='alt4-bubble'><h2>${b.t}</h2><p class='mb-3 lead'>${b.body}</p><div>${b.chips.map(c=>`<span class='alt4-chip'>${c}</span>`).join('')}</div></div>`; ul.appendChild(li); });
+  mount.appendChild(ul); observe();
+  immediateReveal();
+ }
+ Object.entries(LEVELS).forEach(([k,v],i)=>{ const btn=document.createElement('button'); btn.type='button'; btn.className='alt4-card'; btn.textContent=v.name; btn.addEventListener('click',()=>{document.querySelectorAll('.alt4-card').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); render(k);}); if(i===1) btn.classList.add('active'); switchWrap.appendChild(btn); });
+ render(2);
+ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const b=en.target.querySelector('.alt4-bubble'); if(b){ const d=en.target.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } io.unobserve(en.target);} }),{threshold:.25});
+ function observe(){ document.querySelectorAll('.alt4-item:not(.obs)').forEach(b=>{ b.classList.add('obs'); io.observe(b); }); }
+ function immediateReveal(){
+   const vh = window.innerHeight || document.documentElement.clientHeight;
+   document.querySelectorAll('.alt4-item').forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.top < vh*0.9){
+       const b=el.querySelector('.alt4-bubble');
+       if(b && !b.classList.contains('reveal')){
+         const d=el.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal');
+       }
+     }
+   });
+ }
+})();
+</script>
+<%- include('partials/footer') %>

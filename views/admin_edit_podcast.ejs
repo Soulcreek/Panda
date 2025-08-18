@@ -15,12 +15,32 @@
             <textarea class="form-control" id="description" name="description" rows="5"><%= podcast ? podcast.description : '' %></textarea>
         </div>
         <div class="mb-3">
-            <label for="audio_url" class="form-label">Audio-URL</label>
+            <label for="audio_url" class="form-label d-flex justify-content-between align-items-center">Audio-Datei
+                <button type="button" id="select-audio-btn" class="btn btn-sm btn-outline-secondary">Aus Medienbibliothek</button>
+            </label>
             <input type="text" class="form-control" id="audio_url" name="audio_url" value="<%= podcast ? podcast.audio_url : '' %>" placeholder="/audio/dateiname.mp3" required>
+            <div class="form-text">Wähle eine hochgeladene Audiodatei oder gib einen Pfad an (z.B. /audio/beispiel.mp3)</div>
         </div>
         <button type="submit" class="btn btn-primary">Speichern</button>
         <a href="/admin/podcasts" class="btn btn-secondary">Abbrechen</a>
     </form>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+    const btn = document.getElementById('select-audio-btn');
+    if(btn){
+        btn.addEventListener('click', ()=>{
+            // Re-use media modal, filter to audio
+            if(typeof openMediaLibraryModal==='function'){
+                openMediaLibraryModal({ filter:null, returnObject:true, callback:(media)=>{
+                        if(media.type && media.type.startsWith('audio/')){
+                            document.getElementById('audio_url').value = media.path || ('/uploads/'+media.filename);
+                        } else { alert('Bitte eine Audiodatei wählen.'); }
+                }});
+            } else { alert('Medienbibliothek nicht geladen.'); }
+        });
+    }
+});
+</script>
 <%- include('partials/footer') %>
