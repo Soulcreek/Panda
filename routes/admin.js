@@ -1,299 +1,226 @@
+// soulcreek/panda/Panda-master/routes/admin.js
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
-const fetch = require('node-fetch');
+const fs = require('fs').promises;
+const pool = require('../db');
 
-// Middleware & Konfiguration
-function requireLogin(req, res, next) { if (req.session.loggedin) next(); else res.redirect('/login'); }
-const storage = multer.diskStorage({ destination: (req, file, cb) => cb(null, 'httpdocs/uploads/'), filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname) });
-const upload = multer({ storage: storage });
-
-// Datenbank-Objekte und Helper-Funktionen müssen übergeben werden
-module.exports = (postsDb, mediaDb, podcastsDb) => {
-
-    // --- TAG HELPER FUNKTION ---
-    async function handleTags(postId, tagsString) {
-        if (!tagsString) {
-            postsDb.run("DELETE FROM post_tags WHERE post_id = ?", [postId]);
-            return;
-        }
-        const tagNames = tagsString.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag);
-        if (tagNames.length === 0) {
-            postsDb.run("DELETE FROM post_tags WHERE post_id = ?", [postId]);
-            return;
-        }
-    
-        const tagIds = await Promise.all(tagNames.map(name => {
-            return new Promise((resolve, reject) => {
-                postsDb.get("SELECT id FROM tags WHERE name_de = ?", [name], (err, row) => {
-                    if (err) return reject(err);
-                    if (row) return resolve(row.id);
-                    postsDb.run("INSERT INTO tags (name_de) VALUES (?)", [name], function(err) {
-                        if (err) return reject(err);
-                        resolve(this.lastID);
-                    });
-                });
-            });
-        }));
-    
-        postsDb.serialize(() => {
-            postsDb.run("DELETE FROM post_tags WHERE post_id = ?", [postId]);
-            const stmt = postsDb.prepare("INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)");
-            tagIds.forEach(tagId => stmt.run(postId, tagId));
-            stmt.finalize();
-        });
+// Middleware zur Überprüfung der Authentifizierung
+function isAuthenticated(req, res, next) {
+    if (req.session.userId) {
+        next();
+    } else {
+        res.redirect('/login');
     }
+}
 
-    // --- DASHBOARD ---
-    router.get('/', requireLogin, (req, res) => {
-        const queries = {
-            postCount: "SELECT COUNT(*) as count FROM posts WHERE is_deleted = 0",
-            mediaCount: "SELECT COUNT(*) as count FROM media_library",
-            podcastCount: "SELECT COUNT(*) as count FROM podcasts",
-            latestPosts: `SELECT p.*, c.title FROM posts p JOIN posts_content c ON p.id = c.post_id WHERE p.is_deleted = 0 AND c.lang = 'de' ORDER BY p.createdAt DESC LIMIT 5`
-        };
+// Multer-Konfiguration für Dateiuploads
+const storage = multer.diskStorage({
+    destination: './httpdocs/uploads/',
+    filename: function(req, file, cb){
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage }).single('mediafile');
 
-        postsDb.get(queries.postCount, [], (err, postRow) => {
-            mediaDb.get(queries.mediaCount, [], (err, mediaRow) => {
-                podcastsDb.get(queries.podcastCount, [], (err, podcastRow) => {
-                    postsDb.all(queries.latestPosts, [], (err, latestPosts) => {
-                        res.render('admin_dashboard', {
-                            postCount: postRow ? postRow.count : 0,
-                            mediaCount: mediaRow ? mediaRow.count : 0,
-                            podcastCount: podcastRow ? podcastRow.count : 0,
-                            latestPosts: latestPosts || []
-                        });
-                    });
-                });
-            });
+// Admin Dashboard
+router.get('/', isAuthenticated, async (req, res) => {
+    try {
+        const [postCountRows] = await pool.query("SELECT COUNT(*) as count FROM posts");
+        const [mediaCountRows] = await pool.query("SELECT COUNT(*) as count FROM media");
+        const [podcastCountRows] = await pool.query("SELECT COUNT(*) as count FROM podcasts");
+        const [latestPosts] = await pool.query("SELECT * FROM posts ORDER BY updated_at DESC LIMIT 5");
+
+        res.render('admin_dashboard', {
+            postCount: postCountRows[0].count,
+            mediaCount: mediaCountRows[0].count,
+            podcastCount: podcastCountRows[0].count,
+            latestPosts: latestPosts
         });
-    });
+    } catch (err) {
+        console.error('Fehler beim Laden des Admin-Dashboards:', err);
+        res.status(500).send("Fehler beim Laden des Dashboards.");
+    }
+});
 
-    // --- BLOG POST ROUTEN ---
-    router.get('/posts', requireLogin, (req, res) => {
-        postsDb.all(`SELECT p.*, c.title FROM posts p JOIN posts_content c ON p.id = c.post_id WHERE p.is_deleted = 0 AND c.lang = 'de' ORDER BY p.createdAt DESC`, [], (err, posts) => {
-            if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Beiträge."); }
-            mediaDb.all("SELECT * FROM media_library ORDER BY uploadedAt DESC", [], (err, mediaItems) => {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Medienbibliothek."); }
-                res.render('admin_posts', { posts: posts || [], mediaItems: mediaItems || [] });
-            });
-        });
-    });
+// --- BEITRAGSVERWALTUNG ---
+router.get('/posts', isAuthenticated, async (req, res) => {
+    try {
+        const [posts] = await pool.query("SELECT * FROM posts ORDER BY created_at DESC");
+        res.render('admin_posts', { posts: posts });
+    } catch (err) { res.status(500).send("Fehler beim Laden der Beiträge."); }
+});
 
-    router.get('/post/edit/:id', requireLogin, (req, res) => {
-        const query = `
-            SELECT p.*, c_de.title as title_de, c_de.content as content_de, c_en.title as title_en, c_en.content as content_en,
-            (SELECT GROUP_CONCAT(t.name_de) FROM tags t JOIN post_tags pt ON t.id = pt.tag_id WHERE pt.post_id = p.id) as tags
-            FROM posts p
-            LEFT JOIN posts_content c_de ON p.id = c_de.post_id AND c_de.lang = 'de'
-            LEFT JOIN posts_content c_en ON p.id = c_en.post_id AND c_en.lang = 'en'
-            WHERE p.id = ?`;
-        postsDb.get(query, [req.params.id], (err, post) => {
-            if (err || !post) return res.redirect('/admin/posts');
-            mediaDb.all("SELECT * FROM media_library ORDER BY uploadedAt DESC", [], (err, mediaItems) => {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Medienbibliothek."); }
-                res.render('admin_edit_post', { post, mediaItems: mediaItems || [] });
-            });
-        });
-    });
+router.get('/posts/new', isAuthenticated, async (req, res) => {
+    try {
+        const [media] = await pool.query("SELECT * FROM media ORDER BY uploaded_at DESC");
+        res.render('admin_edit_post', { post: null, media: media });
+    } catch (err) {
+        res.status(500).send("Fehler beim Laden des Editors.");
+    }
+});
 
-    router.post('/add_post', requireLogin, upload.single('titleImage'), (req, res) => {
-        const { title_de, content_de, title_en, content_en, selectedTitleImage, published_at, is_featured, tags } = req.body;
-        const imageFilename = selectedTitleImage || (req.file ? req.file.filename : null);
-        const isFeatured = is_featured ? 1 : 0;
-        
-        const insertPost = () => {
-            postsDb.run(`INSERT INTO posts (image_filename, published_at, is_featured, is_visible, is_deleted) VALUES (?, ?, ?, 1, 0)`, 
-                   [imageFilename, published_at || null, isFeatured], async function(err) {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Einfügen des Beitrags."); }
-                const postId = this.lastID;
-                await handleTags(postId, tags);
-                postsDb.run(`INSERT INTO posts_content (post_id, lang, title, content) VALUES (?, 'de', ?, ?)`, [postId, title_de, content_de]);
-                postsDb.run(`INSERT INTO posts_content (post_id, lang, title, content) VALUES (?, 'en', ?, ?)`, [postId, title_en, content_en]);
-                res.redirect('/admin/posts');
-            });
-        };
+router.post('/posts/new', isAuthenticated, async (req, res) => {
+    const { title, content, status, title_en, content_en, whatsnew } = req.body;
+    const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    try {
+        await pool.query(
+            'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [title, slug, content, req.session.userId, status, title_en, content_en, whatsnew]
+        );
+        res.redirect('/admin/posts');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Fehler beim Speichern des Beitrags.");
+    }
+});
 
-        if (isFeatured) {
-            postsDb.run("UPDATE posts SET is_featured = 0", [], (err) => {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Zurücksetzen des 'Hervorgehoben'-Status."); }
-                insertPost();
-            });
-        } else {
-            insertPost();
+router.get('/posts/edit/:id', isAuthenticated, async (req, res) => {
+    try {
+        const [posts] = await pool.query("SELECT * FROM posts WHERE id = ?", [req.params.id]);
+        if (posts.length === 0) {
+            return res.status(404).send("Beitrag nicht gefunden.");
         }
-    });
+        const [media] = await pool.query("SELECT * FROM media ORDER BY uploaded_at DESC");
+        res.render('admin_edit_post', { post: posts[0], media: media });
+    } catch (err) {
+        res.status(500).send("Fehler beim Laden des Editors.");
+    }
+});
 
-    router.post('/post/edit/:id', requireLogin, upload.single('titleImage'), (req, res) => {
-        const id = req.params.id;
-        const { title_de, content_de, title_en, content_en, selectedTitleImage, published_at, is_featured, tags } = req.body;
-        const isFeatured = is_featured ? 1 : 0;
+router.post('/posts/edit/:id', isAuthenticated, async (req, res) => {
+    const { title, content, status, title_en, content_en, whatsnew } = req.body;
+    const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    try {
+        await pool.query(
+            'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ? WHERE id = ?',
+            [title, slug, content, status, title_en, content_en, whatsnew, req.params.id]
+        );
+        res.redirect('/admin/posts');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Fehler beim Aktualisieren des Beitrags.");
+    }
+});
 
-        const updatePost = () => {
-            postsDb.get("SELECT image_filename FROM posts WHERE id = ?", [id], (err, row) => {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Abrufen des Bildnamens."); }
-                const imageFilename = selectedTitleImage || (req.file ? req.file.filename : (row ? row.image_filename : null));
-                postsDb.run(`UPDATE posts SET image_filename = ?, published_at = ?, is_featured = ? WHERE id = ?`, [imageFilename, published_at || null, isFeatured, id], async (err) => {
-                    if (err) { console.error(err); return res.status(500).send("Fehler beim Aktualisieren des Beitrags."); }
-                    await handleTags(id, tags);
-                    postsDb.run(`REPLACE INTO posts_content (post_id, lang, title, content) VALUES (?, 'de', ?, ?)`, [id, title_de, content_de]);
-                    postsDb.run(`REPLACE INTO posts_content (post_id, lang, title, content) VALUES (?, 'en', ?, ?)`, [id, title_en, content_en]);
-                    res.redirect('/admin/posts');
-                });
-            });
-        };
-        
-        if (isFeatured) {
-            postsDb.run("UPDATE posts SET is_featured = 0 WHERE id != ?", [id], (err) => {
-                if (err) { console.error(err); return res.status(500).send("Fehler beim Aktualisieren anderer 'Hervorgehoben'-Status."); }
-                updatePost();
-            });
-        } else {
-            updatePost();
-        }
-    });
+// --- PODCAST-VERWALTUNG ---
+router.get('/podcasts', isAuthenticated, async (req, res) => {
+    try {
+        const [podcasts] = await pool.query("SELECT * FROM podcasts ORDER BY published_at DESC");
+        res.render('admin_podcasts', { podcasts: podcasts });
+    } catch (err) { res.render('admin_podcasts', { podcasts: [] }); }
+});
 
-    router.post('/post/toggle-visibility/:id', requireLogin, (req, res) => { postsDb.run("UPDATE posts SET is_visible = NOT is_visible WHERE id = ?", [req.params.id], () => res.json({ success: true })); });
-    router.post('/post/delete/:id', requireLogin, (req, res) => { postsDb.run("UPDATE posts SET is_deleted = 1 WHERE id = ?", [req.params.id], () => res.json({ success: true })); });
-    router.post('/post/toggle-featured/:id', requireLogin, (req, res) => { postsDb.run("UPDATE posts SET is_featured = 0", [], () => { postsDb.run("UPDATE posts SET is_featured = 1 WHERE id = ?", [req.params.id], () => res.json({ success: true })); }); });
-    
-    // --- PODCAST ROUTEN ---
-    router.get('/podcasts', requireLogin, (req, res) => {
-        podcastsDb.all("SELECT p.*, c.title, c.description FROM podcasts p JOIN podcasts_content c ON p.id = c.podcast_id WHERE c.lang = 'de' ORDER BY p.createdAt DESC", [], (err, podcasts) => {
-            if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Podcasts."); }
-            res.render('admin_podcasts', { podcasts: podcasts || [] });
-        });
-    });
+// --- TOOLS & MEDIEN ---
+router.get('/tools', isAuthenticated, (req, res) => {
+    res.render('admin_tools', { posts: [] });
+});
 
-    router.post('/add_podcast', requireLogin, (req, res) => {
-        const { title_de, description_de, title_en, description_en, audio_filename } = req.body;
-        podcastsDb.run("INSERT INTO podcasts (audio_filename) VALUES (?)", [audio_filename], function(err) {
-            if (err) { console.error(err); return res.status(500).send("Fehler beim Hinzufügen des Podcasts."); }
-            const podcastId = this.lastID;
-            podcastsDb.run("INSERT INTO podcasts_content (podcast_id, lang, title, description) VALUES (?, 'de', ?, ?)", [podcastId, title_de, description_de]);
-            podcastsDb.run("INSERT INTO podcasts_content (podcast_id, lang, title, description) VALUES (?, 'en', ?, ?)", [podcastId, title_en, description_en]);
-            res.redirect('/admin/podcasts');
-        });
-    });
+router.get('/media', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM media ORDER BY uploaded_at DESC");
+        res.render('media_library', { files: rows });
+    } catch (err) {
+        res.status(500).send("Fehler beim Abrufen der Mediendateien.");
+    }
+});
 
-    // --- MEDIEN ROUTEN ---
-    router.get('/media', requireLogin, (req, res) => { const categories = ['Icons', 'Logos', 'Blog-Titelbild', 'Blog-Inhalt', 'Stockfotos', 'Allgemein']; const currentCategory = req.query.category; let query = "SELECT * FROM media_library ORDER BY uploadedAt DESC"; const params = []; if (currentCategory) { query = "SELECT * FROM media_library WHERE category = ? ORDER BY uploadedAt DESC"; params.push(currentCategory); } mediaDb.all(query, params, (err, mediaItems) => { if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Medienbibliothek."); } res.render('media_library', { mediaItems: mediaItems || [], categories, currentCategory }); }); });
-    
-    router.post('/media/upload', requireLogin, upload.array('mediaFiles'), (req, res) => {
-        const { category } = req.body;
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).send('Keine Dateien hochgeladen.');
-        }
-
-        const stmt = mediaDb.prepare("INSERT INTO media_library (filename, alt_text, category) VALUES (?, ?, ?)");
-        req.files.forEach(file => {
-            stmt.run(file.filename, '', category);
-        });
-        stmt.finalize((err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send("Fehler beim Speichern der Bilder in der Datenbank.");
-            }
+router.post('/upload', isAuthenticated, (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) { return res.status(500).send("Fehler beim Hochladen der Datei."); }
+        if (!req.file) { return res.status(400).send('Keine Datei ausgewählt.'); }
+        try {
+            await pool.query("INSERT INTO media (name, type, path) VALUES (?, ?, ?)", [req.file.filename, req.file.mimetype, '/uploads/' + req.file.filename]);
             res.redirect('/admin/media');
-        });
-    });
-
-    router.get('/media/edit/:id', requireLogin, (req, res) => { const categories = ['Icons', 'Logos', 'Blog-Titelbild', 'Blog-Inhalt', 'Stockfotos', 'Allgemein']; mediaDb.get("SELECT * FROM media_library WHERE id = ?", [req.params.id], (err, item) => { if (err || !item) return res.redirect('/admin/media'); res.render('admin_edit_media', { item, categories }); }); });
-    router.post('/media/edit/:id', requireLogin, (req, res) => { const { altText, category } = req.body; mediaDb.run("UPDATE media_library SET alt_text = ?, category = ? WHERE id = ?", [altText, category, req.params.id], (err) => { if (err) { console.error(err); return res.status(500).send("Fehler beim Aktualisieren der Mediendetails."); } res.redirect('/admin/media'); }); });
-    router.post('/media/delete/:id', requireLogin, (req, res) => { mediaDb.get("SELECT filename FROM media_library WHERE id = ?", [req.params.id], (err, row) => { if (row) { fs.unlink(path.join(__dirname, '..', 'httpdocs/uploads', row.filename), () => {}); } mediaDb.run("DELETE FROM media_library WHERE id = ?", [req.params.id], () => res.redirect('/admin/media')); }); });
-
-    // --- WERKZEUGE & DEBUG ---
-    router.get('/tools', requireLogin, (req, res) => {
-        postsDb.all(`SELECT p.*, c.title FROM posts p JOIN posts_content c ON p.id = c.post_id WHERE c.lang = 'de' ORDER BY p.createdAt DESC`, [], (err, posts) => {
-             if (err) { console.error(err); return res.status(500).send("Fehler beim Laden der Debug-Daten."); }
-            res.render('admin_tools', { posts: posts || [] });
-        });
-    });
-
-    router.post('/add-test-posts', requireLogin, (req, res) => {
-        const testPosts = [
-            { de: { title: 'Test: Die Zukunft der Cloud-Sicherheit', content: '<p>Cloud Computing ist nicht mehr wegzudenken. Doch wie sichert man Daten in einer verteilten Umgebung effektiv ab? Dieser Beitrag beleuchtet moderne Ansätze.</p>' }, en: { title: 'Test: The Future of Cloud Security', content: '<p>Cloud computing is here to stay. But how do you effectively secure data in a distributed environment? This post explores modern approaches.</p>' }, image: '1755291534764-Panda_Cloud6.png', tags: 'Cloud, Sicherheit, Test' },
-            { de: { title: 'Test: Phishing-Mails im Check', content: '<p>Wir zeigen Ihnen, wie Sie gefälschte E-Mails erkennen und sich vor Betrug schützen können. Mit echten Beispielen!</p>' }, en: { title: 'Test: Phishing Mails Under Review', content: '<p>We show you how to recognize fake emails and protect yourself from fraud. With real examples!</p>' }, image: '1755285422394-Panda_Lurk.png', tags: 'Phishing, E-Mail, Test' },
-            { de: { title: 'Test: Ein Leitfaden zur DSGVO', content: '<p>Die Datenschutz-Grundverordnung ist komplex. Wir brechen die wichtigsten Punkte für kleine und mittlere Unternehmen herunter.</p>' }, en: { title: 'Test: A Guide to GDPR', content: '<p>The General Data Protection Regulation is complex. We break down the most important points for small and medium-sized businesses.</p>' }, image: '1755291479738-Lock.png', tags: 'DSGVO, Compliance, Recht' }
-        ];
-        testPosts.forEach(postData => {
-            postsDb.run(`INSERT INTO posts (image_filename, published_at, is_featured, is_visible, is_deleted) VALUES (?, ?, 0, 1, 0)`, [postData.image, new Date().toISOString()], async function(err) {
-                if (err) return console.error(err);
-                const postId = this.lastID;
-                await handleTags(postId, postData.tags);
-                postsDb.run(`INSERT INTO posts_content (post_id, lang, title, content) VALUES (?, 'de', ?, ?)`, [postId, postData.de.title, postData.de.content]);
-                postsDb.run(`INSERT INTO posts_content (post_id, lang, title, content) VALUES (?, 'en', ?, ?)`, [postId, postData.en.title, postData.en.content]);
-            });
-        });
-        setTimeout(() => res.redirect('/admin/posts'), 500);
-    });
-
-    // --- KI-FUNKTIONEN ---
-    const runGemini = async (prompt) => {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) throw new Error("GEMINI_API_KEY ist nicht gesetzt.");
-        const model = 'gemini-1.5-flash-latest';
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const payload = { contents: [{ parts: [{ text: prompt }] }] };
-        const apiResponse = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const result = await apiResponse.json();
-        if (!apiResponse.ok || !result.candidates || !result.candidates[0].content) {
-            console.error("Gemini API Error:", JSON.stringify(result, null, 2));
-            throw new Error(result.error ? result.error.message : 'Unbekannter API-Fehler.');
+        } catch (dbErr) {
+            res.status(500).send("Fehler beim Speichern der Dateiinformationen.");
         }
-        return result.candidates[0].content.parts[0].text;
+    });
+});
+
+router.get('/media/edit/:id', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM media WHERE id = ?", [req.params.id]);
+        if (rows.length === 0) { return res.status(404).send("Mediendatei nicht gefunden."); }
+        res.render('admin_edit_media', { file: rows[0] });
+    } catch (err) {
+        res.status(500).send("Fehler beim Abrufen der Mediendatei.");
+    }
+});
+
+router.post('/media/edit/:id', isAuthenticated, async (req, res) => {
+    const { name, alt_text, description } = req.body;
+    try {
+        await pool.query("UPDATE media SET name = ?, alt_text = ?, description = ? WHERE id = ?", [name, alt_text, description, req.params.id]);
+        res.redirect('/admin/media');
+    } catch (err) {
+        res.status(500).send("Fehler beim Aktualisieren der Mediendatei.");
+    }
+});
+
+router.post('/media/delete/:id', isAuthenticated, async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT path FROM media WHERE id = ?", [req.params.id]);
+        if (rows.length > 0) {
+            const filePath = path.join(__dirname, '../httpdocs', rows[0].path);
+            try { await fs.unlink(filePath); } catch (unlinkErr) { /* Ignorieren */ }
+        }
+        await pool.query("DELETE FROM media WHERE id = ?", [req.params.id]);
+        res.redirect('/admin/media');
+    } catch (err) {
+        res.status(500).send("Ein Fehler ist beim Löschen aufgetreten.");
+    }
+});
+
+// API-Endpunkt für die Übersetzung
+router.post('/api/translate', isAuthenticated, async (req, res) => {
+    const { text } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ error: 'API key not configured.' });
+    }
+    
+    const schema = {
+      type: "OBJECT",
+      properties: {
+        "title": { "type": "STRING" },
+        "content": { "type": "STRING" }
+      }
     };
 
-    router.post('/generate-whats-new', requireLogin, async (req, res) => {
-        const topic = "Die neuesten Entwicklungen bei der NIS2-Richtlinie in der EU und ihre Auswirkungen auf mittelständische Unternehmen in Deutschland.";
-        const prompt = `Erstelle einen Blog-Beitrag im "What's New"-Format zum Thema: "${topic}". Gib die Antwort als valides JSON-Objekt mit den Schlüsseln "title_de", "content_de", "title_en", und "content_en". Der Inhalt soll informativ, aber leicht verständlich sein und im HTML-Format mit Absätzen und Listen.`;
-        try {
-            const textResponse = await runGemini(prompt);
-            const jsonResponse = JSON.parse(textResponse.replace(/```json|```/g, '').trim());
-            res.json(jsonResponse);
-        } catch (error) {
-            res.status(500).json({ error: 'Inhalt konnte nicht generiert werden.', details: error.message });
-        }
-    });
-
-    router.post('/translate-content', requireLogin, async (req, res) => {
-        const { text } = req.body;
-        if (!text) return res.status(400).json({ error: 'Kein Text zum Übersetzen vorhanden.' });
-        const prompt = `Übersetze den folgenden deutschen HTML-Text professionell nach Englisch. Behalte die HTML-Struktur bei. Antworte nur mit dem übersetzten HTML-Text:\n\n${text}`;
-        try {
-            const translatedText = await runGemini(prompt);
-            res.json({ translation: translatedText });
-        } catch (error) {
-            res.status(500).json({ error: 'Übersetzung fehlgeschlagen.', details: error.message });
-        }
-    });
-    
-    router.post('/generate-alt-text', requireLogin, upload.single('image'), async (req, res) => {
-        if (!req.file) return res.status(400).json({ error: 'Kein Bild für die Analyse erhalten.' });
-        try {
-            const imageBuffer = fs.readFileSync(req.file.path);
-            const base64ImageData = imageBuffer.toString('base64');
-            const apiKey = process.env.GEMINI_API_KEY;
-            if (!apiKey) throw new Error("GEMINI_API_KEY ist nicht gesetzt.");
-            const model = 'gemini-1.5-flash-latest';
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [ { text: "Beschreibe dieses Bild in einem kurzen, prägnanten Satz für einen SEO-Alternativtext. Antworte nur mit dem Beschreibungstext." }, { inlineData: { mimeType: req.file.mimetype, data: base64ImageData } } ] }] };
-            const apiResponse = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await apiResponse.json();
-            if (!apiResponse.ok || !result.candidates || !result.candidates[0].content) {
-                const errorDetails = result.error ? result.error.message : 'Unbekannter API-Fehler.';
-                throw new Error(`API-Fehler: ${errorDetails}`);
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        
+        const payload = {
+            contents: [{ parts: [{ text: `${text}\n\nPlease provide the translation in a valid JSON format like this: {"title": "...", "content": "..."}` }] }],
+            generationConfig: {
+                response_mime_type: "application/json",
+                responseSchema: schema
             }
-            const altText = result.candidates[0].content.parts[0].text.trim();
-            res.json({ altText: altText });
-        } catch (error) {
-            res.status(500).json({ error: 'Generierung fehlgeschlagen.', details: error.message });
-        } finally {
-            fs.unlinkSync(req.file.path);
-        }
-    });
+        };
 
-    return router;
-};
+        const apiResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!apiResponse.ok) {
+            throw new Error(`API request failed with status ${apiResponse.status}`);
+        }
+
+        const result = await apiResponse.json();
+        const translationText = result.candidates[0].content.parts[0].text;
+        
+        res.json({ translation: translationText });
+
+    } catch (error) {
+        console.error('API Error:', error);
+        res.status(500).json({ error: 'Translation failed' });
+    }
+});
+
+module.exports = router;

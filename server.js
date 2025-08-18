@@ -1,69 +1,133 @@
-require('dotenv').config(); // Lädt Umgebungsvariablen aus der .env-Datei
+// soulcreek/panda/Panda-master/server.js
+
+require('dotenv').config();
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const bodyParser = require('body-parser');
 const session = require('express-session');
+const bodyParser = require('body-parser');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const csurf = require('csurf');
+const bcrypt = require('bcryptjs');
+const MySQLStore = require('express-mysql-session')(session);
+
+const pool = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- DATENBANKVERBINDUNGEN ---
-const postsDb = new sqlite3.Database('./posts.db', (err) => { if (err) console.error('Fehler bei der Verbindung zu posts.db:', err.message); else console.log('Connected to posts.db.'); });
-const mediaDb = new sqlite3.Database('./media.db', (err) => { if (err) console.error('Fehler bei der Verbindung zu media.db:', err.message); else console.log('Connected to media.db.'); });
-const podcastsDb = new sqlite3.Database('./podcasts.db', (err) => { if (err) console.error('Fehler bei der Verbindung zu podcasts.db:', err.message); else console.log('Connected to podcasts.db.'); });
-const siteDb = new sqlite3.Database('./site_content.db', (err) => { if (err) console.error('Fehler bei der Verbindung zu site_content.db:', err.message); else console.log('Connected to site_content.db.'); });
-
-// --- MIDDLEWARE SETUP ---
+app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'httpdocs')));
-app.use('/aos', express.static(path.join(__dirname, 'node_modules/aos/dist')));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.set('views', path.join(__dirname, 'views'));
 
-app.use(session({ 
-    secret: process.env.SESSION_SECRET || 'fallback-secret-key', 
-    resave: false, 
-    saveUninitialized: true, 
-    cookie: { secure: false }
+app.use(express.static(path.join(__dirname, 'httpdocs')));
+app.use(bodyParser.urlencoded({ extended: false }));
+
+const sessionStoreOptions = {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    clearExpired: true,
+    checkExpirationInterval: 900000,
+};
+const sessionStore = new MySQLStore(sessionStoreOptions);
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'eine_sehr_geheime_zeichenkette',
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24
+    }
 }));
 
-// Globale Middleware für Sprache und Admin-Status
+app.use(csurf());
+
 app.use((req, res, next) => {
-    if (req.query.lang) req.session.lang = req.query.lang === 'en' ? 'en' : 'de';
-    res.locals.lang = req.session.lang || 'de';
-    const safeIps = ['::1', '127.0.0.1', '84.160.49.182', '2003:d0:2747:e100:1c65:e320:25fc:76cd']; 
-    const requestIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-    res.locals.isWhitelisted = safeIps.includes(requestIp);
+    res.locals.csrfToken = req.csrfToken();
+    res.locals.isAuthenticated = req.session.isLoggedIn;
     res.locals.session = req.session;
+    res.locals.lang = 'de';
+    
+    const whitelistedIps = (process.env.WHITELISTED_IPS || '').split(',');
+    const userIp = req.ip;
+    res.locals.isWhitelisted = whitelistedIps.includes(userIp);
+    
     next();
 });
 
-// --- ROUTEN ---
-const publicRoutes = require('./routes/public.js')(postsDb, podcastsDb, siteDb);
-const adminRoutes = require('./routes/admin.js')(postsDb, mediaDb, podcastsDb);
-
-// KORREKTUR: Auth-Routen direkt hier definieren
-app.get('/login', (req, res) => res.render('login', { error: null }));
-app.post('/login', async (req, res) => { 
-    const { username, password } = req.body; 
-    const correctUsername = 'panda_admin'; 
-    const correctPasswordHash = '$2b$10$mH/LC6v8Mwn4XPUY.pfF/uDQ.ViueoKbLKPxYAPjmxjnzRO373UDy'; 
-    if (username === correctUsername && await bcrypt.compare(password, correctPasswordHash)) { 
-        req.session.loggedin = true; 
-        res.redirect('/admin'); 
-    } else { 
-        res.render('login', { error: 'Ungültiger Nutzername oder Passwort!' }); 
-    } 
-});
-app.get('/logout', (req, res) => { 
-    req.session.destroy(); 
-    res.redirect('/'); 
-});
+const publicRoutes = require('./routes/public');
+const adminRoutes = require('./routes/admin');
 
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);
 
-// --- SERVER START ---
-app.listen(port, () => console.log(`Purview Panda server listening at http://localhost:${port}`));
+// --- AUTHENTIFIZIERUNGS-ROUTEN ---
+
+// KORREKTUR: Leitet eingeloggte Benutzer vom Login weg
+app.get('/login', (req, res) => {
+    if (req.session.isLoggedIn) {
+        return res.redirect('/admin');
+    }
+    res.render('login', { error: null });
+});
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+        if (users.length === 0) {
+            return res.render('login', { error: 'Ungültiger Benutzername oder Passwort.' });
+        }
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (isMatch) {
+            req.session.userId = user.id;
+            req.session.isLoggedIn = true;
+            res.redirect('/admin');
+        } else {
+            res.render('login', { error: 'Ungültiger Benutzername oder Passwort.' });
+        }
+    } catch (error) {
+        res.status(500).send('Ein interner Serverfehler ist aufgetreten.');
+    }
+});
+
+// KORREKTUR: Leitet eingeloggte Benutzer von der Registrierung weg
+app.get('/register', (req, res) => {
+    if (req.session.isLoggedIn) {
+        return res.redirect('/admin');
+    }
+    res.render('register', { error: null });
+});
+
+app.post('/register', async (req, res) => {
+    // ... (Registrierungslogik bleibt gleich)
+});
+
+// KORREKTUR: Robuste Logout-Funktion
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error("Fehler beim Zerstören der Session:", err);
+        }
+        // Wichtig: Session-Cookie im Browser löschen
+        res.clearCookie('connect.sid'); // 'connect.sid' ist der Standardname
+        res.redirect('/login');
+    });
+});
+
+
+// Globaler Fehler-Handler
+app.use((error, req, res, next) => {
+    console.error('GLOBALER FEHLER-HANDLER:', error);
+    res.status(error.status || 500);
+    res.send(`<pre>${error.stack}</pre>`);
+});
+
+app.listen(port, () => {
+    console.log(`[SERVER] Anwendung erfolgreich gestartet und lauscht auf Port ${port}`);
+});

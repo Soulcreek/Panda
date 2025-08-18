@@ -1,25 +1,41 @@
 <%- include('partials/header') %>
 
-<div class="login-container">
-    <h2 class="text-center mb-4">Admin Login</h2>
-    
-    <% if (error) { %>
-        <div class="alert alert-danger" role="alert">
-            <%= error %>
-        </div>
-    <% } %>
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6 col-lg-4 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Admin-Login</h2>
+                    
+                    <% if (error) { %>
+                        <div class="alert alert-danger" role="alert">
+                            <%= error %>
+                        </div>
+                    <% } %>
 
-    <form action="/login" method="POST">
-        <div class="mb-3">
-            <label for="username" class="form-label">Benutzername</label>
-            <input type="text" class="form-control" id="username" name="username" required>
+                    <form action="/login" method="POST">
+                        <!-- WICHTIG: Dieses versteckte Feld ist die Lösung -->
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Benutzername</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Passwort</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Anmelden</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <a href="/register">Noch keinen Account? Registrieren</a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">Passwort</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Anmelden</button>
-    </form>
+    </div>
 </div>
 
-<div style="height: 200px;"></div> <%- include('partials/footer') %>
+<%- include('partials/footer') %>
