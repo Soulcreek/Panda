@@ -1,0 +1,26 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+
+<div class="container my-5">
+    <h1><%= podcast ? 'Podcast bearbeiten' : 'Neuen Podcast erstellen' %></h1>
+
+    <form action="<%= podcast ? '/admin/podcasts/edit/' + podcast.id : '/admin/podcasts/new' %>" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="mb-3">
+            <label for="title" class="form-label">Titel</label>
+            <input type="text" class="form-control" id="title" name="title" value="<%= podcast ? podcast.title : '' %>" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Beschreibung</label>
+            <textarea class="form-control" id="description" name="description" rows="5"><%= podcast ? podcast.description : '' %></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="audio_url" class="form-label">Audio-URL</label>
+            <input type="text" class="form-control" id="audio_url" name="audio_url" value="<%= podcast ? podcast.audio_url : '' %>" placeholder="/audio/dateiname.mp3" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Speichern</button>
+        <a href="/admin/podcasts" class="btn btn-secondary">Abbrechen</a>
+    </form>
+</div>
+
+<%- include('partials/footer') %>
