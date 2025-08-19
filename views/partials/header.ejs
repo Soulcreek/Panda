@@ -1,5 +1,12 @@
 <!DOCTYPE html>
-<html lang="<%= locale || 'de' %>">
+<% /* Fallbacks falls Middleware bei Fehlerpfaden nicht lief */
+if (typeof t === 'undefined') { var t = function(key){ return key; }; }
+if (typeof isAdmin === 'undefined') { var isAdmin = false; }
+if (typeof currentPath === 'undefined') { var currentPath = ''; }
+if (typeof locale === 'undefined') { var locale = 'de'; }
+var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
+%>
+<html lang="<%= (typeof locale !== 'undefined' ? locale : 'de') %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,10 +21,36 @@
     (function(){
         var meta=document.querySelector('meta[name="csrf-token"]');
         window.CSRF_TOKEN = meta? meta.getAttribute('content') : '';
+                // Fallback: alle Admin-POST-Formulare ohne _csrf Feld automatisch ergänzen (verhindert EBADCSRFTOKEN bei vergessenen Formularen)
+                document.addEventListener('DOMContentLoaded', function(){
+                    try {
+                        if(!window.CSRF_TOKEN) return;
+                        document.querySelectorAll('form[method="post" i]').forEach(function(f){
+                            if(f.querySelector('input[name="_csrf"]')) return;
+                            var input=document.createElement('input');
+                            input.type='hidden'; input.name='_csrf'; input.value=window.CSRF_TOKEN; f.appendChild(input);
+                        });
+                        // Patch fetch, damit JSON POSTs automatisch das Token mitsenden sofern kein Header gesetzt ist
+                        if(!window.__csrfFetchPatched){
+                            const _origFetch = window.fetch;
+                            window.fetch = function(url, opts){
+                                opts = opts || {}; opts.headers = opts.headers || {};
+                                const method = (opts.method||'GET').toUpperCase();
+                                if(window.CSRF_TOKEN && method !== 'GET' && method !== 'HEAD' && !('CSRF-Token' in opts.headers) && !('x-csrf-token' in Object.keys(opts.headers).reduce((a,k)=>{a[k.toLowerCase()]=opts.headers[k];return a;},{}))){
+                                    opts.headers['CSRF-Token'] = window.CSRF_TOKEN;
+                                }
+                                return _origFetch(url, opts);
+                            };
+                            window.__csrfFetchPatched = true;
+                        }
+                    } catch(e){ console.warn('CSRF Auto Inject Fehler', e); }
+                });
     })();
     </script>
 </head>
 <body>
+
+<% /* (bereits oben definiert) */ %>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
@@ -45,7 +78,7 @@
                 <li class="nav-item">
                     <a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a>
                 </li>
-                <% if (isAdmin || isWhitelisted) { %>
+                <% if (isAdmin) { %>
                     <li class="nav-item">
                         <a class="nav-link <%= isAdmin ? 'text-primary fw-bold' : 'text-secondary' %>" href="/admin"><%= t('nav.admin') %></a>
                     </li>
@@ -58,7 +91,7 @@
                     </li>
                     <li class="nav-item dropdown ms-lg-2">
                         <a class="nav-link dropdown-toggle" href="#" id="langSwitch" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <%= (locale||'de').toUpperCase() %>
+                            <%= __locale.toUpperCase() %>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="langSwitch">
                             <li><a class="dropdown-item" href="?lang=de">DE</a></li>

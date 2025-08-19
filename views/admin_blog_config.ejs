@@ -1,0 +1,74 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container my-5">
+  <h1>Blog Konfiguration</h1>
+  <p class="text-muted">AI Einstellungen & Prompts anpassen. Primärer Schlüssel zuerst, Fallback automatisch.</p>
+  <form method="post" action="/admin/blog-config" class="row g-4">
+    <% /* CSRF Token (fehlte zuvor -> EBADCSRFTOKEN) */ %>
+    <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% } %>
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">AI Schlüssel & Limits</div>
+        <div class="card-body row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Primärer Key</label>
+            <select class="form-select" name="primary_key_choice">
+              <option value="paid" <%= ai.primary_key_choice==='paid'?'selected':'' %>>Paid Tier</option>
+              <option value="free" <%= ai.primary_key_choice==='free'?'selected':'' %>>Free Tier</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Max Daily Calls</label>
+            <input type="number" class="form-control" name="max_daily_calls" value="<%= ai.max_daily_calls %>">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="alert alert-info w-100 py-2 mb-0 small">Keys werden aus .env gelesen: GEMINI_API_KEY_PAID / GEMINI_API_KEY_FREE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">Prompts
+          <small class="text-muted">(Stage 1 generiert Optimierung, diese Texte sind Basis)</small>
+        </div>
+        <div class="card-body row g-3">
+          <div class="col-md-6">
+            <label class="form-label">What's New Research (DE)</label>
+            <textarea name="whats_new_research" class="form-control" rows="4"><%= (ai.prompts && ai.prompts.whats_new_research) || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Übersetzen Prompt</label>
+            <textarea name="translate_prompt" class="form-control" rows="4"><%= (ai.prompts && ai.prompts.translate) || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Media ALT Text Prompt (DE)</label>
+            <textarea name="media_alt_text" class="form-control" rows="3"><%= (ai.prompts && ai.prompts.media_alt_text) || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Blog Sample Prompt</label>
+            <textarea name="blog_sample" class="form-control" rows="3"><%= (ai.prompts && ai.prompts.blog_sample) || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Verfügbare Blog Tags (Komma)</label>
+            <textarea name="blog_tags" class="form-control" rows="2" placeholder="security, governance, ..."><%= (ai.prompts && ai.prompts.blog_tags) || '' %></textarea>
+            <div class="form-text">Diese Liste erscheint als Vorschläge im Editor.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Media Kategorien (Komma)</label>
+            <textarea name="media_categories" class="form-control" rows="2" placeholder="Blog-Titelbild, Titelbild, ..."><%= (ai.prompts && ai.prompts.media_categories) || '' %></textarea>
+            <div class="form-text">Steuert Filterbuttons im Editor.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 d-flex justify-content-end">
+      <button class="btn btn-primary">Speichern</button>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

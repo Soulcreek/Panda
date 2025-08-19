@@ -2,34 +2,44 @@
 <%- include('partials/admin_nav') %>
 
 <div class="container my-5">
-    <h1><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %></h1>
-
-    <form action="<%= post ? '/admin/posts/edit/' + post.id : '/admin/posts/new' %>" method="POST" onsubmit="return syncEditors()">
+    <h1 class="d-flex align-items-center gap-3 flex-wrap"><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %>
+        <span class="small text-muted">/ Blog Editor</span>
+    </h1>
+    <form action="<%= post ? '/admin/posts/edit/' + post.id : '/admin/posts/new' %>" method="POST" onsubmit="return syncEditors()" class="row g-4">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        
-        <div class="row">
-            <!-- Haupt-Editorbereich -->
-            <div class="col-md-8">
-                <!-- Titelbild Vorschau oben -->
-                <div class="mb-4">
-                    <label class="form-label mb-2 d-block"><strong>Titelbild</strong>
-                        <span class="ms-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineSelectFeaturedBtn">Wählen</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="inlineClearFeaturedBtn">X</button>
+        <div class="col-lg-8">
+            <!-- Featured Image Block -->
+            <div class="mb-4" id="featuredBlock">
+                    <label class="form-label mb-2 d-flex justify-content-between align-items-center"><strong>Titelbild</strong>
+                        <span class="ms-2 btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" id="inlineSelectFeaturedBtn"><i class="bi bi-image"></i> Wählen</button>
+                            <button type="button" class="btn btn-outline-danger" id="inlineClearFeaturedBtn" title="Entfernen"><i class="bi bi-x"></i></button>
                         </span>
                     </label>
                     <input type="hidden" name="featured_image_id" id="featured_image_id" value="<%= post ? (post.featured_image_id || '') : '' %>">
-                    <div id="featuredPreviewWrapper" class="border rounded p-2 text-center <%= post && post.featured_image_id ? '' : 'd-none' %>">
-                        <% if (post && post.featured_image_id) { %>
-                            <img id="featuredPreview" src="<%= post.featured_image_path || '' %>" class="img-fluid rounded" style="max-height:240px;object-fit:cover;">
-                        <% } else { %>
-                            <img id="featuredPreview" class="img-fluid rounded d-none" style="max-height:240px;object-fit:cover;">
-                        <% } %>
-                        <div class="small mt-2 text-muted" id="inlineFeaturedName"><%= post && post.featured_image_id ? (post.featured_image_path ? post.featured_image_path.split('/').pop() : '') : 'Keines gewählt' %></div>
-                        <p class="small text-muted mb-0" id="noFeaturedHint" <%= post && post.featured_image_id ? 'style="display:none"' : '' %>>Noch kein Titelbild gewählt.</p>
-                        <button type="button" id="clearFeaturedBtn" class="btn btn-sm btn-outline-danger mt-2 d-none">Entfernen</button>
+                    <div id="featuredDrop" class="border border-dashed rounded position-relative p-3 text-center" style="min-height:150px;background:linear-gradient(135deg,#f8f9fa,#f1f3f5);">
+                        <div class="featured-inner h-100 d-flex flex-column justify-content-center align-items-center <%= post && post.featured_image_id ? 'd-none' : '' %>" id="featuredEmptyState">
+                            <div class="text-muted"><i class="bi bi-cloud-arrow-up" style="font-size:2rem;"></i></div>
+                            <div class="small text-muted">Bild hierher ziehen oder auf Wählen klicken.</div>
+                        </div>
+                        <div class="featured-preview h-100 <%= post && post.featured_image_id ? '' : 'd-none' %>" id="featuredPreviewWrapper">
+                            <% if (post && post.featured_image_id) { %>
+                                <img id="featuredPreview" src="<%= post.featured_image_path || '' %>" class="img-fluid rounded shadow-sm" style="max-height:240px;object-fit:cover;">
+                            <% } else { %>
+                                <img id="featuredPreview" class="img-fluid rounded d-none" style="max-height:240px;object-fit:cover;">
+                            <% } %>
+                            <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                                <div class="small text-muted" id="inlineFeaturedName"><%= post && post.featured_image_id ? (post.featured_image_path ? post.featured_image_path.split('/').pop() : '') : 'Keines gewählt' %></div>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-secondary" id="changeFeaturedBtn"><i class="bi bi-arrow-repeat"></i></button>
+                                    <button type="button" class="btn btn-outline-danger" id="clearFeaturedBtn"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="featuredFileInput" accept="image/*" class="d-none">
                     </div>
-                </div>
+            </div>
+            <!-- Language Tabs -->
                 <!-- Tabs für Sprachen -->
                 <ul class="nav nav-tabs" id="langTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -40,17 +50,24 @@
                     </li>
                 </ul>
 
-                <div class="tab-content border border-top-0 p-3 mb-3">
+                <div class="tab-content border border-top-0 p-3 mb-3 bg-white rounded-bottom">
                     <!-- Deutscher Inhalt -->
                     <div class="tab-pane fade show active" id="de-pane" role="tabpanel">
                         <div class="mb-3">
                             <label for="title_de" class="form-label">Titel (DE)</label>
                             <input type="text" class="form-control" id="title_de" name="title" value="<%= post ? post.title : '' %>" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="tags" class="form-label">Tags (Komma-getrennt)</label>
-                            <input type="text" class="form-control" id="tags" name="tags" value="<%= post && post.tags ? post.tags : '' %>" placeholder="security, purview, governance">
-                        </div>
+                                                <div class="mb-3 position-relative">
+                                                    <label for="tags" class="form-label">Tags (Komma-getrennt)</label>
+                                                    <input type="text" class="form-control" id="tags" name="tags" value="<%= post && post.tags ? post.tags : '' %>" placeholder="security, purview, governance">
+                                                    <% if (tagsList && tagsList.length) { %>
+                                                    <div class="small mt-1">Vorschläge:
+                                                        <% tagsList.forEach(function(t){ %>
+                                                            <span class="badge bg-secondary tag-suggestion" data-tag="<%= t %>" style="cursor:pointer;"><%= t %></span>
+                                                        <% }); %>
+                                                    </div>
+                                                    <% } %>
+                                                </div>
                         <div class="mb-3">
                             <label class="form-label">Inhalt (DE)</label>
                             <div id="editor_de" class="border rounded p-2" style="min-height:300px;"></div>
@@ -70,12 +87,11 @@
                         </div>
                     </div>
                 </div>
-                 <button type="button" id="translateBtn" class="btn btn-secondary mb-3">Deutsch nach Englisch übersetzen</button>
-            </div>
-
-            <!-- Seitenleiste -->
-            <div class="col-md-4">
-                <div class="card mb-4">
+                                <button type="button" id="translateBtn" class="btn btn-secondary mb-3">Deutsch nach Englisch übersetzen</button>
+        </div>
+        <div class="col-lg-4">
+            <!-- Publish Card -->
+            <div class="card mb-4">
                     <div class="card-header">Veröffentlichen</div>
                     <div class="card-body">
                         <div class="mb-3">
@@ -95,48 +111,42 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">What's New
-                        <button type="button" id="generate-whats-new-btn" class="btn btn-sm btn-outline-primary">Auto</button>
-                    </div>
-                    <div class="card-body">
-                        <p class="small text-muted">Automatisch generierter Kurz-Teaser (max 140 Zeichen) wird hier eingefügt.</p>
-                        <input type="text" class="form-control" id="whatsnew" name="whatsnew" value="<%= post ? post.whatsnew : '' %>" maxlength="140" placeholder="Noch nichts generiert...">
-                    </div>
-                </div>
-
-                <!-- (Ehemalige Seitenleisten-Titelbildkarte entfernt, jetzt oben integriert) -->
-
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">Medien
-                        <div class="btn-group btn-group-sm" id="mini-media-filter">
-                            <button class="btn btn-outline-secondary active" data-cat="all" type="button">Alle</button>
-                            <button class="btn btn-outline-secondary" data-cat="Icon" type="button">Icon</button>
-                            <button class="btn btn-outline-secondary" data-cat="Banner" type="button">Banner</button>
-                            <button class="btn btn-outline-secondary" data-cat="Illustration" type="button">Illu</button>
+            <!-- AI Block direkt unter Publish -->
+            <div class="card mb-4" id="aiBlock">
+                    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">KI Assistent
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" id="generate-whats-new-btn" class="btn btn-outline-primary" title="Füllt alle Felder mit aktuellen News">Research News</button>
+                            <button type="button" id="generate-sample-btn" class="btn btn-outline-secondary" title="Beispieldaten einfügen">Sample</button>
                         </div>
                     </div>
-                    <div class="card-body" id="media-sidebar" style="max-height: 320px; overflow-y:auto;">
-                        <% if (media && media.length > 0) { %>
-                            <div class="row row-cols-3 g-2" id="mini-media-grid">
-                                <% media.forEach(file => { %>
-                                    <% if (file.type && file.type.startsWith('image/')) { %>
-                                        <div class="col mini-media-item" data-cat="<%= file.category || '' %>">
-                                            <div class="position-relative border rounded overflow-hidden">
-                                                <img src="/uploads/<%= file.name %>" class="w-100" style="cursor:pointer;aspect-ratio:1/1;object-fit:cover;" onclick="insertMedia('<%= file.name %>')">
-                                                <button type="button" class="btn btn-xs btn-light position-absolute top-0 end-0 copy-media-link-btn" data-link="/uploads/<%= file.name %>" style="font-size:.6rem;">🔗</button>
-                                            </div>
-                                        </div>
-                                    <% } %>
-                                <% }); %>
-                            </div>
-                        <% } else { %>
-                            <p class="text-muted">Keine Medien.</p>
-                        <% } %>
+                    <div class="card-body">
+                        <label class="form-label small mb-1">Kurz-Teaser (DE) max 140 Zeichen</label>
+                        <input type="text" class="form-control mb-2" id="whatsnew" name="whatsnew" value="<%= post ? post.whatsnew : '' %>" maxlength="140" placeholder="Noch nichts...">
+                        <div class="small text-muted">Research News: Holt aktuelle Data Security Trends (DE+EN) und füllt Titel, Inhalte & Teaser.<br>Sample: Füllt alle Felder mit Beispieltext.</div>
                     </div>
                 </div>
+            <!-- Embedded Media Library -->
+            <div class="card" id="embeddedMediaLibBlog" style="max-width:100%;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Medienbibliothek</strong>
+                    <div class="d-flex gap-2 align-items-center">
+                        <select class="form-select form-select-sm" id="embeddedMediaFilterBlog" style="width:160px;">
+                            <option value="all">Alle Kategorien</option>
+                            <% if(mediaCats && mediaCats.length){ mediaCats.forEach(function(c){ %>
+                                <option value="<%= c %>"><%= c %></option>
+                            <% }) } %>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshEmbeddedMediaBlog"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                </div>
+                                <div class="p-3 border-top" style="background:#fafafa;">
+                                        <div class="px-1">
+                                            <div id="embeddedMediaGridBlog" class="row g-2" style="max-height:340px; overflow:auto; margin:0;"></div>
+                                            <div class="small text-muted mt-2">Drag & Drop oder Klick kopiert Link / fügt ein.</div>
+                                        </div>
+                                </div>
             </div>
+        </div>
         </div>
     </form>
 </div>
@@ -173,8 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
         [{ 'size': ['small', false, 'large', 'huge'] }],
         [{ 'color': [] }, { 'background': [] }]
     ];
-    quillDe = new Quill('#editor_de', { theme:'snow', modules:{ toolbar: toolbarOptions } });
-    quillEn = new Quill('#editor_en', { theme:'snow', modules:{ toolbar: toolbarOptions } });
+    if(document.getElementById('editor_de')) quillDe = new Quill('#editor_de', { theme:'snow', modules:{ toolbar: toolbarOptions } });
+    if(document.getElementById('editor_en')) quillEn = new Quill('#editor_en', { theme:'snow', modules:{ toolbar: toolbarOptions } });
 
     // Erweiterte Bildgrößenanpassung: Drag Handles + Doppelklick-Zyklus
     function addHandles(img){
@@ -216,12 +226,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // What's New Generator
     const whatsBtn = document.getElementById('generate-whats-new-btn');
+    const sampleBtn = document.getElementById('generate-sample-btn');
     if(whatsBtn){
         whatsBtn.addEventListener('click', async ()=>{
-            whatsBtn.disabled=true; const original=whatsBtn.textContent; whatsBtn.textContent='KI...';
+            whatsBtn.disabled=true; const original=whatsBtn.textContent; whatsBtn.textContent='...';
             try {
-            const resp = await fetch('/admin/generate-whats-new',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}}); const data = await resp.json();
+                const resp = await fetch('/admin/generate-whats-new',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}});
+                const data = await resp.json();
                 if(!resp.ok) throw new Error(data.error||'Fehler');
+                // Fülle alle relevanten Felder
                 document.getElementById('title_de').value = data.title_de||'';
                 quillDe.root.innerHTML = data.content_de||'';
                 document.getElementById('title_en').value = data.title_en||'';
@@ -229,6 +242,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('whatsnew').value = data.whatsnew||'';
             }catch(e){ alert('KI Fehler: '+e.message); }
             finally { whatsBtn.disabled=false; whatsBtn.textContent=original; }
+        });
+    }
+    if(sampleBtn){
+        sampleBtn.addEventListener('click', async ()=>{
+            sampleBtn.disabled=true; const original=sampleBtn.textContent; sampleBtn.textContent='...';
+            try {
+                const resp = await fetch('/admin/posts/generate-sample',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}});
+                const data = await resp.json();
+                if(!resp.ok) throw new Error(data.error||'Fehler');
+                document.getElementById('title_de').value = data.title_de||'';
+                quillDe.root.innerHTML = data.content_de||'';
+                document.getElementById('title_en').value = data.title_en||'';
+                quillEn.root.innerHTML = data.content_en||'';
+                document.getElementById('whatsnew').value = data.whatsnew||'';
+            }catch(e){ alert('Sample Fehler: '+e.message); }
+            finally { sampleBtn.disabled=false; sampleBtn.textContent=original; }
+        });
+    }
+    // Featured Image: Drag & Drop + Auswahl über Media Library
+    const featuredDrop = document.getElementById('featuredDrop');
+    const featuredInputHidden = document.getElementById('featured_image_id');
+    const featuredPreviewWrap = document.getElementById('featuredPreviewWrapper');
+    const featuredEmpty = document.getElementById('featuredEmptyState');
+    const featuredImg = document.getElementById('featuredPreview');
+    const inlineSelectFeaturedBtn = document.getElementById('inlineSelectFeaturedBtn');
+    const inlineClearFeaturedBtn = document.getElementById('inlineClearFeaturedBtn');
+    const changeFeaturedBtn = document.getElementById('changeFeaturedBtn');
+    const clearFeaturedBtn = document.getElementById('clearFeaturedBtn');
+    const featuredName = document.getElementById('inlineFeaturedName');
+    function setFeatured(id, path, filename){
+        if(!id){
+            featuredInputHidden.value='';
+            featuredImg.classList.add('d-none');
+            featuredPreviewWrap.classList.add('d-none');
+            featuredEmpty.classList.remove('d-none');
+            featuredName.textContent='Keines gewählt';
+            return;
+        }
+        featuredInputHidden.value=id;
+        featuredImg.src=path;
+        featuredImg.classList.remove('d-none');
+        featuredPreviewWrap.classList.remove('d-none');
+        featuredEmpty.classList.add('d-none');
+        featuredName.textContent=filename||path.split('/').pop();
+    }
+    function openMediaFeatured(){
+        if(typeof openMediaLibraryModal !== 'function'){ alert('Media Library nicht geladen'); return; }
+        openMediaLibraryModal({ filter:'Blog-Titelbild', returnObject:true, callback:(media)=>{
+            setFeatured(media.id, media.path || ('/uploads/'+media.filename), media.name || media.filename);
+        }});
+    }
+    if(inlineSelectFeaturedBtn) inlineSelectFeaturedBtn.addEventListener('click', openMediaFeatured);
+    if(changeFeaturedBtn) changeFeaturedBtn.addEventListener('click', openMediaFeatured);
+    function clearFeatured(){ setFeatured('', '', ''); }
+    if(inlineClearFeaturedBtn) inlineClearFeaturedBtn.addEventListener('click', clearFeatured);
+    if(clearFeaturedBtn) clearFeaturedBtn.addEventListener('click', clearFeatured);
+    // Drag & Drop Support (Datei lokal -> temporär nur Preview, kein Upload auto)
+    if(featuredDrop){
+        ['dragenter','dragover'].forEach(ev=> featuredDrop.addEventListener(ev, e=>{ e.preventDefault(); featuredDrop.classList.add('border-primary'); }));
+        ['dragleave','drop'].forEach(ev=> featuredDrop.addEventListener(ev, e=>{ e.preventDefault(); if(ev!=='drop') featuredDrop.classList.remove('border-primary'); }));
+        featuredDrop.addEventListener('drop', e=>{
+            featuredDrop.classList.remove('border-primary');
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if(!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = ev => { featuredImg.src=ev.target.result; featuredImg.classList.remove('d-none'); featuredPreviewWrap.classList.remove('d-none'); featuredEmpty.classList.add('d-none'); featuredName.textContent=file.name; };
+            reader.readAsDataURL(file);
+            // Hinweis: Kein automatischer Upload – Nutzer kann später echtes Medienobjekt hochladen & auswählen.
         });
     }
 });
@@ -288,7 +369,25 @@ document.getElementById('applyCropBtn').addEventListener('click', ()=>{
     if(startX==null||endX==null||!activeQuillImg) return; const x=Math.min(startX,endX), y=Math.min(startY,endY), w=Math.abs(endX-startX), h=Math.abs(endY-startY); if(w<10||h<10) return; const out=document.createElement('canvas'); out.width=w; out.height=h; out.getContext('2d').drawImage(imgEl,x,y,w,h,0,0,w,h); activeQuillImg.src = out.toDataURL('image/png'); const modalEl=document.getElementById('imageCropModal'); bootstrap.Modal.getInstance(modalEl).hide(); });
 // Hook: Doppelklick Bild öffnet Cropper
 function attachCropper(quill){ quill.root.addEventListener('dblclick', e=>{ const image=e.target.closest('img'); if(image) openCropperFor(image); }); }
-attachCropper(quillDe); attachCropper(quillEn);
+if(quillDe) attachCropper(quillDe); if(quillEn) attachCropper(quillEn);
+// Tag suggestion click
+document.querySelectorAll('.tag-suggestion').forEach(b=> b.addEventListener('click', ()=>{
+    const input=document.getElementById('tags');
+    const tag=b.dataset.tag; if(!input) return; const existing=(input.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    if(!existing.includes(tag)){ existing.push(tag); input.value=existing.join(', '); }
+}));
+// Embedded media loader (blog)
+const embGrid=document.getElementById('embeddedMediaGridBlog');
+const embFilter=document.getElementById('embeddedMediaFilterBlog');
+const embRefresh=document.getElementById('btnRefreshEmbeddedMediaBlog');
+async function loadEmbeddedMediaBlog(){
+    if(!embGrid) return; embGrid.innerHTML='<div class="col-12 text-center py-3 text-muted"><div class="spinner-border spinner-border-sm"></div></div>';
+    let url='/admin/api/media'; const cat=embFilter.value; if(cat && cat!=='all') url+='?category='+encodeURIComponent(cat);
+    try { const resp=await fetch(url); if(!resp.ok) throw new Error('HTTP '+resp.status); const data=await resp.json(); embGrid.innerHTML=''; if(!data.length){ embGrid.innerHTML='<div class="col-12 small text-muted">Keine Medien.</div>'; return; }
+        data.slice(0,400).forEach(m=>{ if(!/^image\//.test(m.type||'')) return; const col=document.createElement('div'); col.className='col-4 col-sm-3 col-md-3'; const wrap=document.createElement('div'); wrap.className='position-relative border rounded bg-white p-1 h-100 d-flex flex-column'; wrap.style.cursor='grab'; wrap.draggable=true; const img=document.createElement('img'); img.src=m.path; img.alt=m.alt_text||''; img.className='img-fluid rounded mb-1 flex-grow-1'; img.style.objectFit='cover'; img.style.maxHeight='90px'; const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-light border copy-link-btn'; btn.innerHTML='<i class="bi bi-clipboard"></i>'; btn.addEventListener('click',()=>{ navigator.clipboard.writeText(m.path).then(()=>{ btn.innerHTML='<i class="bi bi-check text-success"></i>'; setTimeout(()=>btn.innerHTML='<i class="bi bi-clipboard"></i>',1200); }); }); wrap.appendChild(img); wrap.appendChild(btn); col.appendChild(wrap); embGrid.appendChild(col); wrap.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', m.path); ev.dataTransfer.effectAllowed='copy'; }); img.addEventListener('click',()=>{ if(quillDe){ const range=quillDe.getSelection(true)||{index:quillDe.getLength()}; quillDe.insertEmbed(range.index,'image',m.path,'user'); quillDe.setSelection(range.index+1,0);} }); });
+    } catch(e){ embGrid.innerHTML='<div class="col-12 small text-danger">Fehler Laden</div>'; }
+}
+if(embGrid){ loadEmbeddedMediaBlog(); embFilter.addEventListener('change', loadEmbeddedMediaBlog); embRefresh.addEventListener('click', loadEmbeddedMediaBlog); }
 </script>
 
 <%- include('partials/footer') %>

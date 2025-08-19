@@ -140,27 +140,7 @@ document.querySelectorAll('.size-btn').forEach(btn => {
 // Event Listeners für alle interaktiven Elemente
 document.addEventListener('DOMContentLoaded', () => {
 
-    if (typeof tinymce !== 'undefined' && (document.querySelector('textarea#content_de') || document.querySelector('textarea#content_de_edit'))) {
-        tinymce.init({
-            selector: 'textarea#content_de, textarea#content_en, textarea#content_de_edit, textarea#content_en_edit',
-            plugins: 'code table lists image link media',
-            toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | indent outdent | bullist numlist | code | table | image link media',
-            menubar: false,
-            height: 350,
-            image_advtab: true,
-            file_picker_callback: function(callback, value, meta) {
-                if (meta.filetype === 'image') {
-                    openMediaLibraryModal({
-                        tinyMCE: true,
-                        callback: function(html) {
-                           const editor = tinymce.activeEditor;
-                           editor.execCommand('mceInsertContent', false, html);
-                        }
-                    });
-                }
-            }
-        });
-    }
+    // TinyMCE entfernt. Platzhalter: Falls künftig Editor-API benötigt wird, hier hook einfügen.
 
     // Blog-Post-Modal
     const blogPostModalEl = document.getElementById('blogPostModal');
@@ -221,9 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.details || data.error || 'Fehler');
                 document.getElementById('title_de').value = data.title_de;
-                tinymce.get('content_de').setContent(data.content_de);
+                const elDe=document.getElementById('content_de'); if(elDe) elDe.value = data.content_de;
                 document.getElementById('title_en').value = data.title_en;
-                tinymce.get('content_en').setContent(data.content_en);
+                const elEn=document.getElementById('content_en'); if(elEn) elEn.value = data.content_en;
             } catch (error) {
                 // Fallback: einfacher kostenloser Platzhalter (statisch / heuristisch)
                 const fallbackSource = 'Fallback Local Template';
@@ -231,10 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fbTitle = 'Aktuelle Data Security Notizen ('+now+')';
                 const fbContent = '<p>Dieser Inhalt wurde als Fallback generiert, da der KI-Dienst nicht verfügbar war. Kurzer Überblick über aktuelle Trends: Zero Trust, Datenklassifizierung, automatisierte Compliance-Überwachung.</p>';
                 alert("Der Inhalt konnte nicht generiert werden ("+ error.message + "). Fallback verwendet: " + fallbackSource);
-                if (window.tinymce && tinymce.get('content_de')) {
-                    document.getElementById('title_de').value = fbTitle;
-                    tinymce.get('content_de').setContent(fbContent);
-                }
+                const elDe2=document.getElementById('content_de'); if(elDe2){ document.getElementById('title_de').value = fbTitle; elDe2.value = fbContent; }
             } finally {
                 this.disabled = false;
                 spinner.classList.add('d-none');
@@ -417,9 +394,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Translate Content
                 const contentSourceId = target.dataset.source;
                 const contentTargetId = target.dataset.target;
-                const contentToTranslate = tinymce.get(contentSourceId).getContent({ format: 'html' });
+                const sourceEl=document.getElementById(contentSourceId); const contentToTranslate = sourceEl ? sourceEl.value : '';
                 const translatedContent = await translate(contentToTranslate);
-                tinymce.get(contentTargetId).setContent(translatedContent);
+                const targetEl=document.getElementById(contentTargetId); if(targetEl) targetEl.value = translatedContent;
                 
             } catch (error) {
                 alert('Übersetzung fehlgeschlagen: ' + error.message);

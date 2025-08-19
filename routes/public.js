@@ -17,17 +17,28 @@ router.use((req, res, next) => {
  */
 router.get('/', async (req, res) => {
   try {
-    // Abfrage für den Hauptbeitrag (der neueste veröffentlichte Beitrag)
-    const [featuredPostRows] = await pool.query(
+    // 1) Versuche explizit gesetzten Featured-Post zu holen
+    let [featuredPostRows] = await pool.query(
       `SELECT p.*, m.path as featured_image_path
        FROM posts p
        LEFT JOIN media m ON p.featured_image_id = m.id
-       WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW()) AND p.is_deleted=0
+       WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW()) AND p.is_deleted=0 AND p.is_featured=1
        ORDER BY COALESCE(p.published_at, p.created_at) DESC
        LIMIT 1`
     );
-    
-    const featuredPost = featuredPostRows[0] || null;
+    let featuredPost = featuredPostRows[0] || null;
+    // 2) Fallback: falls keiner als featured markiert -> neuester Beitrag
+    if(!featuredPost){
+      [featuredPostRows] = await pool.query(
+        `SELECT p.*, m.path as featured_image_path
+         FROM posts p
+         LEFT JOIN media m ON p.featured_image_id = m.id
+         WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW()) AND p.is_deleted=0
+         ORDER BY COALESCE(p.published_at, p.created_at) DESC
+         LIMIT 1`
+      );
+      featuredPost = featuredPostRows[0] || null;
+    }
 
     // Abfrage für die Liste der neuesten Beiträge (ohne den Hauptbeitrag)
     const [latestPostsRows] = await pool.query(
@@ -262,6 +273,75 @@ router.get('/pandas-way-alt3', (req, res) => {
 
 router.get('/pandas-way-alt4', (req, res) => {
   res.render('pandas_way_alt4', { title: "Panda's Way – ALT 4" });
+});
+
+// Timeline + Glass Hybrid (ALT 5) – dynamische Einträge aus MySQL
+router.get('/pandas-way-alt5', async (req, res) => {
+  try {
+    // Tabelle (falls noch nicht) erstellen
+    await pool.query(`CREATE TABLE IF NOT EXISTS timeline_entries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      site_key VARCHAR(64) NOT NULL,
+      position INT NOT NULL DEFAULT 0,
+      title VARCHAR(255) NOT NULL,
+      phase VARCHAR(100) NULL,
+      content_html MEDIUMTEXT NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX (site_key), INDEX(position)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS timeline_site_config (
+      site_key VARCHAR(64) PRIMARY KEY,
+      level_count INT NOT NULL DEFAULT 3,
+      design_theme VARCHAR(32) NOT NULL DEFAULT 'glass',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS timeline_levels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      site_key VARCHAR(64) NOT NULL,
+      level_index INT NOT NULL,
+      title VARCHAR(255) NOT NULL DEFAULT '',
+      content_html MEDIUMTEXT NULL,
+      image_path VARCHAR(255) NULL,
+      UNIQUE KEY uniq_level (site_key, level_index),
+      INDEX(site_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // level-Spalte sicherstellen (für öffentliches Filtern)
+  try { await pool.query('ALTER TABLE timeline_entries ADD COLUMN level INT NOT NULL DEFAULT 1 AFTER site_key'); } catch(_) {}
+  let [rows] = await pool.query('SELECT id, position, title, phase, content_html, level FROM timeline_entries WHERE site_key=? AND is_active=1 ORDER BY position ASC, id ASC', ['pandas_way_5']);
+    if(!rows.length){
+      const seed = [
+        {position:0,title:'Bewusstsein',phase:'Initiate',html:'<p>Warum Schutz? Stories & Risiken sichtbar machen.</p>'},
+        {position:1,title:'Inventar',phase:'Foundation',html:'<p>Systeme & Datenquellen katalogisieren.</p>'},
+        {position:2,title:'Kontrollen',phase:'Foundation',html:'<p>Passwörter, MFA, Verschlüsselung etablieren.</p>'},
+        {position:3,title:'Klassifizierung',phase:'Evolve',html:'<p>Labels & Schutzprofile definieren.</p>'},
+        {position:4,title:'Detektion',phase:'Evolve',html:'<p>Logging + Baselines für Anomalien.</p>'}
+      ];
+      for(const s of seed){
+        await pool.query('INSERT INTO timeline_entries (site_key, position, title, phase, content_html) VALUES (?,?,?,?,?)',[ 'pandas_way_5', s.position, s.title, s.phase, s.html]);
+      }
+  ;[rows] = await pool.query('SELECT id, position, title, phase, content_html, level FROM timeline_entries WHERE site_key=? AND is_active=1 ORDER BY position ASC, id ASC', ['pandas_way_5']);
+    }
+    // Site Config + Level Metadaten laden
+    let [cfgRows] = await pool.query('SELECT * FROM timeline_site_config WHERE site_key=?',['pandas_way_5']);
+    if(!cfgRows.length){
+      await pool.query('INSERT INTO timeline_site_config (site_key, level_count, design_theme) VALUES (?,?,?)',[ 'pandas_way_5', 3, 'glass']);
+      ;[cfgRows] = await pool.query('SELECT * FROM timeline_site_config WHERE site_key=?',['pandas_way_5']);
+    }
+    const siteCfg = cfgRows[0];
+    // Sicherstellen Level Records existieren
+    for(let i=1;i<=siteCfg.level_count;i++){
+      const [exists] = await pool.query('SELECT id FROM timeline_levels WHERE site_key=? AND level_index=?',[ 'pandas_way_5', i]);
+      if(!exists.length){ await pool.query('INSERT INTO timeline_levels (site_key, level_index, title) VALUES (?,?,?)',[ 'pandas_way_5', i, 'Level '+i]); }
+    }
+  const [levelRows] = await pool.query('SELECT level_index, title, image_path FROM timeline_levels WHERE site_key=? ORDER BY level_index ASC',[ 'pandas_way_5' ]);
+  // Render nun mit allen benötigten Variablen (statt nachträglichem res.locals Setzen)
+  res.render('pandas_way_alt5', { title: "Panda's Way – ALT 5", entries: rows, timelineSiteConfig: siteCfg, timelineLevels: levelRows });
+  } catch (e) {
+    console.error('Fehler ALT5:', e);
+    res.status(500).render('partials/error_500', { title:'Fehler', error:e });
+  }
 });
 
 

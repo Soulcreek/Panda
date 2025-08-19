@@ -37,7 +37,7 @@
                 <tbody>
                     <% if (posts && posts.length > 0) { %>
                         <% posts.forEach(post => { %>
-                            <tr>
+                            <tr class="<%= post.is_featured ? 'table-warning' : '' %>">
                                 <td><%= post.title %></td>
                                 <td>
                                     <% if (post.status === 'published') { %>
@@ -78,7 +78,7 @@
                                             <% } %>
                                             <form action="/admin/posts/<%= post.id %>/focus" method="POST" class="d-inline">
                                                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                                <button class="btn btn-outline-warning" title="Featured umschalten">Featured</button>
+                                                <button class="btn btn-outline-warning" title="Featured umschalten"><%= post.is_featured ? 'Unfeature' : 'Feature' %></button>
                                             </form>
                                             <form action="/admin/posts/<%= post.id %>/hide" method="POST" class="d-inline">
                                                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">

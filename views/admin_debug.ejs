@@ -3,7 +3,11 @@
 <div class="admin-container container my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Beitrags-Status (Debug-Ansicht)</h2>
-        <form action="/admin/fix-posts" method="POST">
+                <form action="/admin/fix-posts" method="POST">
+                        <% /* CSRF Token hinzufügen */ %>
+                        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <% } %>
             <button type="submit" class="btn btn-success">
                 <i class="bi bi-check-circle-fill me-2"></i>Alle Beiträge reparieren & veröffentlichen
             </button>

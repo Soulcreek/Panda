@@ -1,0 +1,98 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container-fluid px-0" id="alt5Root">
+  <section class="py-5 text-center position-relative alt5-hero text-light">
+    <div class="container">
+      <h1 class="display-4 fw-bold mb-3">Panda's Way – ALT Design 5</h1>
+      <p class="lead mb-4">Glass Navigation + Dynamische Timeline (DB).</p>
+  <div class="d-flex justify-content-center flex-wrap gap-3 mb-4" id="alt5Controls"></div>
+  <!-- Edit Button entfernt; stattdessen Level-Kacheln -->
+    </div>
+    <div class="alt5-bg-layer"></div>
+  </section>
+  <section class="container position-relative py-5" id="alt5Content">
+    <% if(entries && entries.length){ %>
+      <ul class="alt5-timeline list-unstyled m-0 p-0">
+        <% entries.forEach(function(item){ %>
+          <li class="alt5-item" data-pos="<%= item.position %>" data-level="<%= item.level || 1 %>">
+            <div class="alt5-bubble">
+              <div class="small text-uppercase fw-semibold text-warning mb-1"><%= item.phase || '' %></div>
+              <h2><%= item.title %></h2>
+              <div class="alt5-divider"></div>
+              <div class="alt5-html"><%- item.content_html || '' %></div>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <div class="alert alert-info">Noch keine Timeline-Einträge vorhanden.</div>
+    <% } %>
+  </section>
+</div>
+<style>
+.alt5-hero{background:linear-gradient(135deg,#111,#222);overflow:hidden;}
+.alt5-bg-layer{position:absolute;inset:0;opacity:.4;background:radial-gradient(circle at 70% 30%,rgba(99,102,241,.35),transparent 60%);} 
+.alt5-timeline{position:relative;margin:0;padding:0;}
+.alt5-timeline:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;background:linear-gradient(#6366f1,#8b5cf6);transform:translateX(-50%);} 
+.alt5-item{position:relative;width:50%;padding:2.5rem 2rem;box-sizing:border-box;}
+.alt5-item:nth-child(odd){left:0;text-align:right;}
+.alt5-item:nth-child(even){left:50%;}
+.alt5-bubble{background:#fff;border-radius:1.25rem;padding:1.75rem 1.5rem;box-shadow:0 1.5rem 2.75rem -1.25rem rgba(0,0,0,.25);display:inline-block;max-width:520px;position:relative;opacity:0;transform:translateY(60px) scale(.95);transition:opacity .85s ease, transform .95s cubic-bezier(.16,.8,.28,.96);} 
+.alt5-bubble.reveal{opacity:1;transform:translateY(0) scale(1);} 
+.alt5-bubble:before{content:"";position:absolute;top:1.2rem;width:16px;height:16px;border-radius:50%;background:#6366f1;box-shadow:0 0 0 6px #6366f155;} 
+.alt5-item:nth-child(odd) .alt5-bubble:before{right:-42px;} .alt5-item:nth-child(even) .alt5-bubble:before{left:-42px;} 
+.alt5-bubble h2{font-size:1.6rem;font-weight:600;background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.6rem;} 
+.alt5-divider{height:4px;width:120px;background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);border-radius:3px;margin:.5rem 0 1.25rem 0;} 
+@media (max-width: 880px){
+  .alt5-timeline:before{left:8px;} 
+  .alt5-item,.alt5-item:nth-child(even),.alt5-item:nth-child(odd){width:100%;left:0;text-align:left;padding:2.25rem 0 2.25rem 2.5rem;} 
+  .alt5-bubble{max-width:100%;}
+  .alt5-bubble:before{left:-38px !important;right:auto;}
+}
+</style>
+<script>
+(function(){
+ console.log('alt5 init');
+ // Falls Server Level-Konfiguration bereitstellt (eingebettet über globales JSON) dynamische Level Navigation rendern
+ try {
+   var levelDataScript = document.getElementById('alt5LevelData');
+   if(levelDataScript){
+     var levelPayload = JSON.parse(levelDataScript.textContent||'{}');
+     var cfg = levelPayload.config || { level_count: 0 };
+     var levels = levelPayload.levels || [];
+     var cont=document.getElementById('alt5Controls');
+     if(cont && cfg.level_count>0){
+       for(var i=1;i<=cfg.level_count;i++){
+         var meta = levels.find(l=>l.level_index===i) || { title: 'Level '+i };
+         var btn=document.createElement('button');
+         btn.type='button';
+         btn.className='btn btn-outline-light btn-sm alt5-level-btn';
+         btn.dataset.level=i;
+         btn.innerHTML = '<span class="fw-semibold">'+(meta.title||('Level '+i))+'</span>';
+         cont.appendChild(btn);
+       }
+       cont.addEventListener('click', function(e){
+         var b=e.target.closest('.alt5-level-btn'); if(!b) return;
+         var targetLevel=parseInt(b.dataset.level,10);
+         document.querySelectorAll('.alt5-level-btn').forEach(x=>x.classList.toggle('active', x===b));
+         // Filter Timeline Items (erfordert dass Einträge level besitzen – wenn nicht, alle anzeigen)
+         var hasLevelAttr=false; document.querySelectorAll('.alt5-item').forEach(function(li){ if(li.dataset.level){ hasLevelAttr=true; }});
+         if(hasLevelAttr){
+           document.querySelectorAll('.alt5-item').forEach(function(li){ li.style.display = (parseInt(li.dataset.level,10)===targetLevel)? '':'none'; });
+         }
+         window.scrollTo({top: document.getElementById('alt5Content').offsetTop - 40, behavior:'smooth'});
+       });
+       // Mark first active
+       var firstBtn=cont.querySelector('.alt5-level-btn'); if(firstBtn){ firstBtn.classList.add('active'); }
+     }
+   }
+ } catch(e){ console.warn('Level Nav Aufbau fehlgeschlagen', e); }
+ const io=new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ const b=en.target.querySelector('.alt5-bubble'); if(b){ const d=en.target.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } io.unobserve(en.target);} }),{threshold:.25});
+ function observe(){ document.querySelectorAll('.alt5-item:not(.obs)').forEach((b,i)=>{ b.classList.add('obs'); b.dataset.delay=90*i; io.observe(b); }); }
+ function immediateReveal(){ const vh=window.innerHeight||document.documentElement.clientHeight; document.querySelectorAll('.alt5-item').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.top<vh*0.9){ const b=el.querySelector('.alt5-bubble'); if(b && !b.classList.contains('reveal')){ const d=el.dataset.delay||0; b.style.transitionDelay=d+'ms'; b.classList.add('reveal'); } }}); }
+ observe(); immediateReveal();
+})();
+</script>
+<% /* Level & Config JSON Einbetten (Server muss site config & levels mitliefern) */ %>
+<script type="application/json" id="alt5LevelData"><%- JSON.stringify({ config: typeof timelineSiteConfig!=='undefined'? timelineSiteConfig : {}, levels: typeof timelineLevels!=='undefined'? timelineLevels : [] }) %></script>
+<%- include('partials/footer') %>

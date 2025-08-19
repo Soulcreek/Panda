@@ -1,4 +1,4 @@
-<%- include('header') %>
+<%- include('header', { locale: typeof locale !== 'undefined' ? locale : (res && res.locals && res.locals.locale) || 'de' }) %>
 <div class="container py-5 text-center">
   <h1 class="display-5">404</h1>
   <p class="lead mb-4">Die angeforderte Seite wurde nicht gefunden.</p>

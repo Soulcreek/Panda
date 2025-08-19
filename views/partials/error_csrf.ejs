@@ -1,0 +1,24 @@
+<%- include('header') %>
+<div class="container py-5 text-center">
+  <h1 class="display-5 text-danger">Sicherheitsfehler</h1>
+  <p class="lead">Die Anfrage wurde aus Sicherheitsgründen abgelehnt (ungültiges oder fehlendes CSRF-Token).</p>
+  <div class="text-start mx-auto" style="max-width:640px;">
+    <ul class="small list-unstyled">
+      <li>• Seite eventuell länger offen gelassen? <strong>Neu laden</strong> und erneut versuchen.</li>
+      <li>• Wurden mehrere Tabs genutzt oder Session erneuert? Token kann ablaufen.</li>
+      <li>• Browser Plugins (Script-/Cookie-Blocker) können Tokens entfernen.</li>
+      <li>• Falls Problem bleibt: Ab- und wieder anmelden.</li>
+    </ul>
+    <% if (process.env.NODE_ENV !== 'production' && error) { %>
+      <pre class="bg-light p-3 border rounded small">CSRF Debug:
+code: <%= error.code %>
+message: <%= error.message %>
+path: <%= typeof path !== 'undefined' ? path : '' %>
+session: <%= (typeof sessionId !== 'undefined' && sessionId) ? sessionId.slice(0,10)+'...' : '' %>
+haveTokenMeta: <%= (typeof csrfToken !== 'undefined' && csrfToken) ? 'yes' : 'no' %>
+</pre>
+    <% } %>
+  </div>
+  <a href="/" class="btn btn-primary mt-3">Zur Startseite</a>
+</div>
+<%- include('footer') %>

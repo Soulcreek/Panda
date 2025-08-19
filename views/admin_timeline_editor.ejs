@@ -1,0 +1,325 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container my-5" id="timelineEditorRoot">
+  <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Timeline Editor</h2>
+      <div class="small text-muted">Site: <code><%= site %></code> | Level <%= level %></div>
+    </div>
+    <form class="d-flex" method="get" action="/admin/timeline-editor">
+      <input type="hidden" name="site" value="<%= site %>">
+      <select class="form-select form-select-sm me-2" name="level">
+        <% const maxLevels = (siteConfig && siteConfig.level_count) ? siteConfig.level_count : 10; 
+           for(let i=1;i<= maxLevels; i++){ %>
+          <option value="<%= i %>" <%= level===i? 'selected':'' %>>Level <%= i %></option>
+        <% } %>
+      </select>
+      <button class="btn btn-sm btn-outline-primary">Wechseln</button>
+      <a href="/admin/timeline-editor?site=<%= encodeURIComponent(site) %>" class="btn btn-sm btn-secondary ms-2">Zurück zu Levels</a>
+    </form>
+  </div>
+  <div class="alert alert-info py-2 small mb-4">Bearbeite Level-spezifische Meta unten (Titel, Bild) und füge Karten hinzu. Reihenfolge durch Position oder Drag & Drop.</div>
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <form class="row g-3 align-items-end" method="post" action="/admin/timeline-editor/level-meta/<%= site %>/<%= level %>" id="levelMetaForm">
+        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <% } %>
+        <div class="col-md-4">
+          <label class="form-label">Level Titel</label>
+          <input class="form-control form-control-sm" name="title" value="<%= (levelMeta && levelMeta.title) || '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bild (Pfad)</label>
+          <div class="input-group input-group-sm">
+            <input class="form-control" name="image_path" id="levelImagePath" value="<%= (levelMeta && levelMeta.image_path) || '' %>">
+            <button type="button" class="btn btn-outline-secondary" id="btnPickLevelImage"><i class="bi bi-image"></i></button>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Intro / Beschreibung (HTML)</label>
+          <div class="d-flex justify-content-end gap-2 mb-1"><button type="button" class="btn btn-sm btn-outline-secondary" id="btnLevelMetaInsertImage">Bild einfügen</button></div>
+          <div id="levelMetaEditor" class="form-control" style="height:180px;overflow:auto;"></div>
+          <textarea name="content_html" id="levelMetaContentHtml" hidden></textarea>
+        </div>
+        <div class="col-md-12 d-flex justify-content-end">
+          <button class="btn btn-sm btn-primary">Level Meta speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Einträge (<%= entries.length %>)</strong>
+          <button class="btn btn-sm btn-outline-secondary" id="btnReorderSave" disabled>Reihenfolge speichern</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0" id="timelineTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width:40px">Drag</th>
+                <th>Pos</th>
+                <th>Titel</th>
+                <th>Phase</th>
+                <th>Preview</th>
+                <th style="width:110px">Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if(entries.length){ entries.forEach(function(r){ %>
+                <tr data-id="<%= r.id %>" class="<%= r.is_active? '' : 'table-secondary opacity-75' %>">
+                  <td class="drag-handle text-muted"><i class="bi bi-grip-vertical"></i></td>
+                  <td class="pos"><%= r.position %></td>
+                  <td><%= r.title %></td>
+                  <td><%= r.phase||'' %></td>
+                  <td class="small text-truncate" style="max-width:180px"><%- r.preview || '' %></td>
+                  <td class="d-flex gap-1">
+                    <form method="post" action="/admin/timeline-editor/toggle/<%= r.id %>" title="Aktiv umschalten" class="m-0">
+                      <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><input type="hidden" name="_csrf" value="<%= csrfToken %>"><% } %>
+                      <button class="btn btn-sm <%= r.is_active? 'btn-outline-success':'btn-outline-secondary' %>"><i class="bi <%= r.is_active? 'bi-eye':'bi-eye-slash' %>"></i></button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-primary edit-entry-btn" data-id="<%= r.id %>" data-title="<%- r.title %>" data-phase="<%- r.phase||'' %>" data-active="<%= r.is_active %>"> <i class="bi bi-pencil-square"></i></button>
+                    <form method="post" action="/admin/timeline-editor/delete/<%= r.id %>" onsubmit="return confirm('Eintrag ausblenden (soft delete)?');" class="m-0" title="Soft Delete (ausblenden)">
+                      <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><input type="hidden" name="_csrf" value="<%= csrfToken %>"><% } %>
+                      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              <% }); } else { %>
+                <tr><td colspan="6" class="text-center text-muted">Keine Einträge</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card shadow-sm mt-4" id="embeddedMediaLib">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Medienbibliothek (Schnellzugriff)</strong>
+          <div class="d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm" id="embeddedMediaFilter" style="width:160px;">
+              <option value="all">Alle Kategorien</option>
+              <option value="Blog-Titelbild">Blog-Titelbild</option>
+              <option value="Titelbild">Titelbild</option>
+              <option value="Podcast">Podcast</option>
+              <option value="Icon">Icon</option>
+              <option value="Illustration">Illustration</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshEmbeddedMedia"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+        <div class="p-3 border-top" style="background:#fafafa;">
+          <div id="embeddedMediaGrid" class="row g-2" style="max-height:360px; overflow:auto;"></div>
+          <div class="small text-muted mt-2">Drag & Drop: Ziehe Bild direkt in einen Editor oder klicke Kopieren.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header"><strong>Neuen Eintrag hinzufügen</strong></div>
+  <div class="card-body">
+          <form method="post" action="/admin/timeline-editor/add" id="addTimelineForm">
+            <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% } %>
+            <input type="hidden" name="site_key" value="<%= site %>">
+            <input type="hidden" name="level" value="<%= level %>">
+            <div class="mb-3">
+              <label class="form-label">Titel</label>
+              <input class="form-control form-control-sm" name="title" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phase (optional)</label>
+              <input class="form-control form-control-sm" name="phase" placeholder="Initiate / Build / ...">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Position (Zahl)</label>
+              <input class="form-control form-control-sm" name="position" type="number" value="0">
+              <div class="form-text">Für Sortierung. Kleinere Zahlen zuerst.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">HTML Inhalt</label>
+              <div class="d-flex justify-content-end gap-2 mb-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnInsertImage">Bild einfügen</button>
+              </div>
+              <div id="timelineEditor" class="form-control" style="height:300px;overflow:auto;"></div>
+              <textarea name="content_html" id="timelineContentHtml" hidden></textarea>
+              <div class="form-text">Rich Text / HTML (Quill) – beim Speichern wird HTML übernommen.</div>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-primary">Speichern</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Edit Modal -->
+<div class="modal fade" id="editTimelineModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" id="editTimelineForm">
+        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><input type="hidden" name="_csrf" value="<%= csrfToken %>"><% } %>
+        <div class="modal-header">
+          <h5 class="modal-title">Eintrag bearbeiten</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="editId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Titel</label>
+              <input class="form-control form-control-sm" name="title" id="editTitle" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Phase</label>
+              <input class="form-control form-control-sm" name="phase" id="editPhase">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="editActive" name="is_active" value="1">
+                <label class="form-check-label small" for="editActive">Aktiv</label>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">HTML Inhalt</label>
+            <div class="d-flex justify-content-end gap-2 mb-1">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btnEditInsertImage">Bild einfügen</button>
+            </div>
+            <div id="timelineEditorEdit" class="form-control" style="height:300px;overflow:auto;"></div>
+            <textarea name="content_html" id="editContentHtml" hidden></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          <button class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<style>
+#timelineTable tbody tr{cursor:grab;}
+#timelineTable tbody tr.table-secondary{--bs-table-bg: #f1f1f1;}
+#timelineTable tbody tr.dragging{opacity:.5;}
+.drag-handle{cursor:grab;}
+</style>
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script>
+(function(){
+  let quill, quillEdit, quillLevelMeta;
+  if(window.Quill){
+    quill = new Quill('#timelineEditor', { theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } });
+    quillEdit = new Quill('#timelineEditorEdit', { theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } });
+    quillLevelMeta = new Quill('#levelMetaEditor', { theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } });
+    // Falls vorhandener HTML Inhalt für Level Meta vorhanden (server side nicht übergeben -> optional)
+    if(window.LEVEL_META_HTML){ quillLevelMeta.root.innerHTML = window.LEVEL_META_HTML; }
+  }
+  const form=document.getElementById('addTimelineForm');
+  form.addEventListener('submit', ()=>{ if(quill){ document.getElementById('timelineContentHtml').value = quill.root.innerHTML; }});
+  const levelMetaForm=document.getElementById('levelMetaForm');
+  levelMetaForm.addEventListener('submit', ()=>{ if(quillLevelMeta){ document.getElementById('levelMetaContentHtml').value = quillLevelMeta.root.innerHTML; }});
+
+  function openMediaAndInsert(targetQuill, targetInput){
+    if(typeof openMediaLibraryModal !== 'function'){ alert('Media Library nicht geladen.'); return; }
+    openMediaLibraryModal({ filter:null, returnObject:true, callback:(media)=>{
+        if(targetQuill){
+          const range = targetQuill.getSelection(true);
+          const src = media.path || ('/uploads/'+media.filename);
+          targetQuill.insertEmbed(range.index, 'image', src, 'user');
+          targetQuill.setSelection(range.index+1, 0);
+        } else if(targetInput){
+          targetInput.value = media.path || ('/uploads/'+media.filename);
+        }
+    }});
+  }
+  document.getElementById('btnInsertImage').addEventListener('click',()=>openMediaAndInsert(quill));
+  document.getElementById('btnEditInsertImage').addEventListener('click',()=>openMediaAndInsert(quillEdit));
+  document.getElementById('btnLevelMetaInsertImage').addEventListener('click',()=>openMediaAndInsert(quillLevelMeta));
+  document.getElementById('btnPickLevelImage').addEventListener('click',()=>openMediaAndInsert(null, document.getElementById('levelImagePath')));
+
+  // Eingebettete Medienbibliothek
+  const embeddedGrid = document.getElementById('embeddedMediaGrid');
+  const embeddedFilter = document.getElementById('embeddedMediaFilter');
+  const refreshBtn = document.getElementById('btnRefreshEmbeddedMedia');
+  async function loadEmbeddedMedia(){
+    if(!embeddedGrid) return;
+    embeddedGrid.innerHTML = '<div class="col-12 text-center py-3 text-muted"><div class="spinner-border spinner-border-sm"></div></div>';
+    let url = '/admin/api/media';
+    const cat = embeddedFilter.value;
+    if(cat && cat !== 'all') url += '?category='+encodeURIComponent(cat);
+    try {
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      embeddedGrid.innerHTML='';
+      if(!data.length){ embeddedGrid.innerHTML='<div class="col-12 small text-muted">Keine Medien.</div>'; return; }
+      data.slice(0,400).forEach(m=>{
+        if(!/^image\//.test(m.type||'')) return; // Nur Bilder für Drag
+        const col=document.createElement('div'); col.className='col-4 col-sm-3 col-md-3 col-lg-3';
+        const wrapper=document.createElement('div'); wrapper.className='position-relative border rounded bg-white p-1 h-100 d-flex flex-column'; wrapper.style.cursor='grab'; wrapper.draggable=true;
+        const img=document.createElement('img'); img.src=m.path; img.alt=m.alt_text||m.name||''; img.className='img-fluid rounded mb-1 flex-grow-1'; img.style.objectFit='cover'; img.style.maxHeight='90px';
+        const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-light border copy-link-btn'; btn.innerHTML='<i class="bi bi-clipboard"></i>'; btn.dataset.link=m.path;
+        btn.addEventListener('click',()=>{ navigator.clipboard.writeText(m.path).then(()=>{ btn.innerHTML='<i class="bi bi-check text-success"></i>'; setTimeout(()=>btn.innerHTML='<i class="bi bi-clipboard"></i>',1200); }); });
+        wrapper.appendChild(img); wrapper.appendChild(btn); col.appendChild(wrapper); embeddedGrid.appendChild(col);
+        // Drag Support -> Quill Drop
+        wrapper.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', m.path); ev.dataTransfer.effectAllowed='copy'; });
+      });
+    } catch(e){ embeddedGrid.innerHTML='<div class="col-12 small text-danger">Fehler Laden</div>'; }
+  }
+  if(embeddedGrid){
+    loadEmbeddedMedia();
+    embeddedFilter.addEventListener('change', loadEmbeddedMedia);
+    refreshBtn.addEventListener('click', loadEmbeddedMedia);
+  }
+
+  // Quill Drop Handling für Bilder
+  function enableDrop(targetQuill){
+    const editorEl = targetQuill && targetQuill.root; if(!editorEl) return;
+    editorEl.addEventListener('dragover', e=>{ e.preventDefault(); });
+    editorEl.addEventListener('drop', e=>{ e.preventDefault(); const path=e.dataTransfer.getData('text/plain'); if(path){ const range=targetQuill.getSelection(true)||{index: targetQuill.getLength()}; targetQuill.insertEmbed(range.index, 'image', path, 'user'); targetQuill.setSelection(range.index+1,0);} });
+  }
+  enableDrop(quill); enableDrop(quillEdit); enableDrop(quillLevelMeta);
+
+  // Drag & Drop Reorder
+  const tbody=document.querySelector('#timelineTable tbody');
+  const btnSave=document.getElementById('btnReorderSave');
+  let dragSrc=null; let orderChanged=false;
+  tbody.addEventListener('dragstart', e=>{ const tr=e.target.closest('tr'); if(!tr) return; dragSrc=tr; tr.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+  tbody.addEventListener('dragend', e=>{ const tr=e.target.closest('tr'); if(tr) tr.classList.remove('dragging'); });
+  tbody.addEventListener('dragover', e=>{ e.preventDefault(); const tr=e.target.closest('tr'); if(!tr || tr===dragSrc) return; const rect=tr.getBoundingClientRect(); const next=(e.clientY-rect.top)/(rect.height) > .5; tbody.insertBefore(dragSrc, next? tr.nextSibling: tr); orderChanged=true; btnSave.disabled=false; });
+  tbody.querySelectorAll('tr').forEach(r=>r.setAttribute('draggable','true'));
+  btnSave.addEventListener('click', async ()=>{ if(!orderChanged) return; const rows=[...tbody.querySelectorAll('tr')]; const payload = rows.map((r,i)=>({id:r.dataset.id, position:i})); try { const resp = await fetch('/admin/timeline-editor/reorder',{method:'POST', headers:{'Content-Type':'application/json','CSRF-Token':window.CSRF_TOKEN}, body:JSON.stringify({orders:JSON.stringify(payload)})}); if(!resp.ok) throw new Error('HTTP '+resp.status); rows.forEach((r,i)=> r.querySelector('.pos').textContent=i); btnSave.disabled=true; orderChanged=false; } catch(e){ alert('Reihenfolge Speichern fehlgeschlagen: '+e.message); }});
+
+  // Edit Flow
+  const editModalEl = document.getElementById('editTimelineModal');
+  const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+  document.querySelectorAll('.edit-entry-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id=btn.dataset.id;
+      const title=btn.dataset.title||'';
+      const phase=btn.dataset.phase||'';
+      const active = btn.dataset.active==='1';
+      try {
+  const resp = await fetch('/api/timeline-entry/'+id, { headers:{'CSRF-Token':window.CSRF_TOKEN} });
+        let html=''; if(resp.ok){ const data = await resp.json(); html = data.content_html || ''; }
+        document.getElementById('editId').value=id;
+        document.getElementById('editTitle').value=title;
+        document.getElementById('editPhase').value=phase;
+        document.getElementById('editActive').checked=active;
+        if(quillEdit){ quillEdit.root.innerHTML = html; }
+        document.getElementById('editContentHtml').value='';
+        document.getElementById('editTimelineForm').setAttribute('action','/admin/timeline-editor/update/'+id);
+        editModal && editModal.show();
+      } catch(e){ alert('Laden fehlgeschlagen: '+e.message); }
+    });
+  });
+  const editForm=document.getElementById('editTimelineForm');
+  editForm.addEventListener('submit', ()=>{ if(quillEdit){ document.getElementById('editContentHtml').value = quillEdit.root.innerHTML; } });
+})();
+</script>
+<%- include('partials/footer') %>

@@ -1,0 +1,55 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container my-5">
+  <h2 class="mb-3">AI Usage</h2>
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Heute</h5>
+          <p class="display-6 mb-0"><%= totalToday %></p>
+          <div class="text-muted small">Gesamt Calls (alle Endpoints)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Verteilung heute</strong>
+          <a href="/admin/ai-usage" class="btn btn-sm btn-outline-secondary">Aktualisieren</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Endpoint</th><th class="text-end">Calls</th></tr></thead>
+            <tbody>
+              <% if(today.length){ today.forEach(r=>{ %>
+                <tr><td><code><%= r.endpoint %></code></td><td class="text-end"><%= r.calls %></td></tr>
+              <% }) } else { %>
+                <tr><td colspan="2" class="text-center text-muted">Keine heutigen Calls</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card shadow-sm mt-4">
+    <div class="card-header"><strong>Historie (letzte 14 Tage)</strong></div>
+    <div class="table-responsive" style="max-height:420px; overflow:auto;">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Datum</th><th>Endpoint</th><th class="text-end">Calls</th></tr></thead>
+        <tbody>
+          <% if(history.length){ history.forEach(r=>{ %>
+            <tr><td><%= r.day.toISOString ? r.day.toISOString().slice(0,10) : (r.day) %></td><td><code><%= r.endpoint %></code></td><td class="text-end"><%= r.calls %></td></tr>
+          <% }) } else { %>
+            <tr><td colspan="3" class="text-center text-muted">Keine Daten</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="alert alert-info small mt-4">
+    Tageslimit basiert auf <code>ai_config.max_daily_calls</code>. Bei Erreichen blockiert der Service neue Aufrufe (Fehler: AI Tageslimit erreicht).
+  </div>
+</div>
+<%- include('partials/footer') %>
