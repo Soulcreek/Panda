@@ -25,7 +25,10 @@
     "express-session": "^1.18.0",
     "express-mysql-session": "^3.0.3",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.10.0"
+  "mysql2": "^3.10.0",
+  "node-fetch": "^3.3.2",
+  "jsdom": "^24.0.0",
+  "dompurify": "^3.1.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

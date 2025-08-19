@@ -6,6 +6,24 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const pool = require('../db');
+// Advanced Pages helper table ensure
+async function ensureAdvancedPagesTable(){
+    try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS advanced_pages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            layout_json MEDIUMTEXT NULL,
+            rendered_html MEDIUMTEXT NULL,
+            status ENUM('draft','published') NOT NULL DEFAULT 'draft',
+            author_id INT NULL,
+            published_at DATETIME NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX(status), INDEX(author_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+    } catch(e){ console.error('Advanced Pages Table Fehler:', e.message); }
+}
 // In-Memory Cache für AI Konfiguration (wird aus DB geladen)
 let aiConfigCache = null; let aiConfigLoadedAt = 0;
 async function getAIConfig(){
@@ -15,6 +33,7 @@ async function getAIConfig(){
             id INT PRIMARY KEY DEFAULT 1,
             primary_key_choice VARCHAR(16) NOT NULL DEFAULT 'paid',
             max_daily_calls INT NOT NULL DEFAULT 500,
+            limits JSON NULL,
             prompts JSON NULL,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
@@ -28,11 +47,13 @@ async function getAIConfig(){
                 blog_tags: 'security, governance, compliance, purview, azure',
                 media_categories: 'Blog-Titelbild, Titelbild, Podcast, Icon, Illustration, Banner'
             });
-            await pool.query('INSERT INTO ai_config (id, primary_key_choice, max_daily_calls, prompts) VALUES (1, "paid", 500, ?)', [defaultPrompts]);
-            return { id:1, primary_key_choice:'paid', max_daily_calls:500, prompts: JSON.parse(defaultPrompts) };
+            const defaultLimits = JSON.stringify({ max_response_chars:10000, max_translate_chars:10000, max_sample_chars:8000 });
+            await pool.query('INSERT INTO ai_config (id, primary_key_choice, max_daily_calls, limits, prompts) VALUES (1, "paid", 500, ?, ?)', [defaultLimits, defaultPrompts]);
+            return { id:1, primary_key_choice:'paid', max_daily_calls:500, limits: JSON.parse(defaultLimits), prompts: JSON.parse(defaultPrompts) };
         }
         const cfg = rows[0];
         try { cfg.prompts = cfg.prompts ? JSON.parse(cfg.prompts) : {}; } catch(_) { cfg.prompts = {}; }
+        try { cfg.limits = cfg.limits ? JSON.parse(cfg.limits) : {}; } catch(_) { cfg.limits = {}; }
         // Auffüllen mit Defaults falls leer oder fehlend
         const baseDefaults = {
             whats_new_research: 'Recherchiere öffentlich bekannte Data Security & Governance News der letzten 14 Tage und liefere DE+EN Titel & Inhalte sowie einen deutschen Teaser (max 140 Zeichen).',
@@ -69,6 +90,15 @@ async function ensureAIUsageTable(){
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uniq_day_ep (day, endpoint)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+        // Detail Log Tabelle (einzelne Aufrufe)
+        await pool.query(`CREATE TABLE IF NOT EXISTS ai_call_log (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            endpoint VARCHAR(64) NOT NULL,
+            prompt_text MEDIUMTEXT NULL,
+            response_chars INT NULL,
+            error_message VARCHAR(255) NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
     } catch(e){ console.error('AI Usage Table Fehler:', e.message); }
 }
 async function incrementAIUsage(endpoint){
@@ -84,6 +114,35 @@ function pickGeminiKey(cfg){
     const free = process.env.GEMINI_API_KEY_FREE || process.env.GEMINI_API_KEY_FALLBACK || process.env.GEMINI_API_KEY;
     if(cfg && cfg.primary_key_choice === 'free') return free || paid;
     return paid || free; // prefer paid
+}
+// --- Helper: Sanitization für "whatsnew" Kurztext / Hashtag-Block ---
+function sanitizeWhatsNew(input){
+    if(!input || typeof input !== 'string') return input;
+    let text = input.replace(/[ \t\n\r]+/g,' ').trim();
+    // 1) Wiederholte identische Wörter >=4 Zeichen hintereinander reduzieren ("Rechtsentwicklung Rechtsentwicklung" -> einmal)
+    text = text.replace(/\b([A-Za-zÄÖÜäöüß]{4,})\b(?:\s+\1\b){1,}/g,'$1');
+    // 2) Hashtags eindeutiger machen (case-insensitive) – nur erstes Auftreten behalten
+    const seenTags = new Set();
+    text = text.replace(/#([A-Za-zÄÖÜäöüß0-9_\-]+)/g,(m,tag)=>{
+        const key = tag.toLowerCase();
+        if(seenTags.has(key)) return '';
+        seenTags.add(key);
+        return '#'+tag;
+    }).replace(/\s{2,}/g,' ').trim();
+    // 3) Anzahl Hashtags begrenzen (z.B. max 15) – Rest entfernen
+    const parts = text.split(/\s+/);
+    let hashtagCount = 0;
+    for(let i=0;i<parts.length;i++){
+        if(parts[i].startsWith('#')){
+            hashtagCount++;
+            if(hashtagCount>15){ parts[i]=''; }
+        }
+    }
+    text = parts.filter(Boolean).join(' ');
+    // 4) Gesamtlänge begrenzen (Soft Cap 500 Zeichen)
+    const MAX_LEN = 500;
+    if(text.length>MAX_LEN){ text = text.slice(0,MAX_LEN).replace(/\s+[^^\s]*$/,'').trim() + '…'; }
+    return text;
 }
 async function geminiTwoStageInvoke({ baseDescription, userPayloadBuilder }){
     const cfg = await refreshAIConfig();
@@ -124,6 +183,10 @@ async function geminiTwoStageInvoke({ baseDescription, userPayloadBuilder }){
         throw new Error('Stage2 HTTP '+r2.status+' '+errTxt.slice(0,160));
     }
     const json = await r2.json();
+    try {
+        const raw = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'generic', finalPrompt.slice(0,64000), raw.length ]);
+    } catch(logErr){ /* logging best effort */ }
     if(AI_DEBUG){ const raw = json.candidates?.[0]?.content?.parts?.[0]?.text; console.log('[AI][Stage2] Raw Output (trunc):', (raw||'').slice(0,400)); }
     incrementAIUsage('generic');
     return json;
@@ -178,6 +241,95 @@ router.get('/', isAuthenticated, async (req, res) => {
     }
 });
 
+// --- ADVANCED PAGES (MVP) ---
+router.get('/advanced-pages', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable();
+    try {
+        const [rows] = await pool.query('SELECT id, title, slug, status, updated_at FROM advanced_pages ORDER BY updated_at DESC LIMIT 200');
+        res.render('admin_advanced_pages_list', { title:'Advanced Pages', pages: rows });
+    } catch(e){ console.error('Advanced Pages List Fehler:', e); res.status(500).send('Fehler'); }
+});
+router.get('/advanced-pages/new', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable();
+    const blankLayout = { version:1, rows:[] };
+    res.render('admin_advanced_pages_edit', { title:'Neue Advanced Page', page:null, layoutJSON: JSON.stringify(blankLayout) });
+});
+router.get('/advanced-pages/edit/:id', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable();
+    try {
+        const [rows] = await pool.query('SELECT * FROM advanced_pages WHERE id=?',[req.params.id]);
+        if(!rows.length) return res.status(404).send('Nicht gefunden');
+        res.render('admin_advanced_pages_edit', { title:'Advanced Page bearbeiten', page: rows[0], layoutJSON: rows[0].layout_json || '{"version":1,"rows":[]}' });
+    } catch(e){ res.status(500).send('Fehler Laden'); }
+});
+router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable();
+    const { id, title, slug, layout_json } = req.body;
+    if(!title || !slug) return res.status(400).send('Titel & Slug nötig');
+    let layout; try { layout = JSON.parse(layout_json); } catch(e){ return res.status(400).send('Layout JSON ungültig'); }
+    // Simple validation
+    if(!layout || typeof layout !== 'object' || !Array.isArray(layout.rows)){ return res.status(400).send('Layout Struktur ungültig'); }
+    // HTML Sanitization (allow moderate formatting for admin input; blocks may include headings, lists, links, basic inline formatting)
+    let DOMPurify, JSDOM;
+    try {
+        JSDOM = require('jsdom').JSDOM;
+        const window = (new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>')).window;
+        DOMPurify = require('dompurify')(window);
+    } catch(e){ DOMPurify = null; }
+    function cleanHtml(html){
+        if(!html || typeof html!=='string') return '';
+        if(!DOMPurify) return html; // Fallback: unsanitized (should not happen in prod if deps installed)
+        return DOMPurify.sanitize(html, { ALLOWED_TAGS:['p','b','strong','i','em','u','s','br','ul','ol','li','h1','h2','h3','h4','blockquote','code','pre','span','a','img','figure','figcaption','hr'], ALLOWED_ATTR:['href','target','rel','class','id','style','src','alt','title','loading'], ADD_ATTR:['data-*'], ALLOW_DATA_ATTR: true });
+    }
+    // Render HTML
+    let htmlParts = [];
+    htmlParts.push('<div class="ap-page">');
+    (layout.rows||[]).forEach((row,rowIndex)=>{
+        const preset = row.preset || 'custom';
+        htmlParts.push(`<section class="ap-row ap-preset-${preset}" data-row="${rowIndex}"><div class="container-fluid"><div class="row g-4">`);
+        (row.columns||[]).forEach((col,colIndex)=>{
+            const width = parseInt(col.width,10)||12;
+            htmlParts.push(`<div class="col-md-${Math.min(Math.max(width,1),12)} ap-col" data-col="${colIndex}">`);
+            (col.blocks||[]).forEach(block=>{
+                if(!block || typeof block!=='object') return;
+                const bType = block.type || 'html';
+                if(bType==='html' || bType==='text'){
+                    htmlParts.push(`<div class="ap-block ap-block-${bType}" data-block="${block.id||''}">${cleanHtml(block.html||'')}</div>`);
+                } else if(bType==='image'){
+                    const src = (block.src||'').replace(/"/g,'&quot;');
+                    const alt = (block.alt||'').replace(/"/g,'&quot;');
+                    const caption = block.caption ? `<figcaption>${cleanHtml(block.caption)}</figcaption>` : '';
+                    htmlParts.push(`<figure class="ap-block ap-block-image text-center" data-block="${block.id||''}"><img src="${src}" alt="${alt}" class="img-fluid" loading="lazy"/>${caption}</figure>`);
+                } else if(bType==='background'){
+                    const bgColor = block.bgColor && /^#[0-9a-fA-F]{3,8}$/.test(block.bgColor) ? block.bgColor : '#f5f5f5';
+                    const padding = block.padding && /^[0-9a-zA-Z% \-_.]+$/.test(block.padding) ? block.padding : '40px 20px';
+                    htmlParts.push(`<div class="ap-block ap-block-background" data-block="${block.id||''}" style="background:${bgColor};padding:${padding};">${cleanHtml(block.html||'')}</div>`);
+                }
+            });
+            htmlParts.push('</div>');
+        });
+        htmlParts.push('</div></div></section>');
+    });
+    htmlParts.push('</div>');
+    const rendered = htmlParts.join('');
+    try {
+        if(id){
+            await pool.query('UPDATE advanced_pages SET title=?, slug=?, layout_json=?, rendered_html=? WHERE id=?',[title, slug, JSON.stringify(layout), rendered, id]);
+        } else {
+            await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, author_id) VALUES (?,?,?,?,?)',[title, slug, JSON.stringify(layout), rendered, req.session.userId||null]);
+        }
+        res.redirect('/admin/advanced-pages');
+    } catch(e){ console.error('Save Fehler', e); res.status(500).send('Speichern fehlgeschlagen'); }
+});
+router.post('/advanced-pages/delete/:id', isAuthenticated, async (req,res)=>{
+    try { await pool.query('DELETE FROM advanced_pages WHERE id=?',[req.params.id]); res.redirect('/admin/advanced-pages'); }
+    catch(e){ res.status(500).send('Löschung fehlgeschlagen'); }
+});
+router.get('/advanced-pages/preview/:id', isAuthenticated, async (req,res)=>{
+    try { const [rows] = await pool.query('SELECT title, rendered_html FROM advanced_pages WHERE id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Nicht gefunden'); res.render('admin_advanced_pages_preview',{ title:'Preview '+rows[0].title, page:rows[0] }); }
+    catch(e){ res.status(500).send('Preview Fehler'); }
+});
+
 // --- BEITRAGSVERWALTUNG ---
 router.get('/posts', isAuthenticated, async (req, res) => {
     try {
@@ -199,9 +351,14 @@ router.get('/posts/new', isAuthenticated, async (req, res) => {
     try {
         const [media] = await pool.query("SELECT * FROM media ORDER BY uploaded_at DESC");
         const cfg = await refreshAIConfig();
-        const tagsList = (cfg.prompts && cfg.prompts.blog_tags ? cfg.prompts.blog_tags.split(',').map(s=>s.trim()).filter(Boolean) : []);
-        const mediaCats = (cfg.prompts && cfg.prompts.media_categories ? cfg.prompts.media_categories.split(',').map(s=>s.trim()).filter(Boolean) : []);
-        res.render('admin_edit_post', { title: 'Neuer Beitrag', post: null, media: media, tagsList, mediaCats });
+    const tagsList = (cfg.prompts && cfg.prompts.blog_tags ? cfg.prompts.blog_tags.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    // Kategorien aus Config + DB distinct mergen -> Sync
+    let cfgCats = (cfg.prompts && cfg.prompts.media_categories ? cfg.prompts.media_categories.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    let dbCats = [];
+    try { const [catRows] = await pool.query("SELECT DISTINCT category FROM media WHERE category IS NOT NULL AND category<>'' ORDER BY category ASC LIMIT 500"); dbCats = catRows.map(r=>r.category).filter(Boolean); } catch(_){}
+    const catSet = new Set([ ...cfgCats, ...dbCats ]);
+    const mediaCats = Array.from(catSet);
+    res.render('admin_edit_post', { title: 'Neuer Beitrag', post: null, media: media, tagsList, mediaCats });
     } catch (err) {
         res.status(500).send("Fehler beim Laden des Editors.");
     }
@@ -210,24 +367,36 @@ router.get('/posts/new', isAuthenticated, async (req, res) => {
 router.post('/posts/new', isAuthenticated, async (req, res) => {
     const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags } = req.body;
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    let whatsNewSan = sanitizeWhatsNew(whatsnew);
+    if(whatsNewSan && whatsNewSan.length>180) whatsNewSan = whatsNewSan.slice(0,180).trim();
+    // Content Plaintext Begrenzung 2000 Zeichen
+    let contentSan = content || '';
+    try {
+        const plain = (contentSan||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+        if(plain.length>2000){
+            // naive Kürzung: plain kürzen und als einfachen Absatz zurückschreiben
+            const cut = plain.slice(0,2000).replace(/\s+[^\s]*$/,'');
+            contentSan = '<p>'+cut+'…</p>';
+        }
+    } catch(_) {}
     try {
         try {
             await pool.query(
                 'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [title, slug, content, req.session.userId, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null]
+                [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
             );
         } catch (e) {
             if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('published_at')) {
                 await pool.query('ALTER TABLE posts ADD COLUMN published_at DATETIME NULL AFTER status');
                 await pool.query(
                     'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [title, slug, content, req.session.userId, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null]
+                    [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
                 );
             } else if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('tags')) {
                 await pool.query("ALTER TABLE posts ADD COLUMN tags VARCHAR(255) NULL AFTER whatsnew");
                 await pool.query(
                     'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [title, slug, content, req.session.userId, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null]
+                    [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
                 );
             } else { throw e; }
         }
@@ -246,9 +415,13 @@ router.get('/posts/edit/:id', isAuthenticated, async (req, res) => {
         }
         const [media] = await pool.query("SELECT * FROM media ORDER BY uploaded_at DESC");
         const cfg = await refreshAIConfig();
-        const tagsList = (cfg.prompts && cfg.prompts.blog_tags ? cfg.prompts.blog_tags.split(',').map(s=>s.trim()).filter(Boolean) : []);
-        const mediaCats = (cfg.prompts && cfg.prompts.media_categories ? cfg.prompts.media_categories.split(',').map(s=>s.trim()).filter(Boolean) : []);
-        res.render('admin_edit_post', { title: 'Beitrag bearbeiten', post: posts[0], media: media, tagsList, mediaCats });
+    const tagsList = (cfg.prompts && cfg.prompts.blog_tags ? cfg.prompts.blog_tags.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    let cfgCats = (cfg.prompts && cfg.prompts.media_categories ? cfg.prompts.media_categories.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    let dbCats = [];
+    try { const [catRows] = await pool.query("SELECT DISTINCT category FROM media WHERE category IS NOT NULL AND category<>'' ORDER BY category ASC LIMIT 500"); dbCats = catRows.map(r=>r.category).filter(Boolean); } catch(_){}
+    const catSet = new Set([ ...cfgCats, ...dbCats ]);
+    const mediaCats = Array.from(catSet);
+    res.render('admin_edit_post', { title: 'Beitrag bearbeiten', post: posts[0], media: media, tagsList, mediaCats });
     } catch (err) {
         res.status(500).send("Fehler beim Laden des Editors.");
     }
@@ -257,24 +430,34 @@ router.get('/posts/edit/:id', isAuthenticated, async (req, res) => {
 router.post('/posts/edit/:id', isAuthenticated, async (req, res) => {
     const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags } = req.body;
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    let whatsNewSan = sanitizeWhatsNew(whatsnew);
+    if(whatsNewSan && whatsNewSan.length>180) whatsNewSan = whatsNewSan.slice(0,180).trim();
+    let contentSan = content || '';
+    try {
+        const plain = (contentSan||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+        if(plain.length>2000){
+            const cut = plain.slice(0,2000).replace(/\s+[^\s]*$/,'');
+            contentSan = '<p>'+cut+'…</p>';
+        }
+    } catch(_) {}
     try {
         try {
             await pool.query(
                 'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                [title, slug, content, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null, req.params.id]
+                [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
             );
         } catch (e) {
             if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('published_at')) {
                 await pool.query('ALTER TABLE posts ADD COLUMN published_at DATETIME NULL AFTER status');
                 await pool.query(
                     'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                    [title, slug, content, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null, req.params.id]
+                    [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
                 );
             } else if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('tags')) {
                 await pool.query("ALTER TABLE posts ADD COLUMN tags VARCHAR(255) NULL AFTER whatsnew");
                 await pool.query(
                     'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                    [title, slug, content, status, title_en, content_en, whatsnew, featured_image_id || null, published_at || null, tags || null, req.params.id]
+                    [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
                 );
             } else { throw e; }
         }
@@ -429,9 +612,11 @@ router.get('/timeline-editor', isAuthenticated, async (req, res) => {
           title VARCHAR(255) NOT NULL DEFAULT '',
           content_html MEDIUMTEXT NULL,
           image_path VARCHAR(255) NULL,
+                    icon VARCHAR(64) NULL,
           UNIQUE KEY uniq_level (site_key, level_index),
           INDEX(site_key)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+                try { await pool.query('ALTER TABLE timeline_levels ADD COLUMN icon VARCHAR(64) NULL AFTER image_path'); } catch(_) {}
 
         // Site Config sicherstellen
         let [cfgRows] = await pool.query('SELECT * FROM timeline_site_config WHERE site_key=?',[site]);
@@ -456,7 +641,7 @@ router.get('/timeline-editor', isAuthenticated, async (req, res) => {
         }
 
         // Einzelnes Level bearbeiten
-        const [levelMetaRows] = await pool.query('SELECT * FROM timeline_levels WHERE site_key=? AND level_index=?',[site, level]);
+    const [levelMetaRows] = await pool.query('SELECT * FROM timeline_levels WHERE site_key=? AND level_index=?',[site, level]);
         if(!levelMetaRows.length){
             return res.status(404).send('Level nicht gefunden');
         }
@@ -533,9 +718,9 @@ router.post('/timeline-editor/site-config', isAuthenticated, async (req, res) =>
 // Level Meta speichern
 router.post('/timeline-editor/level-meta/:site/:level', isAuthenticated, async (req, res) => {
     const site = req.params.site; const level = parseInt(req.params.level,10);
-    const { title, content_html, image_path } = req.body;
+    const { title, content_html, image_path, icon } = req.body;
     try {
-        await pool.query('UPDATE timeline_levels SET title=?, content_html=?, image_path=? WHERE site_key=? AND level_index=?',[title||'', content_html||null, image_path||null, site, level]);
+        await pool.query('UPDATE timeline_levels SET title=?, content_html=?, image_path=?, icon=? WHERE site_key=? AND level_index=?',[title||'', content_html||null, image_path||null, icon||null, site, level]);
         res.redirect('/admin/timeline-editor?site='+encodeURIComponent(site)+'&level='+level);
     } catch(e){ console.error('LevelMeta Fehler:', e); res.status(500).send('Level Meta Update fehlgeschlagen'); }
 });
@@ -634,6 +819,25 @@ router.post('/upload', isAuthenticated, (req, res) => {
     });
 });
 
+// Inline Bild Upload (AJAX, Einzeldatei) für Rich-Text-Editor
+router.post('/api/upload-inline-image', isAuthenticated, multer({ storage }).single('file'), async (req, res) => {
+    try {
+        if(!req.file) return res.status(400).json({ error: 'Keine Datei' });
+        const f = req.file;
+        const relPath = '/uploads/' + f.filename;
+        // In Medien DB eintragen
+        try {
+            await pool.query("INSERT INTO media (name, type, path, alt_text, description, category) VALUES (?,?,?,?,?,?)", [f.originalname, f.mimetype, relPath, null, null, 'Inline']);
+        } catch(e){
+            if(e.code==='ER_BAD_FIELD_ERROR' && e.message.includes('category')){
+                await pool.query("ALTER TABLE media ADD COLUMN category VARCHAR(100) NULL AFTER description");
+                await pool.query("INSERT INTO media (name, type, path, alt_text, description, category) VALUES (?,?,?,?,?,?)", [f.originalname, f.mimetype, relPath, null, null, 'Inline']);
+            } else { console.error('Inline Upload DB Fehler', e); }
+        }
+        res.json({ path: relPath, name: f.originalname });
+    } catch(e){ console.error('Inline Upload Fehler', e); res.status(500).json({ error: 'Upload fehlgeschlagen' }); }
+});
+
 router.get('/media/edit/:id', isAuthenticated, async (req, res) => {
     try {
         const [rows] = await pool.query("SELECT * FROM media WHERE id = ?", [req.params.id]);
@@ -719,38 +923,66 @@ router.post('/generate-alt-text', isAuthenticated, async (req, res) => {
 router.post('/generate-whats-new', isAuthenticated, async (req, res) => {
     try {
         const cfg = await refreshAIConfig();
-        const desc = (cfg.prompts && cfg.prompts.whats_new_research) || 'Data Security News';
+        const maxChars = (cfg.limits && cfg.limits.max_response_chars) || 10000;
+        const desc = (cfg.prompts && cfg.prompts.whats_new_research) || 'Recherchiere aktuelle Data Security & Governance News und generiere nur DEUTSCHEN Content.';
         const data = await geminiTwoStageInvoke({
-            baseDescription: desc,
+            baseDescription: desc + ` Erzeuge zuerst einen mehrabschnittigen HTML-Artikel (mit <h2>, <p>, optional <ul>, Bootstrap Icons wie <i class=\"bi bi-shield-lock\"></i>). Verwende wenn passend illustrative Bilder (Platzhalter <img src=\"/uploads/Panda_Banner.png\" alt=\"\"> falls unsicher). Danach prägnanten Teaser (max 180 Zeichen) und Titel. Kürze gesamt auf <= ${maxChars} Zeichen.`,
             userPayloadBuilder: (optimized)=>({
-                finalPrompt: optimized + '\nAntworte als JSON: {"title_de":"...","content_de":"<p>...</p>","title_en":"...","content_en":"<p>...</p>","whatsnew":"..."}',
-                schema:{ type:'OBJECT', properties:{ title_de:{type:'STRING'}, content_de:{type:'STRING'}, title_en:{type:'STRING'}, content_en:{type:'STRING'}, whatsnew:{type:'STRING'} } }
+                finalPrompt: optimized + `\nAntwort JSON: {"title_de":"...","content_de":"<p>...</p>","whatsnew":"..."}\nRegeln: Nur Deutsch. content_de vollständiger HTML Artikel (max ${maxChars} Zeichen). whatsnew max 180 Zeichen ohne HTML. Keine Skripte.`,
+                schema:{ type:'OBJECT', properties:{ title_de:{type:'STRING'}, content_de:{type:'STRING'}, whatsnew:{type:'STRING'} } }
             })
         });
-        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        let parsed={}; try{ parsed=JSON.parse(raw);}catch(_){ }
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        let parsed={};
+        try{ parsed=JSON.parse(raw);}catch(_){
+            // Toleranter Fallback: Regex Felder extrahieren
+            const rx = (key)=>{ const m = raw.match(new RegExp('"'+key+'"\\s*:\\s*"([\\s\\S]*?)"\\s*(,|})')); return m? m[1] : ''; };
+            const unescape = (s)=> s.replace(/\\n/g,'\n').replace(/\\r/g,'').replace(/\\t/g,'\t').replace(/\\"/g,'"');
+            parsed={
+                parse_error:true,
+                raw,
+                title_de: unescape(rx('title_de')), 
+                content_de: unescape(rx('content_de')),
+                whatsnew: unescape(rx('whatsnew'))
+            };
+        }
+        // Sanitisiere Fälle wo whatsnew versehentlich im content landet
+        if(parsed.content_de && /whatsnew"\s*:/.test(parsed.content_de)){ parsed.content_de = parsed.content_de.replace(/"whatsnew"\s*:\s*"[^"]*"/g,''); }
+        // Rückwärtskompatibilität: Fülle leere EN Felder für Frontend, falls Code noch darauf zugreift
+        parsed.title_en = '';
+        parsed.content_en = '';
         incrementAIUsage('whats_new');
+    try { await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'whats_new', desc.slice(0,64000), raw.length ]);} catch(_){ }
         res.json(parsed);
-    } catch(e){ console.error("What's New Fehler", e.message); res.status(500).json({error:'Generierung fehlgeschlagen', detail:e.message}); }
+    } catch(e){ console.error("What's New Fehler", e); res.status(500).json({error:'Generierung fehlgeschlagen', detail:e.message, stack:e.stack}); }
 });
 
 // Sample Content Generator (Posts) – liefert beispielhafte Felder
 router.post('/posts/generate-sample', isAuthenticated, async (req, res) => {
     try {
         const cfg = await refreshAIConfig();
-        const desc = (cfg.prompts && cfg.prompts.blog_sample) || 'Beispiel Blog';
+        const maxChars = (cfg.limits && cfg.limits.max_sample_chars) || 8000;
+        const desc = (cfg.prompts && cfg.prompts.blog_sample) || 'Beispiel Blog (nur Deutsch)';
         const data = await geminiTwoStageInvoke({
-            baseDescription: desc,
+            baseDescription: desc + ` Erzeuge realistischen deutschen Beispiel-Artikel mit HTML-Struktur (<h2>, <p>, <ul>, Icons <i class=\"bi bi-cloud-lock\"></i>, optional 1-2 Bilder mit Platzhalter /uploads/Panda_Banner.png). Danach Titel (DE) und Teaser (max 180 Zeichen). Beschränke gesamte Ausgabe auf ${maxChars} Zeichen.`,
             userPayloadBuilder: (optimized)=>({
-                finalPrompt: optimized + '\nAntworte als JSON: {"title_de":"...","content_de":"<p>...</p>","title_en":"...","content_en":"<p>...</p>","whatsnew":"..."}',
-                schema:{ type:'OBJECT', properties:{ title_de:{type:'STRING'}, content_de:{type:'STRING'}, title_en:{type:'STRING'}, content_en:{type:'STRING'}, whatsnew:{type:'STRING'} } }
+                finalPrompt: optimized + `\nAntwort JSON: {"title_de":"...","content_de":"<p>...</p>","whatsnew":"..."}\nRegeln: Nur Deutsch. content_de volle HTML Struktur, gesamter JSON Inhalt max ${maxChars} Zeichen. whatsnew max 180 Zeichen ohne HTML.`,
+                schema:{ type:'OBJECT', properties:{ title_de:{type:'STRING'}, content_de:{type:'STRING'}, whatsnew:{type:'STRING'} } }
             })
         });
-        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        let parsed={}; try{ parsed=JSON.parse(raw);}catch(_){ parsed={}; }
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        let parsed={};
+        try{ parsed=JSON.parse(raw);}catch(_){
+            const rx = (key)=>{ const m = raw.match(new RegExp('"'+key+'"\\s*:\\s*"([\\s\\S]*?)"\\s*(,|})')); return m? m[1] : ''; };
+            const unescape = (s)=> s.replace(/\\n/g,'\n').replace(/\\r/g,'').replace(/\\t/g,'\t').replace(/\\"/g,'"');
+            parsed={ parse_error:true, raw, title_de: unescape(rx('title_de')), content_de: unescape(rx('content_de')), whatsnew: unescape(rx('whatsnew')) };
+        }
+        if(parsed.content_de && /whatsnew"\s*:/.test(parsed.content_de)){ parsed.content_de = parsed.content_de.replace(/"whatsnew"\s*:\s*"[^"]*"/g,''); }
+        parsed.title_en=''; parsed.content_en='';
         incrementAIUsage('blog_sample');
+    try { await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'blog_sample', desc.slice(0,64000), raw.length ]);} catch(_){ }
         res.json(parsed);
-    } catch(e){ console.error('Sample generation AI Fehler:', e.message); res.status(500).json({error:'Sample generation failed', detail:e.message}); }
+    } catch(e){ console.error('Sample generation AI Fehler:', e); res.status(500).json({error:'Sample generation failed', detail:e.message, stack:e.stack}); }
 });
 
 // API-Endpunkt für die Übersetzung
@@ -758,17 +990,19 @@ router.post('/api/translate', isAuthenticated, async (req, res) => {
     const { text } = req.body;
     try {
         const cfg = await refreshAIConfig();
-        const desc = (cfg.prompts && cfg.prompts.translate) || 'Übersetze nach Englisch und liefere JSON.';
+        const maxChars = (cfg.limits && cfg.limits.max_translate_chars) || 10000;
+        const desc = (cfg.prompts && cfg.prompts.translate) || 'Übersetze Titel UND gesamten HTML-Inhalt präzise nach Englisch. Erhalte HTML-Struktur, keine Zusammenfassung.';
         const data = await geminiTwoStageInvoke({
             baseDescription: desc,
             userPayloadBuilder: (optimized)=>({
-                finalPrompt: optimized + `\nQuelltext:\n${text}\nAntwort JSON {"title":"...","content":"..."}`,
+                finalPrompt: optimized + `\nBegrenze Antwort (JSON Werte gesamt) auf ${maxChars} Zeichen. Quelltext (Deutsch):\n${text}\nAntwort als JSON {"title":"...","content":"<p>...</p>"}. Behalte vorhandene Tags, übersetze nur Text.`,
                 schema:{ type:'OBJECT', properties:{ title:{type:'STRING'}, content:{type:'STRING'} } }
             })
         });
-        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        res.json({ translation: raw });
-    } catch(e){ console.error('Translate Fehler:', e.message); res.status(500).json({error:'Translation failed'}); }
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    try { await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'translate', desc.slice(0,64000)+"\n---INPUT---\n"+String(text).slice(0,32000), raw.length ]);} catch(_){ }
+    res.json({ translation: raw });
+    } catch(e){ console.error('Translate Fehler:', e); res.status(500).json({error:'Translation failed', detail:e.message, stack:e.stack}); }
 });
 
 // Blog AI Config View & Update
@@ -777,12 +1011,31 @@ router.get('/blog-config', isAuthenticated, async (req, res) => {
     catch(e){ res.status(500).send('Config Laden fehlgeschlagen'); }
 });
 router.post('/blog-config', isAuthenticated, async (req, res) => {
-    const { primary_key_choice, max_daily_calls, whats_new_research, translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories } = req.body;
+    const { primary_key_choice, max_daily_calls, whats_new_research, translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories, max_response_chars, max_translate_chars, max_sample_chars } = req.body;
     try {
-        await pool.query('UPDATE ai_config SET primary_key_choice=?, max_daily_calls=?, prompts=? WHERE id=1',[ (primary_key_choice==='free'?'free':'paid'), parseInt(max_daily_calls||500,10), JSON.stringify({ whats_new_research, translate: translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories }) ]);
+        // Stelle sicher, dass Tabelle existiert (sicherheitsnetz, falls initialer Load scheiterte)
+        await pool.query(`CREATE TABLE IF NOT EXISTS ai_config (
+            id INT PRIMARY KEY DEFAULT 1,
+            primary_key_choice VARCHAR(16) NOT NULL DEFAULT 'paid',
+            max_daily_calls INT NOT NULL DEFAULT 500,
+            limits JSON NULL,
+            prompts JSON NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+        // Auto-Insert falls Datensatz fehlt
+        const [exists] = await pool.query('SELECT id FROM ai_config WHERE id=1');
+        if(!exists.length){
+            await pool.query('INSERT INTO ai_config (id, primary_key_choice, max_daily_calls, limits, prompts) VALUES (1, "paid", 500, ?, ?)', [ JSON.stringify({ max_response_chars:10000, max_translate_chars:10000, max_sample_chars:8000 }), JSON.stringify({ whats_new_research: whats_new_research||'', translate: translate_prompt||'', media_alt_text: media_alt_text||'', blog_sample: blog_sample||'', blog_tags: blog_tags||'', media_categories: media_categories||'' }) ]);
+        }
+        const limits = { 
+            max_response_chars: parseInt(max_response_chars||10000,10),
+            max_translate_chars: parseInt(max_translate_chars||10000,10),
+            max_sample_chars: parseInt(max_sample_chars||8000,10)
+        };
+        await pool.query('UPDATE ai_config SET primary_key_choice=?, max_daily_calls=?, limits=?, prompts=? WHERE id=1',[ (primary_key_choice==='free'?'free':'paid'), parseInt(max_daily_calls||500,10), JSON.stringify(limits), JSON.stringify({ whats_new_research, translate: translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories }) ]);
         aiConfigLoadedAt = 0; // invalidate cache
         res.redirect('/admin/blog-config');
-    } catch(e){ console.error('Config Update Fehler:', e.message); res.status(500).send('Speichern fehlgeschlagen'); }
+    } catch(e){ console.error('Config Update Fehler:', e); res.status(500).send('Speichern fehlgeschlagen: '+ e.message); }
 });
 
 // AI Usage Dashboard (einfach)
@@ -790,9 +1043,10 @@ router.get('/ai-usage', isAuthenticated, async (req, res) => {
     try {
         await ensureAIUsageTable();
         const [today] = await pool.query('SELECT endpoint, calls FROM ai_usage WHERE day=CURDATE() ORDER BY calls DESC');
-        const [history] = await pool.query('SELECT day, endpoint, calls FROM ai_usage WHERE day>=DATE_SUB(CURDATE(), INTERVAL 14 DAY) ORDER BY day DESC, calls DESC');
+    const [history] = await pool.query('SELECT day, endpoint, calls FROM ai_usage WHERE day>=DATE_SUB(CURDATE(), INTERVAL 14 DAY) ORDER BY day DESC, calls DESC');
+    const [log] = await pool.query('SELECT id, created_at, endpoint, LEFT(prompt_text, 400) AS prompt_snippet, response_chars, error_message FROM ai_call_log WHERE created_at>=DATE_SUB(NOW(), INTERVAL 14 DAY) ORDER BY id DESC LIMIT 1000');
         const totalToday = today.reduce((a,b)=>a+(b.calls||0),0);
-        res.render('admin_ai_usage', { title:'AI Usage', today, history, totalToday });
+    res.render('admin_ai_usage', { title:'AI Usage', today, history, totalToday, log });
     } catch(e){ console.error('AI Usage View Fehler:', e.message); res.status(500).send('Usage Laden fehlgeschlagen'); }
 });
 

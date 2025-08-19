@@ -48,6 +48,43 @@
       </table>
     </div>
   </div>
+  <div class="card shadow-sm mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Detail Log (letzte 14 Tage – max 1000 Einträge)</strong>
+      <span class="badge bg-secondary"><%= (log||[]).length %></span>
+    </div>
+    <div class="table-responsive" style="max-height:480px; overflow:auto;">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:150px;">Zeit</th>
+            <th style="width:110px;">Endpoint</th>
+            <th>Prompt (Auszug, 400 Zeichen)</th>
+            <th style="width:70px;" class="text-end">Zeichen</th>
+            <th style="width:70px;" class="text-end">Fehler</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if(log && log.length){ log.forEach(r=>{ %>
+            <tr>
+              <td class="text-nowrap"><%= (r.created_at instanceof Date) ? r.created_at.toISOString().replace('T',' ').slice(0,19) : r.created_at %></td>
+              <td><code><%= r.endpoint %></code></td>
+              <td style="max-width:600px; white-space:pre-wrap; font-family: var(--bs-font-monospace); font-size: .75rem;">
+                <%= r.prompt_snippet %>
+              </td>
+              <td class="text-end"><%= r.response_chars || '' %></td>
+              <td class="text-end"><%= r.error_message ? 'Ja' : '' %></td>
+            </tr>
+          <% }) } else { %>
+            <tr><td colspan="5" class="text-center text-muted">Keine Log-Daten</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer small text-muted">
+      Prompt gekürzt auf 400 Zeichen. Response Länge = Anzahl Zeichen (nach Parsing). Fehlerdetails werden separat im Server-Log ausgegeben.
+    </div>
+  </div>
   <div class="alert alert-info small mt-4">
     Tageslimit basiert auf <code>ai_config.max_daily_calls</code>. Bei Erreichen blockiert der Service neue Aufrufe (Fehler: AI Tageslimit erreicht).
   </div>

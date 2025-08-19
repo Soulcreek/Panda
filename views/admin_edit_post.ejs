@@ -2,7 +2,8 @@
 <%- include('partials/admin_nav') %>
 
 <div class="container my-5">
-    <h1 class="d-flex align-items-center gap-3 flex-wrap"><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %>
+    <h1 class="d-flex align-items-center gap-3 flex-wrap flex-column flex-md-row align-items-md-end">
+        <span class="d-flex align-items-center gap-3"><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %></span>
         <span class="small text-muted">/ Blog Editor</span>
     </h1>
     <form action="<%= post ? '/admin/posts/edit/' + post.id : '/admin/posts/new' %>" method="POST" onsubmit="return syncEditors()" class="row g-4">
@@ -10,11 +11,9 @@
         <div class="col-lg-8">
             <!-- Featured Image Block -->
             <div class="mb-4" id="featuredBlock">
-                    <label class="form-label mb-2 d-flex justify-content-between align-items-center"><strong>Titelbild</strong>
-                        <span class="ms-2 btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-secondary" id="inlineSelectFeaturedBtn"><i class="bi bi-image"></i> Wählen</button>
-                            <button type="button" class="btn btn-outline-danger" id="inlineClearFeaturedBtn" title="Entfernen"><i class="bi bi-x"></i></button>
-                        </span>
+                    <label class="form-label mb-2 d-flex flex-wrap gap-3 align-items-center"><strong>Titelbild</strong>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineSelectFeaturedBtn"><i class="bi bi-image"></i> Wählen</button>
+                        <span class="small text-muted" id="featuredStatusHint"><%= post && post.featured_image_id ? 'Ausgewählt' : 'Kein Bild' %></span>
                     </label>
                     <input type="hidden" name="featured_image_id" id="featured_image_id" value="<%= post ? (post.featured_image_id || '') : '' %>">
                     <div id="featuredDrop" class="border border-dashed rounded position-relative p-3 text-center" style="min-height:150px;background:linear-gradient(135deg,#f8f9fa,#f1f3f5);">
@@ -22,18 +21,17 @@
                             <div class="text-muted"><i class="bi bi-cloud-arrow-up" style="font-size:2rem;"></i></div>
                             <div class="small text-muted">Bild hierher ziehen oder auf Wählen klicken.</div>
                         </div>
-                        <div class="featured-preview h-100 <%= post && post.featured_image_id ? '' : 'd-none' %>" id="featuredPreviewWrapper">
+                        <div class="featured-preview h-100 <%= post && post.featured_image_id ? '' : 'd-none' %> position-relative" id="featuredPreviewWrapper">
                             <% if (post && post.featured_image_id) { %>
                                 <img id="featuredPreview" src="<%= post.featured_image_path || '' %>" class="img-fluid rounded shadow-sm" style="max-height:240px;object-fit:cover;">
                             <% } else { %>
                                 <img id="featuredPreview" class="img-fluid rounded d-none" style="max-height:240px;object-fit:cover;">
                             <% } %>
-                            <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                            <div class="d-flex justify-content-start align-items-center mt-2 flex-wrap gap-3">
                                 <div class="small text-muted" id="inlineFeaturedName"><%= post && post.featured_image_id ? (post.featured_image_path ? post.featured_image_path.split('/').pop() : '') : 'Keines gewählt' %></div>
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-secondary" id="changeFeaturedBtn"><i class="bi bi-arrow-repeat"></i></button>
-                                    <button type="button" class="btn btn-outline-danger" id="clearFeaturedBtn"><i class="bi bi-trash"></i></button>
-                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="changeFeaturedBtn"><i class="bi bi-arrow-repeat"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="clearFeaturedBtn"><i class="bi bi-trash"></i></button>
+                                <a href="#" id="clearFeaturedLink" class="small text-decoration-none text-danger ms-auto"><i class="bi bi-trash"></i> Entfernen</a>
                             </div>
                         </div>
                         <input type="file" id="featuredFileInput" accept="image/*" class="d-none">
@@ -72,6 +70,7 @@
                             <label class="form-label">Inhalt (DE)</label>
                             <div id="editor_de" class="border rounded p-2" style="min-height:300px;"></div>
                             <textarea id="content_de" name="content" class="d-none"><%= post ? post.content : '' %></textarea>
+                            <div class="small text-muted mt-1 d-flex justify-content-between"><span>Max 2000 Zeichen (reiner Text)</span><span id="deContentCounter">0 / 2000</span></div>
                         </div>
                     </div>
                     <!-- Englischer Inhalt -->
@@ -120,17 +119,17 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <label class="form-label small mb-1">Kurz-Teaser (DE) max 140 Zeichen</label>
-                        <input type="text" class="form-control mb-2" id="whatsnew" name="whatsnew" value="<%= post ? post.whatsnew : '' %>" maxlength="140" placeholder="Noch nichts...">
-                        <div class="small text-muted">Research News: Holt aktuelle Data Security Trends (DE+EN) und füllt Titel, Inhalte & Teaser.<br>Sample: Füllt alle Felder mit Beispieltext.</div>
+                        <label class="form-label small mb-1">Kurz-Teaser (DE) (max 180 Zeichen)</label>
+                        <textarea class="form-control mb-2" id="whatsnew" name="whatsnew" maxlength="180" rows="2" placeholder="Noch nichts..."><%= post ? post.whatsnew : '' %></textarea>
+                        <div class="d-flex justify-content-between small text-muted"><span>Research News erzeugt Teaser. Sample befüllt nur den Inhalt.</span><span id="teaserCounter">0 / 180</span></div>
                     </div>
                 </div>
             <!-- Embedded Media Library -->
             <div class="card" id="embeddedMediaLibBlog" style="max-width:100%;">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
                     <strong>Medienbibliothek</strong>
-                    <div class="d-flex gap-2 align-items-center">
-                        <select class="form-select form-select-sm" id="embeddedMediaFilterBlog" style="width:160px;">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <select class="form-select form-select-sm" id="embeddedMediaFilterBlog" style="width:170px;min-width:160px;">
                             <option value="all">Alle Kategorien</option>
                             <% if(mediaCats && mediaCats.length){ mediaCats.forEach(function(c){ %>
                                 <option value="<%= c %>"><%= c %></option>
@@ -141,7 +140,7 @@
                 </div>
                                 <div class="p-3 border-top" style="background:#fafafa;">
                                         <div class="px-1">
-                                            <div id="embeddedMediaGridBlog" class="row g-2" style="max-height:340px; overflow:auto; margin:0;"></div>
+                            <div id="embeddedMediaGridBlog" class="row g-2 align-items-stretch" style="max-height:340px; overflow:auto; margin:0;"></div>
                                             <div class="small text-muted mt-2">Drag & Drop oder Klick kopiert Link / fügt ein.</div>
                                         </div>
                                 </div>
@@ -186,6 +185,94 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('editor_de')) quillDe = new Quill('#editor_de', { theme:'snow', modules:{ toolbar: toolbarOptions } });
     if(document.getElementById('editor_en')) quillEn = new Quill('#editor_en', { theme:'snow', modules:{ toolbar: toolbarOptions } });
 
+    // (4) Drag & Drop / Paste Bild Upload (inline) für DE Editor
+    function installInlineImageUpload(quill){
+        const root = quill.root;
+        root.addEventListener('drop', evt=>{
+            if(!evt.dataTransfer || !evt.dataTransfer.files || !evt.dataTransfer.files.length) return;
+            const file = [...evt.dataTransfer.files].find(f=>/^image\//.test(f.type));
+            if(!file) return; evt.preventDefault(); inlineUpload(file, quill);
+        });
+        root.addEventListener('paste', evt=>{
+            const items = (evt.clipboardData && evt.clipboardData.items) || [];
+            for(const it of items){
+                if(it.kind==='file'){ const f=it.getAsFile(); if(f && /^image\//.test(f.type)){ inlineUpload(f, quill); return; } }
+            }
+        });
+    }
+    async function inlineUpload(file, quill){
+        const formData = new FormData(); formData.append('file', file);
+        const sel = quill.getSelection(true) || { index: quill.getLength() };
+        quill.insertText(sel.index, '[Bild wird hochgeladen…]', 'italic', true);
+        try {
+            const resp = await fetch('/admin/api/upload-inline-image', { method:'POST', body: formData, headers:{ 'CSRF-Token': window.CSRF_TOKEN } });
+            const data = await resp.json();
+            quill.deleteText(sel.index, '[Bild wird hochgeladen…]'.length);
+            if(!resp.ok) throw new Error(data.error||'Upload fehlgeschlagen');
+            quill.insertEmbed(sel.index, 'image', data.path, 'user');
+            quill.setSelection(sel.index+1, 0);
+        } catch(e){ console.error('Inline Upload Fehler', e); quill.deleteText(sel.index, '[Bild wird hochgeladen…]'.length); quill.insertText(sel.index, '[Upload Fehler]', 'bold', true); }
+    }
+    if(quillDe) installInlineImageUpload(quillDe);
+    if(quillEn) installInlineImageUpload(quillEn);
+
+    // (5) Medien-Browser Button in Toolbar (fügt Bild aus Auswahl ein)
+    function addMediaPickerButton(quill){
+        const toolbar = quill.getModule('toolbar'); if(!toolbar) return;
+        const btn = document.createElement('button'); btn.type='button'; btn.innerHTML='📁'; btn.title='Bild aus Medienbibliothek einfügen'; btn.className='ql-media-picker';
+        btn.addEventListener('click',()=>{
+            // Re-Use eingebettete Grid: wähle erstes sichtbares Bild oder Klicke -> besser: kleines Overlay
+            const picker = document.createElement('div'); picker.className='position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center'; picker.style.background='rgba(0,0,0,.6)'; picker.style.zIndex=1080;
+            picker.innerHTML = `<div class="bg-white rounded shadow p-3" style="max-width:800px; width:90%; max-height:70vh; overflow:auto;">
+                <div class='d-flex justify-content-between align-items-center mb-2'><strong>Bild wählen</strong><button class='btn btn-sm btn-outline-secondary' data-close>Schließen</button></div>
+                <div id='mediaPickerGrid' class='row g-2'></div>
+            </div>`;
+            document.body.appendChild(picker);
+            picker.addEventListener('click', e=>{ if(e.target.hasAttribute('data-close') || e.target===picker){ picker.remove(); }});
+            fetch('/admin/api/media').then(r=>r.json()).then(list=>{
+                const grid = picker.querySelector('#mediaPickerGrid');
+                list.filter(m=>/^image\//.test(m.type||'')).slice(0,300).forEach(m=>{
+                    const col=document.createElement('div'); col.className='col-3';
+                    col.innerHTML=`<div class='border rounded p-1 h-100 d-flex flex-column' style='cursor:pointer;'><img src='${m.path}' class='img-fluid rounded mb-1' style='object-fit:cover;max-height:90px;'><small class='text-truncate'>${m.name||m.path.split('/').pop()}</small></div>`;
+                    col.addEventListener('click',()=>{ const range=quill.getSelection(true)||{index:quill.getLength()}; quill.insertEmbed(range.index,'image', m.path,'user'); quill.setSelection(range.index+1,0); picker.remove(); });
+                    grid.appendChild(col);
+                });
+            }).catch(()=>{});
+        });
+        const group = toolbar.container.querySelector('.ql-formats');
+        (group?group:toolbar.container).appendChild(btn);
+    }
+    if(quillDe) addMediaPickerButton(quillDe);
+    if(quillEn) addMediaPickerButton(quillEn);
+
+    // (6) (Deaktiviert) Paste Cleanup vorerst entfernt wegen Parser Konflikten – kann später mit externer JS-Datei sauberer rein.
+
+    // (7) Auto Teaser Ableitung
+    const teaserTxt = document.getElementById('whatsnew');
+    const teaserCounter = document.getElementById('teaserCounter');
+    function updateTeaserCounter(){ if(teaserCounter && teaserTxt){ teaserCounter.textContent = teaserTxt.value.length+" / 180"; } }
+    if(teaserTxt){ teaserTxt.addEventListener('input',()=>{ if(teaserTxt.value.length>180) teaserTxt.value = teaserTxt.value.slice(0,180); updateTeaserCounter(); }); updateTeaserCounter(); }
+    const autoBtn = document.createElement('button');
+    autoBtn.type='button'; autoBtn.className='btn btn-sm btn-outline-secondary ms-2'; autoBtn.textContent='Teaser ableiten';
+    autoBtn.addEventListener('click', ()=>{
+        const MAX_T=180;
+        const text = quillDe ? quillDe.getText().trim() : '';
+        if(!text){ teaserTxt.value=''; updateTeaserCounter(); return; }
+        // Erster Absatz oder erste 400 Zeichen
+        let firstPara = text.split(/\n+/)[0].trim();
+        if(firstPara.length < 20){ firstPara = text.slice(0,400); }
+        if(firstPara.length > MAX_T){
+            let cut = firstPara.slice(0,MAX_T);
+            const lastSpace = cut.lastIndexOf(' ');
+            if(lastSpace>120) cut = cut.slice(0,lastSpace);
+            firstPara = cut + '…';
+        }
+        teaserTxt.value = firstPara.slice(0,MAX_T);
+        updateTeaserCounter();
+    });
+    const teaserLabel = document.querySelector('label.form-label.small');
+    if(teaserLabel && teaserLabel.parentElement){ teaserLabel.parentElement.querySelector('textarea')?.insertAdjacentElement('beforebegin', autoBtn); }
+
     // Erweiterte Bildgrößenanpassung: Drag Handles + Doppelklick-Zyklus
     function addHandles(img){
         if(img.closest('.ql-img-wrap')) return;
@@ -206,6 +293,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Content
     quillDe.root.innerHTML = document.getElementById('content_de').value;
     quillEn.root.innerHTML = document.getElementById('content_en').value;
+    // Content (DE) Zeichenlimit (Plain Text 2000)
+    const deCounter = document.getElementById('deContentCounter');
+    function enforceDeLimit(){
+        if(!quillDe) return; const txt = quillDe.getText().replace(/\n+$/,'');
+        if(txt.length>2000){
+            // Kürzen: hole Delta und baue neu aus gekürztem Plaintext (einfacher als Delta-Manipulation)
+            const trimmed = txt.slice(0,2000);
+            quillDe.setText(trimmed);
+        }
+        if(deCounter){ const cur = quillDe.getText().replace(/\n+$/,'').length; deCounter.textContent = cur + ' / 2000'; deCounter.classList.toggle('text-danger', cur>=2000); }
+    }
+    if(quillDe){ quillDe.on('text-change', enforceDeLimit); enforceDeLimit(); }
 
     // Übersetzen
     const translateBtn = document.getElementById('translateBtn');
@@ -213,15 +312,24 @@ document.addEventListener('DOMContentLoaded', () => {
         translateBtn.addEventListener('click', async () => {
             const titleDe = document.getElementById('title_de').value;
             const contentDe = quillDe.root.innerHTML;
-            translateBtn.disabled = true; translateBtn.textContent='Übersetze...';
+            function setTranslate(label, cls){ translateBtn.textContent=label; if(cls){ translateBtn.classList.remove('btn-secondary','btn-danger','btn-success'); translateBtn.classList.add(cls);} }
+            translateBtn.disabled = true; setTranslate('Sende Anfrage…');
             try {
-            const response = await fetch('/admin/api/translate', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': window.CSRF_TOKEN}, body: JSON.stringify({ text: `Translate the following title and html content to English.\n\nTitle: ${titleDe}\n\nContent: ${contentDe}` }) });
+                const response = await fetch('/admin/api/translate', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': window.CSRF_TOKEN}, body: JSON.stringify({ text: `Translate the following German blog post title and HTML body into English. Keep basic HTML tags (p, strong, em, ul, ol, li, h1-h3, a, img) intact. Respond as JSON: { \"title\": \"...\", \"content\": \"...\" }.\n\nGerman Title: ${titleDe}\n\nGerman HTML Content:\n${contentDe}` }) });
+                setTranslate('Antwort wird verarbeitet…');
                 const result = await response.json();
                 const translatedParts = JSON.parse(result.translation);
                 document.getElementById('title_en').value = translatedParts.title || '';
                 quillEn.root.innerHTML = translatedParts.content || '';
-            } catch(e){ alert('Übersetzung fehlgeschlagen.'); }
-            finally { translateBtn.disabled=false; translateBtn.textContent='Deutsch nach Englisch übersetzen'; }
+                setTranslate('Übersetzung eingefügt','btn-success');
+                setTimeout(()=> setTranslate('Fertig','btn-success'), 400);
+                setTimeout(()=>{ translateBtn.disabled=false; setTranslate('Deutsch nach Englisch übersetzen','btn-secondary'); }, 1600);
+            } catch(e){
+                console.error('Translate Fehler', e);
+                alert('Übersetzung fehlgeschlagen.');
+                setTranslate('Fehler','btn-danger');
+                setTimeout(()=>{ translateBtn.disabled=false; setTranslate('Deutsch nach Englisch übersetzen','btn-secondary'); }, 1800);
+            }
         });
     }
     // What's New Generator
@@ -229,35 +337,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const sampleBtn = document.getElementById('generate-sample-btn');
     if(whatsBtn){
         whatsBtn.addEventListener('click', async ()=>{
-            whatsBtn.disabled=true; const original=whatsBtn.textContent; whatsBtn.textContent='...';
+            const original=whatsBtn.textContent;
+            function setBtn(label, cls){ whatsBtn.textContent=label; if(cls){ whatsBtn.className='btn '+cls; } }
+            whatsBtn.disabled=true; setBtn('⏳ Anfrage vorbereiten…','btn-outline-primary');
+            const startTs = Date.now();
             try {
+                setBtn('🚀 Sende an KI…','btn-outline-primary');
                 const resp = await fetch('/admin/generate-whats-new',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}});
+                setBtn('📥 Antwort wird gelesen…','btn-outline-primary');
                 const data = await resp.json();
                 if(!resp.ok) throw new Error(data.error||'Fehler');
-                // Fülle alle relevanten Felder
-                document.getElementById('title_de').value = data.title_de||'';
-                quillDe.root.innerHTML = data.content_de||'';
-                document.getElementById('title_en').value = data.title_en||'';
-                quillEn.root.innerHTML = data.content_en||'';
-                document.getElementById('whatsnew').value = data.whatsnew||'';
-            }catch(e){ alert('KI Fehler: '+e.message); }
-            finally { whatsBtn.disabled=false; whatsBtn.textContent=original; }
+                setBtn('🧪 Verarbeite Inhalt…','btn-outline-primary');
+                document.getElementById('title_de').value = data.title_de||'Ohne Titel';
+                let content = data.content_de || '';
+                if(!content && data.parse_error && data.raw){ content = data.raw; }
+                if(!content) content='<p><em>(Keine Inhaltsdaten erhalten)</em></p>';
+                // Teaser NICHT überschreiben (Anforderung)
+                // Sanitize rudimentär (Strip script)
+                content = content.replace(/<script[\s\S]*?<\/script>/gi,'');
+                quillDe.root.innerHTML = content; enforceDeLimit();
+                document.getElementById('title_en').value = '';
+                quillEn.root.innerHTML = '';
+                updateTeaserCounter();
+                const dur = ((Date.now()-startTs)/1000).toFixed(1)+'s';
+                setBtn('✅ Fertig ('+dur+')','btn-success');
+                setTimeout(()=>{ whatsBtn.disabled=false; setBtn(original,'btn-outline-primary'); },1800);
+            } catch(e){
+                console.error('WhatsNew Fehler', e);
+                setBtn('⚠️ Fehler: '+(e.message||'') ,'btn-danger');
+                setTimeout(()=>{ whatsBtn.disabled=false; setBtn(original,'btn-outline-primary'); },3000);
+            }
         });
     }
     if(sampleBtn){
         sampleBtn.addEventListener('click', async ()=>{
-            sampleBtn.disabled=true; const original=sampleBtn.textContent; sampleBtn.textContent='...';
+            const original=sampleBtn.textContent;
+            function setBtn(label, cls){ sampleBtn.textContent=label; if(cls){ sampleBtn.className='btn '+cls; } }
+            sampleBtn.disabled=true; setBtn('⏳ Anfrage…','btn-outline-secondary');
+            const startTs=Date.now();
             try {
+                setBtn('🚀 Sende…','btn-outline-secondary');
                 const resp = await fetch('/admin/posts/generate-sample',{method:'POST', headers:{'CSRF-Token': window.CSRF_TOKEN}});
+                setBtn('📥 Lesen…','btn-outline-secondary');
                 const data = await resp.json();
                 if(!resp.ok) throw new Error(data.error||'Fehler');
-                document.getElementById('title_de').value = data.title_de||'';
-                quillDe.root.innerHTML = data.content_de||'';
-                document.getElementById('title_en').value = data.title_en||'';
-                quillEn.root.innerHTML = data.content_en||'';
-                document.getElementById('whatsnew').value = data.whatsnew||'';
-            }catch(e){ alert('Sample Fehler: '+e.message); }
-            finally { sampleBtn.disabled=false; sampleBtn.textContent=original; }
+                setBtn('🧪 Aufbereiten…','btn-outline-secondary');
+                let content = data.content_de || '';
+                if((!content || !data.title_de) && data.parse_error && data.raw){
+                    try { const retry = JSON.parse(data.raw); if(!data.title_de && retry.title_de) data.title_de=retry.title_de; if(!content && retry.content_de) content=retry.content_de; } catch(_) { if(!content) content='<p>'+ (data.raw||'') + '</p>'; }
+                }
+                if(!content){ content='<p><em>(Keine Inhaltsdaten erhalten)</em></p>'; }
+                content = content.replace(/<script[\s\S]*?<\/script>/gi,'');
+                if(data.title_de){ document.getElementById('title_de').value = data.title_de; }
+                if(content){ quillDe.root.innerHTML = content; enforceDeLimit(); }
+                document.getElementById('title_en').value = '';
+                quillEn.root.innerHTML = '';
+                updateTeaserCounter();
+                const dur = ((Date.now()-startTs)/1000).toFixed(1)+'s';
+                setBtn('✅ Fertig ('+dur+')','btn-success');
+                setTimeout(()=>{ sampleBtn.disabled=false; setBtn(original,'btn-outline-secondary'); },1800);
+            }catch(e){
+                console.error('Sample Fehler', e);
+                setBtn('⚠️ Fehler: '+(e.message||'') ,'btn-danger');
+                setTimeout(()=>{ sampleBtn.disabled=false; setBtn(original,'btn-outline-secondary'); },3000);
+            }
         });
     }
     // Featured Image: Drag & Drop + Auswahl über Media Library
@@ -267,7 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const featuredEmpty = document.getElementById('featuredEmptyState');
     const featuredImg = document.getElementById('featuredPreview');
     const inlineSelectFeaturedBtn = document.getElementById('inlineSelectFeaturedBtn');
-    const inlineClearFeaturedBtn = document.getElementById('inlineClearFeaturedBtn');
+    const inlineClearFeaturedBtn = document.getElementById('inlineClearFeaturedBtn'); // removed in UI (legacy)
+    const clearFeaturedLink = document.getElementById('clearFeaturedLink');
+    const featuredStatusHint = document.getElementById('featuredStatusHint');
     const changeFeaturedBtn = document.getElementById('changeFeaturedBtn');
     const clearFeaturedBtn = document.getElementById('clearFeaturedBtn');
     const featuredName = document.getElementById('inlineFeaturedName');
@@ -278,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             featuredPreviewWrap.classList.add('d-none');
             featuredEmpty.classList.remove('d-none');
             featuredName.textContent='Keines gewählt';
+            if(featuredStatusHint) featuredStatusHint.textContent='Kein Bild';
             return;
         }
         featuredInputHidden.value=id;
@@ -286,10 +432,11 @@ document.addEventListener('DOMContentLoaded', () => {
         featuredPreviewWrap.classList.remove('d-none');
         featuredEmpty.classList.add('d-none');
         featuredName.textContent=filename||path.split('/').pop();
+        if(featuredStatusHint) featuredStatusHint.textContent='Ausgewählt';
     }
     function openMediaFeatured(){
         if(typeof openMediaLibraryModal !== 'function'){ alert('Media Library nicht geladen'); return; }
-        openMediaLibraryModal({ filter:'Blog-Titelbild', returnObject:true, callback:(media)=>{
+    openMediaLibraryModal({ filter:'__featuredCombo', returnObject:true, callback:(media)=>{
             setFeatured(media.id, media.path || ('/uploads/'+media.filename), media.name || media.filename);
         }});
     }
@@ -298,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearFeatured(){ setFeatured('', '', ''); }
     if(inlineClearFeaturedBtn) inlineClearFeaturedBtn.addEventListener('click', clearFeatured);
     if(clearFeaturedBtn) clearFeaturedBtn.addEventListener('click', clearFeatured);
+    if(clearFeaturedLink) clearFeaturedLink.addEventListener('click', (e)=>{ e.preventDefault(); clearFeatured(); });
     // Drag & Drop Support (Datei lokal -> temporär nur Preview, kein Upload auto)
     if(featuredDrop){
         ['dragenter','dragover'].forEach(ev=> featuredDrop.addEventListener(ev, e=>{ e.preventDefault(); featuredDrop.classList.add('border-primary'); }));

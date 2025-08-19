@@ -3,7 +3,7 @@
 <div class="container my-5" id="timelineEditorRoot">
   <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="mb-1">Timeline Editor</h2>
+  <h2 class="mb-1">Timeline Editor <a href="/pandas-way-alt5?level=<%= level %>" target="_blank" class="small ms-2 text-decoration-none" title="Öffentliche Ansicht öffnen"><i class="bi bi-box-arrow-up-right"></i></a></h2>
       <div class="small text-muted">Site: <code><%= site %></code> | Level <%= level %></div>
     </div>
     <form class="d-flex" method="get" action="/admin/timeline-editor">
@@ -25,16 +25,22 @@
         <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <% } %>
-        <div class="col-md-4">
+  <textarea id="levelMetaSeed" hidden><%- (levelMeta && levelMeta.content_html) ? levelMeta.content_html : '' %></textarea>
+        <div class="col-md-3">
           <label class="form-label">Level Titel</label>
           <input class="form-control form-control-sm" name="title" value="<%= (levelMeta && levelMeta.title) || '' %>">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label">Bild (Pfad)</label>
           <div class="input-group input-group-sm">
             <input class="form-control" name="image_path" id="levelImagePath" value="<%= (levelMeta && levelMeta.image_path) || '' %>">
             <button type="button" class="btn btn-outline-secondary" id="btnPickLevelImage"><i class="bi bi-image"></i></button>
           </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Icon (Bootstrap Klasse)</label>
+          <input class="form-control form-control-sm" name="icon" placeholder="z.B. bi-shield-lock" value="<%= (levelMeta && levelMeta.icon) || '' %>">
+          <div class="form-text">Optional: Bootstrap Icon Klasse ohne &lt;i&gt; Tag.</div>
         </div>
         <div class="col-md-12">
           <label class="form-label">Intro / Beschreibung (HTML)</label>
@@ -63,8 +69,7 @@
                 <th>Pos</th>
                 <th>Titel</th>
                 <th>Phase</th>
-                <th>Preview</th>
-                <th style="width:110px">Aktion</th>
+                <th style="width:140px">Aktion</th>
               </tr>
             </thead>
             <tbody>
@@ -74,8 +79,8 @@
                   <td class="pos"><%= r.position %></td>
                   <td><%= r.title %></td>
                   <td><%= r.phase||'' %></td>
-                  <td class="small text-truncate" style="max-width:180px"><%- r.preview || '' %></td>
                   <td class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-info preview-entry-btn" data-id="<%= r.id %>" title="Preview anzeigen"><i class="bi bi-eye"></i></button>
                     <form method="post" action="/admin/timeline-editor/toggle/<%= r.id %>" title="Aktiv umschalten" class="m-0">
                       <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><input type="hidden" name="_csrf" value="<%= csrfToken %>"><% } %>
                       <button class="btn btn-sm <%= r.is_active? 'btn-outline-success':'btn-outline-secondary' %>"><i class="bi <%= r.is_active? 'bi-eye':'bi-eye-slash' %>"></i></button>
@@ -88,7 +93,7 @@
                   </td>
                 </tr>
               <% }); } else { %>
-                <tr><td colspan="6" class="text-center text-muted">Keine Einträge</td></tr>
+                <tr><td colspan="5" class="text-center text-muted">Keine Einträge</td></tr>
               <% } %>
             </tbody>
           </table>
@@ -154,6 +159,17 @@
         </div>
       </div>
     </div>
+    <div class="col-12 mt-4">
+      <div class="card shadow-sm" id="entryLivePreviewCard">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Live Preview</strong>
+          <span class="small text-muted" id="livePreviewTitle">(kein Eintrag ausgewählt)</span>
+        </div>
+        <div class="card-body">
+          <div id="livePreviewContent" class="small text-muted">Wähle einen Eintrag zum Anzeigen seines HTML Inhalts.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <!-- Edit Modal -->
@@ -212,6 +228,8 @@
 <script>
 (function(){
   let quill, quillEdit, quillLevelMeta;
+  // Level Meta Seed aus versteckter Textarea (vermeidet EJS im JS Parser)
+  window.LEVEL_META_HTML = (document.getElementById('levelMetaSeed')||{}).textContent || '';
   if(window.Quill){
     quill = new Quill('#timelineEditor', { theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } });
     quillEdit = new Quill('#timelineEditorEdit', { theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } });
@@ -298,6 +316,17 @@
   // Edit Flow
   const editModalEl = document.getElementById('editTimelineModal');
   const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+  const livePreviewTitle=document.getElementById('livePreviewTitle');
+  const livePreviewContent=document.getElementById('livePreviewContent');
+  function loadLivePreview(id, title){
+    if(!id) return;
+    livePreviewTitle.textContent = title ? ('#'+id+' – '+title) : ('#'+id);
+    livePreviewContent.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lade...</div>';
+    fetch('/api/timeline-entry/'+id)
+      .then(r=> r.ok ? r.json() : Promise.reject('HTTP '+r.status))
+      .then(data=>{ livePreviewContent.innerHTML = data && data.content_html ? data.content_html : '<em class="text-muted">(kein Inhalt)</em>'; })
+      .catch(err=>{ livePreviewContent.innerHTML = '<span class="text-danger">Fehler: '+err+'</span>'; });
+  }
   document.querySelectorAll('.edit-entry-btn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const id=btn.dataset.id;
@@ -315,7 +344,19 @@
         document.getElementById('editContentHtml').value='';
         document.getElementById('editTimelineForm').setAttribute('action','/admin/timeline-editor/update/'+id);
         editModal && editModal.show();
+        loadLivePreview(id, title);
       } catch(e){ alert('Laden fehlgeschlagen: '+e.message); }
+    });
+  });
+  // Preview Button
+  document.querySelectorAll('.preview-entry-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id=btn.dataset.id; if(!id) return;
+      const tr = document.querySelector('#timelineTable tbody tr[data-id="'+id+'"]');
+      const title = tr ? tr.querySelector('td:nth-child(3)')?.textContent.trim() : '';
+      loadLivePreview(id, title);
+      document.querySelectorAll('#timelineTable tbody tr').forEach(r=>r.classList.remove('table-active'));
+      if(tr) tr.classList.add('table-active');
     });
   });
   const editForm=document.getElementById('editTimelineForm');

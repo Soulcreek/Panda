@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container mb-5" data-aos="fade-in">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Advanced Pages</h1>
+    <a href="/admin/advanced-pages/new" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Neue Seite</a>
+  </div>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>ID</th><th>Titel</th><th>Slug</th><th>Status</th><th>Aktualisiert</th><th></th></tr></thead>
+    <tbody>
+    <% if(pages && pages.length){ pages.forEach(p=>{ %>
+      <tr>
+        <td><%= p.id %></td>
+        <td><%= p.title %></td>
+        <td><code><%= p.slug %></code></td>
+        <td><span class="badge bg-secondary"><%= p.status %></span></td>
+        <td><%= p.updated_at.toISOString().substring(0,19).replace('T',' ') %></td>
+        <td class="text-end">
+          <a href="/admin/advanced-pages/edit/<%= p.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
+          <a href="/admin/advanced-pages/preview/<%= p.id %>" class="btn btn-sm btn-outline-secondary">Preview</a>
+          <form action="/admin/advanced-pages/delete/<%= p.id %>" method="POST" class="d-inline" onsubmit="return confirm('Seite löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+        </td>
+      </tr>
+    <% }); } else { %>
+      <tr><td colspan="6" class="text-muted text-center py-4">Keine Seiten</td></tr>
+    <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/footer') %>

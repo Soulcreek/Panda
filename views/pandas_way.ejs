@@ -1,12 +1,16 @@
 <%- include('partials/header') %>
 
 <!-- Wrapper-Div mit der korrekten CSS-Klasse aus Ihrer style.css -->
-<section class="pandas-way-hero-section position-relative overflow-hidden">
-    <div class="container py-5 text-center" data-aos="fade-down">
-    <h1 class="display-4 fw-bold mb-3"><%= t('pandas.hero.title') %></h1>
-    <p class="lead mb-0"><%= t('pandas.hero.subtitle') %></p>
+<section class="pandas-way-hero-section position-relative overflow-hidden new-hero-pw">
+    <div class="hero-overlay"></div>
+    <div class="container py-5 text-center position-relative" data-aos="fade-down">
+        <h1 class="display-5 fw-bold mb-3">
+            <span class="d-block">Learn IT – The Panda's Way</span>
+            <small class="d-block fw-normal mt-2 h5 text-light opacity-75">Jetzt lernen – Entdecke den Weg des Pandas</small>
+        </h1>
+        <p class="lead mb-0 fst-italic hero-subtitle">Von ersten Grundlagen bis strategischer Tiefe: Schritt für Schritt, klar strukturiert, praxisnah & verständlich.</p>
     </div>
-    <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" style="background:radial-gradient(circle at 30% 40%, #4dabf7 0%, transparent 60%), radial-gradient(circle at 70% 60%, #82c91e 0%, transparent 55%);"></div>
+    <div class="bg-shapes"></div>
 </section>
 
 <div class="container my-5">
@@ -80,6 +84,12 @@
     .alt-band-2{background:linear-gradient(135deg,#f9f7ff,#f3efff);} 
     .alt-band-3{background:linear-gradient(135deg,#f8fff9,#eefef3);} 
     .pillar-badge{font-size:.7rem;} 
+    /* Hero Refinements */
+    .pandas-way-hero-section{padding:5rem 1.5rem 4rem; color:#fff; background:#0d1117; position:relative; isolation:isolate; --hero-grad-1:radial-gradient(circle at 18% 32%,rgba(13,110,253,.55),transparent 60%); --hero-grad-2:radial-gradient(circle at 82% 68%,rgba(130,201,30,.45),transparent 55%); --hero-grad-3:linear-gradient(135deg,rgba(13,110,253,.4),rgba(13,202,240,.2)); background-image:var(--hero-grad-3); text-shadow:0 2px 8px rgba(0,0,0,.35);} 
+    .pandas-way-hero-section .hero-overlay{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.35));}
+    .pandas-way-hero-section .bg-shapes{position:absolute;inset:0;z-index:0;background:var(--hero-grad-1),var(--hero-grad-2);filter:blur(4px) saturate(140%);opacity:.9;}
+    .pandas-way-hero-section .hero-subtitle{max-width:960px;margin:0 auto;letter-spacing:.3px;}
+    html.dark-mode .pandas-way-hero-section{background:#0b0f15;}
     .lvl-1 .content-block{background:linear-gradient(135deg,#ffffff,#f2faff);} 
     .lvl-2 .content-block{background:linear-gradient(135deg,#ffffff,#eff5ff);} 
     .lvl-3 .content-block{background:linear-gradient(135deg,#ffffff,#f5f7ff);} 
@@ -228,7 +238,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             else { c.classList.remove('border-primary'); c.classList.add('border-0'); }
         });
         document.querySelectorAll('.path-section').forEach(s=>{ s.classList.toggle('active', s.dataset.level===level); });
-        const target=document.querySelector('.path-section.active'); if(target){ target.scrollIntoView({behavior:'smooth', block:'start'}); }
+    // Auto-Scroll deaktiviert – Nutzer bleibt an aktueller Position
     observeVisibleBlocks();
     }
     const selector=document.getElementById('pathSelector');

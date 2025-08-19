@@ -24,7 +24,19 @@
             <input type="number" class="form-control" name="max_daily_calls" value="<%= ai.max_daily_calls %>">
           </div>
           <div class="col-md-4 d-flex align-items-end">
-            <div class="alert alert-info w-100 py-2 mb-0 small">Keys werden aus .env gelesen: GEMINI_API_KEY_PAID / GEMINI_API_KEY_FREE</div>
+            <div class="alert alert-info w-100 py-2 mb-0 small">Keys: GEMINI_API_KEY_PAID / GEMINI_API_KEY_FREE</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Max Antwort-Zeichen (Research)</label>
+            <input type="number" class="form-control" name="max_response_chars" value="<%= (ai.limits && ai.limits.max_response_chars) || 10000 %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Max Übersetzung-Zeichen</label>
+            <input type="number" class="form-control" name="max_translate_chars" value="<%= (ai.limits && ai.limits.max_translate_chars) || 10000 %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Max Sample-Zeichen</label>
+            <input type="number" class="form-control" name="max_sample_chars" value="<%= (ai.limits && ai.limits.max_sample_chars) || 8000 %>">
           </div>
         </div>
       </div>

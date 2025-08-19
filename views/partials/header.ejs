@@ -6,7 +6,7 @@ if (typeof currentPath === 'undefined') { var currentPath = ''; }
 if (typeof locale === 'undefined') { var locale = 'de'; }
 var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 %>
-<html lang="<%= (typeof locale !== 'undefined' ? locale : 'de') %>">
+<html lang="<%= (typeof locale !== 'undefined' ? locale : 'de') %>" <%= (typeof userPrefs !== 'undefined' && userPrefs && userPrefs.theme==='dark') ? 'class="dark-mode"' : '' %> data-user-prefs="<%= encodeURIComponent(JSON.stringify((typeof userPrefs !== 'undefined' ? userPrefs : null)||null)) %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +17,22 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><meta name="csrf-token" content="<%= csrfToken %>"><% } %>
+    <script>
+    // Hydrate user preferences from data attribute and ensure theme consistency (server already applied dark class if needed)
+    (function(){
+        try {
+            var attr = document.documentElement.getAttribute('data-user-prefs');
+            window.__USER_PREFS = attr ? JSON.parse(decodeURIComponent(attr)) : null;
+            // If server did not set class (because theme=system/local) decide now
+            if(!document.documentElement.classList.contains('dark-mode')){
+                var theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null;
+                if(!theme){ theme = localStorage.getItem('pp_theme'); }
+                if(!theme || theme==='system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+                if(theme==='dark') document.documentElement.classList.add('dark-mode');
+            }
+        } catch(e){ /* silent */ }
+    })();
+    </script>
     <script>
     (function(){
         var meta=document.querySelector('meta[name="csrf-token"]');
@@ -83,6 +99,11 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                         <a class="nav-link <%= isAdmin ? 'text-primary fw-bold' : 'text-secondary' %>" href="/admin"><%= t('nav.admin') %></a>
                     </li>
                 <% } %>
+                <li class="nav-item ms-lg-2">
+                    <button id="themeToggleBtn" type="button" class="btn btn-sm btn-outline-secondary" aria-label="Toggle theme" aria-pressed="false" title="Dark Mode">
+                        <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
+                    </button>
+                </li>
                                 <li class="nav-item ms-lg-3">
                         <form action="/search" method="GET" class="d-flex" role="search" onsubmit="return (this.q.value||'').trim().length>1">
                             <input class="form-control form-control-sm" type="search" placeholder="<%= t('search.placeholder') %>" aria-label="Search" name="q" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">

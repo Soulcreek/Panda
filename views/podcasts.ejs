@@ -1,10 +1,20 @@
 <%- include('partials/header') %>
 
 <div class="container my-5">
+    <nav aria-label="breadcrumb" class="mb-3 small">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Podcast</li>
+        </ol>
+    </nav>
     <div class="row">
         <div class="col-12 text-center mb-5" data-aos="fade-down">
             <h1>Podcast: Data Security Decoded</h1>
             <p class="lead">Spannende Einblicke für die Ohren.</p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+                <a href="/podcast.rss" class="btn btn-sm btn-outline-primary" title="RSS Feed" rel="alternate"><i class="bi bi-rss"></i> RSS</a>
+                <a href="/blog" class="btn btn-sm btn-outline-secondary">Blog</a>
+            </div>
         </div>
     </div>
 
@@ -12,13 +22,16 @@
         <div class="col-lg-8 mx-auto">
             <% if (podcasts && podcasts.length > 0) { %>
                 <% podcasts.forEach(function(podcast) { %>
-                    <div class="podcast-item mb-5" data-aos="fade-up">
-                        <h3><a href="/podcasts/<%= podcast.id %>"><%= podcast.title %></a></h3>
-                        <p class="text-muted"><%= podcast.description %></p>
-                        <audio controls preload="none" class="w-100">
-                            <source src="<%= podcast.audio_url %>" type="audio/mpeg">
-                            Ihr Browser unterstützt das Audio-Element nicht.
-                        </audio>
+                    <div class="podcast-item mb-5" data-aos="fade-up" id="episode-<%= podcast.id %>">
+                        <h3 class="h4"><a href="/podcasts/<%= podcast.id %>"><%= podcast.title %></a></h3>
+                        <p class="text-muted mb-2"><%= podcast.description %></p>
+                        <div class="ratio ratio-16x9 bg-light rounded d-flex align-items-center justify-content-center position-relative mb-2 lazy-audio" data-audio="<%= podcast.audio_url %>">
+                            <button class="btn btn-primary play-lazy" aria-label="Play Episode"><i class="bi bi-play-fill"></i> Abspielen</button>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 small align-items-center">
+                            <a href="<%= podcast.audio_url %>" download class="text-decoration-none"><i class="bi bi-download"></i> Download</a>
+                            <a href="/podcasts/<%= podcast.id %>#transkript" class="text-decoration-none"><i class="bi bi-text-paragraph"></i> Transkript (bald)</a>
+                        </div>
                     </div>
                 <% }); %>
             <% } else { %>
@@ -29,5 +42,25 @@
         </div>
     </div>
 </div>
+
+<button id="backToTop" class="btn btn-primary position-fixed" style="bottom:1.5rem; right:1.5rem; display:none; z-index:999;"><i class="bi bi-arrow-up"></i></button>
+<script>
+// Lazy Audio Loader
+document.addEventListener('DOMContentLoaded', ()=>{
+    const blocks=document.querySelectorAll('.lazy-audio');
+    blocks.forEach(block=>{
+        block.querySelector('.play-lazy')?.addEventListener('click',()=>{
+            if(block.dataset.loaded) return; block.dataset.loaded='1';
+            const src = block.getAttribute('data-audio');
+            const audio=document.createElement('audio'); audio.controls=true; audio.preload='none'; audio.className='w-100 h-100';
+            const s=document.createElement('source'); s.src=src; s.type='audio/mpeg'; audio.appendChild(s); block.innerHTML=''; block.appendChild(audio); audio.play().catch(()=>{});
+        });
+    });
+    // Back to top
+    const btn=document.getElementById('backToTop');
+    window.addEventListener('scroll',()=>{ if(window.scrollY>300) btn.style.display='block'; else btn.style.display='none'; });
+    btn.addEventListener('click',()=>{ window.scrollTo({top:0, behavior:'smooth'}); });
+});
+</script>
 
 <%- include('partials/footer') %>

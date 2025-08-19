@@ -1,0 +1,309 @@
+/* Advanced Pages Builder (MVP) */
+(function(){
+  const builderEl = document.getElementById('apBuilder'); if(!builderEl) return;
+  const layout = window.__AP_INITIAL_LAYOUT || {version:1,rows:[]};
+  const layoutInput = document.getElementById('apLayoutInput');
+  const jsonToggleBtn = document.getElementById('apJSONToggle');
+  const jsonWrapper = document.getElementById('apJsonWrapper');
+  const jsonTextarea = document.getElementById('apJsonTextarea');
+  const titleInput = document.getElementById('apTitle');
+  const slugInput = document.getElementById('apSlug');
+
+  // Auto-generate slug
+  if(!slugInput.value){ titleInput.addEventListener('input',()=>{ slugInput.value = titleInput.value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }); }
+
+  function presetColumns(preset){
+    switch(preset){
+      case 'full': return [{ width:12, blocks:[] }];
+      case 'two-equal': return [{width:6,blocks:[]},{width:6,blocks:[]}];
+      case 'two-67-33': return [{width:8,blocks:[]},{width:4,blocks:[]}];
+      case 'two-33-67': return [{width:4,blocks:[]},{width:8,blocks:[]}];
+      case 'three': return [{width:4,blocks:[]},{width:4,blocks:[]},{width:4,blocks:[]}];
+      default: return [{width:12,blocks:[]}];
+    }
+  }
+
+  function addRow(preset){
+    layout.rows.push({ preset, columns: presetColumns(preset) });
+    render();
+  }
+  function addBlock(rowIndex, colIndex, type){
+    const col = layout.rows[rowIndex].columns[colIndex];
+    const id = 'b'+Date.now()+Math.floor(Math.random()*1000);
+    let block;
+    switch(type){
+      case 'image': block={ id, type:'image', src:'/uploads/Panda_Banner.png', alt:'', caption:'' }; break;
+      case 'background': block={ id, type:'background', bgColor:'#f5f5f5', padding:'40px 20px', html:'<h3>Section Titel</h3><p>Inhalt…</p>' }; break;
+      case 'text': block={ id, type:'text', html:'<p>Textblock</p>' }; break;
+      default: block={ id, type:'html', html:'<p>Neuer Block</p>' };
+    }
+    col.blocks.push(block);
+    render();
+    setTimeout(()=>{
+      const el = builderEl.querySelector(`[data-block='${id}'] .ap-block-editable`); if(el){ el.focus(); selectAll(el); }
+    },60);
+  }
+  function deleteBlock(rowIndex, colIndex, blockId){
+    const col = layout.rows[rowIndex].columns[colIndex];
+    col.blocks = col.blocks.filter(b=>b.id!==blockId);
+    render();
+  }
+  function moveRow(rowIndex, dir){
+    const ni = rowIndex + dir; if(ni<0 || ni>=layout.rows.length) return;
+    const tmp = layout.rows[rowIndex]; layout.rows[rowIndex]=layout.rows[ni]; layout.rows[ni]=tmp; render();
+  }
+  function deleteRow(rowIndex){ layout.rows.splice(rowIndex,1); render(); }
+
+  function updateFromEditors(){
+    builderEl.querySelectorAll('.ap-block').forEach(blockEl=>{
+      const blockId = blockEl.getAttribute('data-block');
+      const editable = blockEl.querySelector('.ap-block-editable');
+      if(!blockId || !editable) return;
+      for(const row of layout.rows){
+        for(const col of row.columns){
+          const blk = col.blocks.find(b=>b.id===blockId); if(blk){ blk.html = editable.innerHTML; }
+        }
+      }
+    });
+  }
+
+  function serialize(){
+    updateFromEditors();
+    return JSON.stringify(layout);
+  }
+  function syncHidden(){ layoutInput.value = serialize(); }
+
+  function selectAll(el){ const r=document.createRange(); r.selectNodeContents(el); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  function render(){
+    syncHidden();
+    builderEl.innerHTML='';
+    layout.rows.forEach((row,rowIndex)=>{
+      const rowWrap=document.createElement('div'); rowWrap.className='ap-row position-relative mb-4';
+      const rowToolbar=document.createElement('div'); rowToolbar.className='ap-builder-row-toolbar';
+      rowToolbar.innerHTML=`<div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary ap-row-up" ${rowIndex===0?'disabled':''}>&uarr;</button>
+        <button type="button" class="btn btn-outline-secondary ap-row-down" ${rowIndex===layout.rows.length-1?'disabled':''}>&darr;</button>
+        <button type="button" class="btn btn-outline-danger ap-row-del">X</button>
+      </div> <span class="badge bg-info ap-mini-badge">${row.preset}</span>`;
+      rowWrap.appendChild(rowToolbar);
+
+      const rowContent=document.createElement('div'); rowContent.className='row g-3';
+      row.columns.forEach((col,colIndex)=>{
+        const colDiv=document.createElement('div'); colDiv.className=`col-md-${col.width}`;
+        const inner=document.createElement('div'); inner.className='ap-builder-col';
+        col.blocks.forEach(block=>{
+          const blockDiv=document.createElement('div'); blockDiv.className='ap-block'; blockDiv.setAttribute('data-block',block.id);
+          let bodyHTML='';
+          if(block.type==='image'){
+            bodyHTML = `<div class='ap-block-image-wrapper text-center'>
+              <img src='${block.src||''}' alt='${block.alt||''}' style='max-width:100%;height:auto;' />
+              <div class='small text-muted mt-1'>${block.caption||''}</div>
+            </div>`;
+          } else if(block.type==='background') {
+            bodyHTML = `<div class='ap-block-bg-inner' style='background:${block.bgColor||'#f5f5f5'};padding:${block.padding||'20px'};'>
+              <div class='ap-block-editable' contenteditable='true'>${block.html||''}</div>
+            </div>`;
+          } else { // html / text
+            bodyHTML = `<div class='ap-block-editable' contenteditable='true'>${block.html||''}</div>`;
+          }
+          blockDiv.innerHTML=`<div class='ap-block-toolbar d-flex flex-wrap gap-1'>
+            <span class='badge bg-secondary'>${block.type}</span>
+            <div class='btn-group btn-group-sm me-auto'>
+              <button type='button' class='btn btn-outline-secondary ap-block-collapse' title='Ein-/Ausblenden'>&minus;</button>
+              <button type='button' class='btn btn-outline-danger ap-block-delete' title='Löschen'>&times;</button>
+            </div>
+            <div class='btn-group btn-group-sm ap-mini-format' data-block='${block.id}'>
+              <button type='button' data-cmd='bold' class='btn btn-outline-secondary'>B</button>
+              <button type='button' data-cmd='italic' class='btn btn-outline-secondary'><em>I</em></button>
+              <button type='button' data-cmd='h2' class='btn btn-outline-secondary'>H2</button>
+              <button type='button' data-cmd='ul' class='btn btn-outline-secondary'>&bull; List</button>
+            </div>
+            <button type='button' class='btn btn-sm btn-outline-info ap-block-config' data-block='${block.id}'>Config</button>
+          </div>
+          <div class='ap-block-content'>${bodyHTML}</div>`;
+          inner.appendChild(blockDiv);
+        });
+        const addBtn=document.createElement('div'); addBtn.className='d-flex gap-2 flex-wrap mt-1';
+        ['html','text','image','background'].forEach(tp=>{ const b=document.createElement('button'); b.type='button'; b.className='btn btn-sm btn-outline-primary'; b.textContent='+ '+tp; b.addEventListener('click',()=>addBlock(rowIndex,colIndex,tp)); addBtn.appendChild(b); });
+        inner.appendChild(addBtn);
+        colDiv.appendChild(inner); rowContent.appendChild(colDiv);
+      });
+      rowWrap.appendChild(rowContent);
+      builderEl.appendChild(rowWrap);
+
+      // Row Events
+      rowToolbar.querySelector('.ap-row-up').addEventListener('click',()=>moveRow(rowIndex,-1));
+      rowToolbar.querySelector('.ap-row-down').addEventListener('click',()=>moveRow(rowIndex,1));
+      rowToolbar.querySelector('.ap-row-del').addEventListener('click',()=>deleteRow(rowIndex));
+    });
+  }
+
+  // Delegated block events
+  builderEl.addEventListener('click', e=>{
+    const delBtn=e.target.closest('.ap-block-delete'); if(delBtn){ const blk=delBtn.closest('.ap-block'); if(!blk) return; const id=blk.getAttribute('data-block'); layout.rows.forEach((r,ri)=>r.columns.forEach((c,ci)=>{ if(c.blocks.find(b=>b.id===id)) deleteBlock(ri,ci,id); })); return; }
+    const colBtn=e.target.closest('.ap-block-collapse'); if(colBtn){ const blk=colBtn.closest('.ap-block'); const content=blk.querySelector('.ap-block-content'); if(!content) return; const hidden=content.style.display==='none'; content.style.display=hidden?'':'none'; return; }
+  const cloneBtn=e.target.closest('.ap-block-clone'); if(cloneBtn){ const blk=cloneBtn.closest('.ap-block'); const id=blk.getAttribute('data-block'); cloneBlockById(id); return; }
+    const fmtBtn=e.target.closest('.ap-mini-format button'); if(fmtBtn){
+      const cmd = fmtBtn.getAttribute('data-cmd'); const blockId = fmtBtn.closest('.ap-mini-format').dataset.block; const blkEl = builderEl.querySelector(`.ap-block[data-block='${blockId}'] .ap-block-editable`); if(!blkEl) return; blkEl.focus(); document.execCommand('styleWithCSS', false, true);
+      if(cmd==='bold') document.execCommand('bold');
+      else if(cmd==='italic') document.execCommand('italic');
+      else if(cmd==='h2'){ document.execCommand('formatBlock', false, 'h2'); }
+      else if(cmd==='ul'){ document.execCommand('insertUnorderedList'); }
+      syncHidden(); return;
+    }
+    const cfgBtn=e.target.closest('.ap-block-config'); if(cfgBtn){
+      const blockId = cfgBtn.getAttribute('data-block');
+      let targetBlock; outer: for(const r of layout.rows){ for(const c of r.columns){ const f=c.blocks.find(b=>b.id===blockId); if(f){ targetBlock=f; break outer; } } }
+      if(!targetBlock) return;
+      // Remove existing side panel if any
+      document.querySelectorAll('.ap-config-sidepanel').forEach(p=>p.remove());
+      // Build side panel
+      const panel=document.createElement('div'); panel.className='ap-config-sidepanel'; panel.innerHTML=`
+        <header><span>Konfiguration: ${targetBlock.type}</span><button type='button' class='btn btn-sm btn-outline-secondary ap-sp-close'>&times;</button></header>
+        <div class='ap-config-body'>
+          ${targetBlock.type==='image'?`
+            <label>Bild URL</label><input type='text' class='form-control form-control-sm ap-cfg-src' value='${targetBlock.src||''}'>
+            <label>ALT</label><input type='text' class='form-control form-control-sm ap-cfg-alt' value='${targetBlock.alt||''}'>
+            <label>Caption</label><input type='text' class='form-control form-control-sm ap-cfg-caption' value='${targetBlock.caption||''}'>
+            <button type='button' class='btn btn-sm btn-outline-primary mt-3 w-100 ap-cfg-pick'>Aus Medien wählen</button>
+          `:''}
+          ${targetBlock.type==='background'?`
+            <label>Hintergrundfarbe</label><input type='color' class='form-control form-control-color ap-cfg-bg' value='${targetBlock.bgColor||'#f5f5f5'}'>
+            <div class='small text-muted mt-2'>Padding wird später ergänzt (vereinfacht auf Farbe zuerst).</div>
+          `:''}
+          ${(targetBlock.type==='html'||targetBlock.type==='text')?`<div class='small text-muted'>Rich Text direkt im Block editieren.</div>`:''}
+        </div>
+        <div class='p-2 border-top text-end'><button type='button' class='btn btn-sm btn-secondary ap-sp-close'>Schließen</button></div>`;
+      document.body.appendChild(panel);
+      const close=()=>panel.remove();
+      panel.addEventListener('click',ev=>{ if(ev.target.classList.contains('ap-sp-close')) close(); });
+      panel.addEventListener('change',()=>{
+        if(targetBlock.type==='image'){
+          targetBlock.src = panel.querySelector('.ap-cfg-src').value.trim();
+          targetBlock.alt = panel.querySelector('.ap-cfg-alt').value.trim();
+          targetBlock.caption = panel.querySelector('.ap-cfg-caption').value.trim();
+        } else if(targetBlock.type==='background'){
+          targetBlock.bgColor = panel.querySelector('.ap-cfg-bg').value;
+        }
+        render();
+      });
+      if(targetBlock.type==='image'){
+        panel.querySelector('.ap-cfg-pick').addEventListener('click',()=>openMediaPicker(targetBlock));
+      }
+      return;
+    }
+  });
+
+  // JSON toggle
+  jsonToggleBtn&&jsonToggleBtn.addEventListener('click',()=>{
+    const vis = jsonWrapper.classList.toggle('d-none');
+    if(!jsonWrapper.classList.contains('d-none')){ jsonTextarea.value = serialize(); }
+  });
+  jsonTextarea&&jsonTextarea.addEventListener('change',()=>{
+    try { const obj=JSON.parse(jsonTextarea.value); if(obj && obj.rows){ layout.rows=obj.rows; render(); } } catch(e){ alert('Ungültiges JSON'); }
+  });
+
+  // Add row buttons
+  document.querySelectorAll('.ap-add-row').forEach(btn=> btn.addEventListener('click',()=> addRow(btn.dataset.preset)));
+
+  // Before submit ensure sync
+  const form=document.getElementById('advancedPageForm');
+  form.addEventListener('submit',()=>{ syncHidden(); });
+
+  render();
+  // --- Block Cloning ---
+  function cloneBlockById(blockId){
+    for(let r=0;r<layout.rows.length;r++){
+      for(let c=0;c<layout.rows[r].columns.length;c++){
+        const col=layout.rows[r].columns[c];
+        const idx = col.blocks.findIndex(b=>b.id===blockId);
+        if(idx>-1){
+          const original = col.blocks[idx];
+          const copy = JSON.parse(JSON.stringify(original));
+          copy.id = 'b'+Date.now()+Math.floor(Math.random()*1000);
+          col.blocks.splice(idx+1,0,copy);
+          render();
+          return;
+        }
+      }
+    }
+  }
+  // --- Drag & Drop Reordering ---
+  let dragData=null;
+  builderEl.addEventListener('dragstart', e=>{
+    const blk=e.target.closest('.ap-block'); if(!blk) return;
+    blk.classList.add('ap-block-dragging');
+    const id=blk.getAttribute('data-block');
+    const pos=findBlockPosition(id); if(!pos) return;
+    dragData=pos;
+    e.dataTransfer.effectAllowed='move';
+  });
+  builderEl.addEventListener('dragend', e=>{
+    const blk=e.target.closest('.ap-block'); if(blk) blk.classList.remove('ap-block-dragging');
+    document.querySelectorAll('.ap-block-drag-over').forEach(x=>x.classList.remove('ap-block-drag-over'));
+  });
+  builderEl.addEventListener('dragover', e=>{
+    const blk=e.target.closest('.ap-block');
+    if(blk){ e.preventDefault(); blk.classList.add('ap-block-drag-over'); }
+  });
+  builderEl.addEventListener('dragleave', e=>{
+    const blk=e.target.closest('.ap-block'); if(blk) blk.classList.remove('ap-block-drag-over');
+  });
+  builderEl.addEventListener('drop', e=>{
+    const targetBlk=e.target.closest('.ap-block'); if(!targetBlk || !dragData) return;
+    e.preventDefault();
+    const targetId=targetBlk.getAttribute('data-block');
+    const targetPos = findBlockPosition(targetId);
+    if(!targetPos) return;
+    // Move block
+    const srcCol = layout.rows[dragData.row].columns[dragData.col];
+    const [moved] = srcCol.blocks.splice(dragData.index,1);
+    if(dragData.row===targetPos.row && dragData.col===targetPos.col){
+      // same column adjust index if needed
+      let insertIndex = targetPos.index; if(dragData.index<targetPos.index) insertIndex--; // account removal shift
+      srcCol.blocks.splice(insertIndex,0,moved);
+    } else {
+      const tgtCol = layout.rows[targetPos.row].columns[targetPos.col];
+      tgtCol.blocks.splice(targetPos.index,0,moved);
+    }
+    dragData=null; render();
+  });
+  function findBlockPosition(id){
+    for(let r=0;r<layout.rows.length;r++){
+      const row=layout.rows[r];
+      for(let c=0;c<row.columns.length;c++){
+        const col=row.columns[c];
+        const idx=col.blocks.findIndex(b=>b.id===id);
+        if(idx>-1){ return { row:r, col:c, index:idx }; }
+      }
+    }
+    return null;
+  }
+  // --- Media Picker ---
+  function openMediaPicker(block){
+  const modal=document.createElement('div'); modal.className='ap-media-picker-modal';
+    modal.innerHTML=`<div class='ap-mp-inner'>
+      <div class='ap-mp-header d-flex justify-content-between align-items-center'>
+        <strong>Bilder auswählen</strong>
+        <button type='button' class='btn btn-sm btn-outline-secondary ap-mp-close'>&times;</button>
+      </div>
+      <div class='ap-mp-body'><div class='ap-mp-loading'>Lade...</div></div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', ev=>{ if(ev.target.classList.contains('ap-mp-close')||ev.target===modal) modal.remove(); });
+  fetch('/admin/api/media?type=image').then(r=>r.json()).then(list=>{
+      const body=modal.querySelector('.ap-mp-body'); body.innerHTML='';
+      if(!Array.isArray(list) || !list.length){ body.innerHTML='<div class="text-muted small">Keine Bilder gefunden.</div>'; return; }
+      const grid=document.createElement('div'); grid.className='ap-mp-grid';
+      list.forEach(item=>{
+        if(!/image\//.test(item.type||'')) return;
+  const cell=document.createElement('button'); cell.type='button'; cell.className='ap-mp-item'; cell.innerHTML=`<img src='${item.path}' alt='${item.alt_text||''}'/><span class='ap-mp-name'>${escapeHtml(item.name||item.path.split('/').pop())}</span>`;
+        cell.addEventListener('click',()=>{ block.src=item.path; if(item.alt_text) block.alt=item.alt_text; render(); modal.remove(); });
+        grid.appendChild(cell);
+      });
+      body.appendChild(grid);
+    }).catch(()=>{ const body=modal.querySelector('.ap-mp-body'); body.innerHTML='<div class="text-danger small">Fehler beim Laden.</div>'; });
+  }
+  function escapeHtml(str){ return (str||'').replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]||c)); }
+})();

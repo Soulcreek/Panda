@@ -31,6 +31,75 @@
                 <em>Dies ist kein rechtsgültiges Impressum. Bitte konsultieren Sie einen Anwalt oder einen Impressum-Generator für einen vollständigen und korrekten Text.</em>
             </p>
 
+            <hr class="my-5">
+            <h2>Datenschutz & Cookies</h2>
+            <p class="small text-muted">Letzte Aktualisierung: <%= new Date().toISOString().substring(0,10) %></p>
+            <p>Diese Website verarbeitet personenbezogene Daten nur im zur Bereitstellung des Angebots erforderlichen Umfang. Nachfolgend finden Sie eine Übersicht der Verarbeitungen und eingesetzten Technologien.</p>
+
+            <h5>1. Verantwortlicher</h5>
+            <p>Bitte hier verantwortliche Stelle gemäß Art. 4 Nr. 7 DSGVO eintragen (Name / Anschrift / Kontakt / ggf. Vertreter).</p>
+
+            <h5>2. Server-Logfiles</h5>
+            <p>Beim Aufruf der Seiten werden automatisch technische Informationen (IP-Adresse in gekürzter Form, Datum/Uhrzeit, aufgerufene Ressource, User Agent) in Logfiles erfasst. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Stabilität & Sicherheit). Logfiles werden regelmäßig rotiert und nach kurzer Zeit automatisch gelöscht.</p>
+
+            <h5>3. Session & notwendige Cookies</h5>
+            <ul>
+                <li><strong>connect.sid</strong> (Session-Cookie) – technisch notwendig für Login/Admin-Funktionen; Laufzeit: Session.</li>
+            </ul>
+            <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (bereitstellen grundlegender Funktionalität). Ohne dieses Cookie funktionieren Admin/geschützte Bereiche nicht.</p>
+
+            <h5>4. Präferenzspeicherung (Optionale Cookies / Local Storage)</h5>
+            <ul>
+                <li><strong>pp_cookie_consent_v1</strong> – speichert Ihre Einwilligungsentscheidung ("all" oder "necessary").</li>
+                <li><strong>pp_theme</strong> (localStorage) – Dark-/Light-Mode Einstellung.</li>
+                <li><strong>pandasWayLevel / pandasWayLevelAlt5</strong> (localStorage) – Lern-/Fortschrittsstufe für "Panda's Way" Darstellung.</li>
+            </ul>
+            <p>Lokale Präferenzen werden nur dann serverseitig (in der Tabelle <code>user_preferences</code>) gespeichert, wenn Sie eingeloggt sind und der erweiterten Nutzung zugestimmt haben (Consent = "all"). Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) bzw. Art. 6 Abs. 1 lit. f (komfortable Bereitstellung für eingeloggte Nutzer).</p>
+
+            <h5>5. KI-/AI Nutzung & Protokollierung</h5>
+            <p>Bei Nutzung interner AI-Funktionen im Admin-Bereich werden Eingabe-Prompts und Meta-Daten (Länge der Antwort, Zeitstempel, Endpunkt) in den Tabellen <code>ai_usage</code> und <code>ai_call_log</code> gespeichert, um Missbrauch zu verhindern und Kostenkontrolle zu ermöglichen. Persönliche Daten sollten nicht eingegeben werden. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Betrieb & Sicherheit der Plattform).</p>
+
+            <h5>6. Keine Drittanbieter-Tracking-Tools</h5>
+            <p>Derzeit werden keine externen Analytics- oder Marketing-Tracker (z. B. Google Analytics, Facebook Pixel) eingebunden.</p>
+
+            <h5>7. Speicherdauer</h5>
+            <p>Präferenzdaten werden bei Konto-Löschung (oder nach Anforderung) entfernt. AI-Logeinträge können zyklisch aggregiert oder anonymisiert werden. Bitte internen Lösch-Workflow ergänzen.</p>
+
+            <h5>8. Ihre Rechte</h5>
+            <p>Sie haben Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch sowie Datenübertragbarkeit (Art. 15–21 DSGVO). Sie können eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen, indem Sie Ihre Cookie-Einstellungen zurücksetzen (localStorage löschen) oder uns kontaktieren.</p>
+
+            <h5>9. Kontakt für Datenschutz-Anfragen</h5>
+            <p>E-Mail: <em>datenschutz@example.com</em> (Platzhalter anpassen)</p>
+
+            <div class="alert alert-warning small">Hinweis: Dieser Datenschutz-/Cookie-Text ist ein technischer Vorschlag und ersetzt keine individuelle Rechtsberatung. Bitte lassen Sie den finalen Wortlaut rechtlich prüfen.</div>
+
+            <h5>Cookie-Einstellungen zurücksetzen</h5>
+            <p><button class="btn btn-sm btn-outline-secondary" onclick="(function(){ localStorage.removeItem('pp_cookie_consent_v1'); localStorage.removeItem('pp_theme'); alert('Lokale Präferenzen gelöscht. Seite wird neu geladen.'); location.reload(); })();">Zurücksetzen & neu laden</button></p>
+
+            <hr class="my-5">
+            <h2>Privacy & Cookies (English Summary)</h2>
+            <p class="small text-muted">This is an English convenience translation. The German section above is legally authoritative (replace with local requirements as needed).</p>
+            <p><strong>Controller:</strong> (Insert legal entity). We process only what is required to deliver the service.</p>
+            <h5>1. Server Logs</h5>
+            <p>Reduced IP (short form), time, path, user agent – for stability & security. Basis: Art. 6(1)(f) GDPR.</p>
+            <h5>2. Essential Cookie</h5>
+            <p><code>connect.sid</code> – session for authentication (expires end of session).</p>
+            <h5>3. Optional Preferences</h5>
+            <ul>
+                <li><code>pp_cookie_consent_v1</code> – consent choice.</li>
+                <li><code>pp_theme</code> – dark/light mode preference.</li>
+                <li><code>pandasWayLevel</code> – learning/progress level.</li>
+            </ul>
+            <p>Stored locally; if logged in and consent = "all" synced to DB (table <code>user_preferences</code>).</p>
+            <h5>4. AI Usage Logging</h5>
+            <p>Admin AI prompts & meta data (timestamp, length, endpoint) logged for abuse prevention & capacity planning.</p>
+            <h5>5. No Third-Party Trackers</h5>
+            <p>No external analytics / marketing pixels currently integrated.</p>
+            <h5>6. Rights</h5>
+            <p>You may request access, rectification, deletion, restriction, portability or withdraw consent (Art. 15–21 GDPR). Use the export & delete functions under <a href="/account">Account</a>.</p>
+            <h5>7. Contact</h5>
+            <p>Email: privacy@example.com (placeholder)</p>
+
         </div>
     </div>
 </div>

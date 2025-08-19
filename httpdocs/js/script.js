@@ -425,6 +425,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Theme Toggle (Dark/Light Mode) - run immediately so it also works if DOMContentLoaded already fired
+(function(){
+    const btn = document.getElementById('themeToggleBtn');
+    if(!btn) return; // no button present
+    const icon = document.getElementById('themeToggleIcon');
+
+    function applyTheme(mode){
+        if(mode==='dark'){
+            document.documentElement.classList.add('dark-mode');
+            btn.setAttribute('aria-pressed','true');
+            if(icon){ icon.classList.remove('bi-moon-stars'); icon.classList.add('bi-sun'); }
+            btn.title = 'Light Mode';
+        } else {
+            document.documentElement.classList.remove('dark-mode');
+            btn.setAttribute('aria-pressed','false');
+            if(icon){ icon.classList.add('bi-moon-stars'); icon.classList.remove('bi-sun'); }
+            btn.title = 'Dark Mode';
+        }
+    }
+
+    // Determine initial mode: prefer existing class (server-side / early script), else stored, else system
+    let initialMode = document.documentElement.classList.contains('dark-mode') ? 'dark' : null;
+    if(!initialMode){
+        try { initialMode = localStorage.getItem('pp_theme'); } catch(e){}
+    }
+    if(!initialMode || initialMode==='system'){
+        initialMode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    }
+    applyTheme(initialMode);
+
+    btn.addEventListener('click', function(){
+        const cur = document.documentElement.classList.contains('dark-mode') ? 'dark':'light';
+        const next = cur==='dark' ? 'light':'dark';
+        applyTheme(next);
+        try { localStorage.setItem('pp_theme', next); } catch(e){}
+        queuePrefSync();
+    });
+
+    // Expose for other scripts if needed
+    window.__applyTheme = applyTheme;
+})();
+
+// Sync Preferences (theme & pandasWayLevel) to server if logged in and consent given
+function queuePrefSync(){
+    if(!window.__prefSyncScheduled){
+        window.__prefSyncScheduled = true;
+        setTimeout(doPrefSync, 800);
+    }
+}
+async function doPrefSync(){
+    window.__prefSyncScheduled = false;
+    try {
+        const consent = localStorage.getItem('pp_cookie_consent_v1');
+        if(consent !== 'all') return; // only if full consent
+        const theme = localStorage.getItem('pp_theme') || 'system';
+        const lvl = localStorage.getItem('pandasWayLevel') || localStorage.getItem('pandasWayLevelAlt5') || '1';
+        // Heuristik: user logged in? server injected flag via data attr on body maybe future; fallback: attempt and ignore 401
+        const resp = await fetch('/api/user/preferences', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': (window.CSRF_TOKEN||'')}, body: JSON.stringify({ theme, pandas_way_level: lvl }) });
+        if(!resp.ok && resp.status!==401){ console.warn('Pref Sync Fehler', resp.status); }
+    } catch(e){ console.warn('Pref Sync Exception', e); }
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+    // If preferences from server were injected we could apply them earlier (placeholder for future server->client hydration)
+    queuePrefSync();
+});
+
 // Featured Image Auswahl (Admin Post Editor) über globales Modal
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('selectFeaturedBtn');

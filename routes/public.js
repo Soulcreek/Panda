@@ -3,11 +3,109 @@ const router = express.Router();
 // Hinweis: Wir nutzen bewusst bcryptjs (reines JS) statt nativer bcrypt-Binary wegen Shared Hosting (Netcup) Kompatibilität
 const bcrypt = require('bcryptjs');
 const pool = require('../db'); // Unser zentraler MySQL-Connection-Pool
+// Helper zum Generieren von Cache Headers (Basis für statische Inhalte / Feeds)
+function setShortCache(res){ res.set('Cache-Control','public, max-age=300, stale-while-revalidate=600'); }
+function setFeedCache(res){ res.set('Cache-Control','public, max-age=900, stale-while-revalidate=1800'); }
+
+// --- User Preferences (Theme, Panda's Way Progress) ---
+async function ensureUserPreferencesTable(){
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id INT PRIMARY KEY,
+      theme VARCHAR(16) NOT NULL DEFAULT 'system',
+      pandas_way_level INT NOT NULL DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_user_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  } catch(e){ console.error('Prefs Table Fehler:', e.message); }
+}
+async function getUserPreferences(userId){
+  if(!userId) return null;
+  try { await ensureUserPreferencesTable(); const [rows] = await pool.query('SELECT * FROM user_preferences WHERE user_id=?',[userId]); return rows[0]||null; }
+  catch(e){ return null; }
+}
+async function saveUserPreferences(userId, { theme, pandas_way_level }){
+  if(!userId) return;
+  await ensureUserPreferencesTable();
+  const t = (theme||'system').toLowerCase();
+  const allowed = new Set(['light','dark','system']);
+  const finalTheme = allowed.has(t)? t : 'system';
+  let lvl = parseInt(pandas_way_level,10); if(!lvl || lvl<1 || lvl>10) lvl = 1; // 1..10 plausible cap
+  await pool.query(`INSERT INTO user_preferences (user_id, theme, pandas_way_level) VALUES (?,?,?)
+    ON DUPLICATE KEY UPDATE theme=VALUES(theme), pandas_way_level=VALUES(pandas_way_level), updated_at=CURRENT_TIMESTAMP`, [userId, finalTheme, lvl]);
+  return { theme: finalTheme, pandas_way_level: lvl };
+}
+
+// --- Account Hilfsfunktionen ---
+function requireLogin(req, res, next){ if(req.session.userId) return next(); return res.redirect('/login'); }
+async function ensureUserSoftDeleteColumns(){
+  try { await pool.query('ALTER TABLE users ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0'); } catch(_) {}
+}
+
+// Account Seite
+router.get('/account', requireLogin, async (req, res)=>{
+  try {
+    await ensureUserSoftDeleteColumns();
+    const [rows] = await pool.query('SELECT id, username, is_deleted, created_at, updated_at FROM users WHERE id=?',[req.session.userId]);
+    const user = rows[0] || null;
+    const prefs = await getUserPreferences(req.session.userId);
+    res.render('account', { title:'Account', user, prefs });
+  } catch(e){ console.error('Account Load Fehler', e); res.status(500).send('Fehler Account'); }
+});
+
+// Export personenbezogener Daten (einfach JSON)
+router.get('/account/export', requireLogin, async (req, res)=>{
+  try {
+    await ensureUserSoftDeleteColumns();
+    const [users] = await pool.query('SELECT id, username, is_deleted, created_at, updated_at FROM users WHERE id=?',[req.session.userId]);
+    const prefs = await getUserPreferences(req.session.userId);
+    const exportObj = { user: users[0]||null, preferences: prefs||null, ai_calls: 'Aggregierte AI Logs sind anonymisiert / nicht usergebunden' };
+    res.setHeader('Content-Type','application/json; charset=utf-8');
+    res.setHeader('Content-Disposition','attachment; filename="account-export-'+req.session.userId+'.json"');
+    res.send(JSON.stringify(exportObj, null, 2));
+  } catch(e){ console.error('Export Fehler', e); res.status(500).send('Export Fehler'); }
+});
+
+// Konto löschen (Soft Delete + Anonymisierung)
+router.post('/account/delete', requireLogin, async (req, res)=>{
+  try {
+    await ensureUserSoftDeleteColumns();
+    const uid = req.session.userId;
+    // User anonymisieren: username ersetzen, Passwort entwerten
+    const anonUser = 'deleted_user_'+uid;
+    await pool.query('UPDATE users SET username=?, password=REPEAT("x",60), is_deleted=1 WHERE id=?',[anonUser, uid]);
+    // Präferenzen löschen
+    try { await pool.query('DELETE FROM user_preferences WHERE user_id=?',[uid]); } catch(_) {}
+    // Optional: Posts behalten, aber Kennzeichnung falls gewünscht (hier ausgelassen um minimalinvasiv zu bleiben)
+    // Session zerstören
+    req.session.destroy(()=>{});
+    if(req.accepts('json')) return res.json({ ok:true, deleted:true });
+    res.redirect('/');
+  } catch(e){ console.error('Delete Fehler', e); res.status(500).send('Löschung fehlgeschlagen'); }
+});
 
 // Middleware, um den aktuellen Pfad für die Navigation verfügbar zu machen
-router.use((req, res, next) => {
+router.use(async (req, res, next) => {
   res.locals.currentPath = req.path;
+  res.locals.isLoggedIn = !!req.session.userId;
+  if(req.session.userId){
+    try { res.locals.userPrefs = await getUserPreferences(req.session.userId); }
+    catch(e){ /* ignore */ }
+  }
   next();
+});
+
+// API: Speichere Benutzer-Präferenzen (Theme / Panda Level)
+router.post('/api/user/preferences', async (req, res) => {
+  if(!req.session.userId) return res.status(401).json({ error:'Nicht eingeloggt' });
+  try {
+    const { theme, pandas_way_level } = req.body || {};
+    const saved = await saveUserPreferences(req.session.userId, { theme, pandas_way_level });
+    res.json({ ok:true, preferences: saved });
+  } catch(e){
+    console.error('Prefs Save Fehler:', e);
+    res.status(500).json({ error:'Speichern fehlgeschlagen' });
+  }
 });
 
 /*
@@ -52,7 +150,7 @@ router.get('/', async (req, res) => {
     );
 
     // Rendere die index.ejs-Vorlage und übergib die abgerufenen Daten
-    res.render('index', {
+  res.render('index', {
       title: 'Startseite',
       featuredPost: featuredPost,
       latestPosts: latestPostsRows
@@ -75,18 +173,21 @@ router.get('/', async (req, res) => {
  */
 router.get('/blog', async (req, res) => {
   try {
-    // Hole alle veröffentlichten Beiträge, sortiert nach dem neuesten Datum
+    const pageSize = 10;
+    const page = Math.max(1, parseInt(req.query.page||'1',10));
+    const offset = (page-1)*pageSize;
+    const [countRows] = await pool.query(`SELECT COUNT(*) as c FROM posts p WHERE p.status='published' AND (p.published_at IS NULL OR p.published_at<=NOW()) AND p.is_deleted=0`);
+    const total = countRows[0].c || 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const [posts] = await pool.query(
-      `SELECT p.*, m.path as featured_image_path
+      `SELECT p.*, m.path as featured_image_path, COALESCE(p.published_at, p.created_at) AS createdAt
        FROM posts p
        LEFT JOIN media m ON p.featured_image_id = m.id
        WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW()) AND p.is_deleted=0
-       ORDER BY COALESCE(p.published_at, p.created_at) DESC`
+       ORDER BY COALESCE(p.published_at, p.created_at) DESC
+       LIMIT ? OFFSET ?`, [pageSize, offset]
     );
-    res.render('blog', {
-      title: 'Blog',
-      posts: posts
-    });
+    res.render('blog', { title: 'Blog', posts, page, totalPages, total });
   } catch (err) {
     console.error("Fehler beim Laden der Blog-Seite:", err);
     res.status(500).send("Ein interner Fehler ist aufgetreten.");
@@ -108,7 +209,7 @@ router.get('/blog/tag/:tag', async (req, res) => {
       if(e.code==='ER_BAD_FIELD_ERROR' && e.message.includes('p.tags')) { rows=[]; }
       else throw e;
     }
-    res.render('blog_tag', { title: `Tag: ${tag}`, posts: rows, tagName: tag });
+  res.render('blog_tag', { title: `Tag: ${tag}`, posts: rows, tagName: tag });
   } catch (e) {
     console.error('Fehler Tag-Ansicht:', e);
     res.status(500).send('Fehler bei Tag Filter');
@@ -137,7 +238,7 @@ router.get('/search', async (req, res) => {
     whereParts[0] += ')';
     const finalSql = base + ' AND ' + whereParts.join(' AND ') + ' ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT 100';
     const [rows] = await pool.query(finalSql, params);
-    res.render('blog_search_results', { title: 'Suche', posts: rows, searchTerm: q });
+  res.render('blog_search_results', { title: 'Suche', posts: rows, searchTerm: q });
   } catch (e) {
     console.error('Fehler globale Suche:', e);
     res.status(500).send('Fehler bei der Suche');
@@ -166,7 +267,7 @@ router.get('/api/blog/:id', async (req, res) => {
     const post = rows[0];
     // Minimal Validierung
     if(!post.content){ console.warn('Post ohne content', post.id); }
-    res.json({ id: post.id, title: post.title, content: post.content || '<p>(Kein Inhalt)</p>', image_path: post.featured_image_path || null, tags: post.tags || '', createdAt: post.createdAt });
+  res.json({ id: post.id, title: post.title, content: post.content || '<p>(Kein Inhalt)</p>', image_path: post.featured_image_path || null, tags: post.tags || '', createdAt: post.createdAt });
   } catch (e) {
     console.error('Blog API Fehler:', e.message);
     res.status(500).json({ error: 'Server', details: process.env.NODE_ENV==='development'? e.message: undefined });
@@ -201,7 +302,7 @@ router.get('/podcasts', async (req, res) => {
     const [podcasts] = await pool.query(
       `SELECT id, title, description, audio_url, published_at FROM podcasts ORDER BY published_at DESC`
     );
-    res.render('podcasts', {
+  res.render('podcasts', {
       title: 'Podcasts',
       podcasts: podcasts
     });
@@ -216,23 +317,75 @@ router.get('/podcasts/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(`SELECT id, title, description, audio_url, published_at FROM podcasts WHERE id = ?`, [req.params.id]);
     if (!rows.length) return res.status(404).render('partials/error_404', { title: 'Episode nicht gefunden' });
-    res.render('podcast_detail', { title: rows[0].title, episode: rows[0] });
+  res.render('podcast_detail', { title: rows[0].title, episode: rows[0] });
   } catch (err) {
     console.error('Fehler beim Laden der Episode:', err);
     res.status(500).render('partials/error_500', { title: 'Fehler', error: err });
   }
 });
 
-// RSS Feed (Podcast)
+// Podcast RSS Feed (verbessert, iTunes Felder, einfacher Memory Cache)
+let podcastRssCache = { xml: null, generatedAt: 0 };
 router.get('/podcast.rss', async (req, res) => {
   try {
-    const [episodes] = await pool.query(`SELECT id, title, description, audio_url, published_at FROM podcasts ORDER BY published_at DESC LIMIT 50`);
-    const siteUrl = process.env.SITE_URL || 'https://example.com';
-    const rssItems = episodes.map(ep => `\n<item>\n<title><![CDATA[${ep.title}]]></title>\n<link>${siteUrl}/podcasts/${ep.id}</link>\n<guid>${siteUrl}/podcasts/${ep.id}</guid>\n<pubDate>${new Date(ep.published_at).toUTCString()}</pubDate>\n<description><![CDATA[${ep.description || ''}]]></description>\n<enclosure url="${siteUrl}${ep.audio_url}" type="audio/mpeg"/>\n</item>`).join('\n');
-    const rss = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n<channel>\n<title>Purview Panda Podcast</title>\n<link>${siteUrl}/podcasts</link>\n<description>Podcast zu Datensicherheit & Microsoft Purview</description>\n<language>de-de</language>${rssItems}\n</channel>\n</rss>`;
-    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    const now = Date.now();
+    if(podcastRssCache.xml && (now - podcastRssCache.generatedAt) < 5*60*1000){
+      res.set('Content-Type','application/rss+xml; charset=utf-8');
+      return res.send(podcastRssCache.xml);
+    }
+    const [episodes] = await pool.query(`SELECT id, title, description, audio_url, published_at FROM podcasts ORDER BY published_at DESC LIMIT 100`);
+    const siteUrl = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/,'');
+    const imageUrl = siteUrl + '/img/logo.png';
+    const esc = s=> (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const buildItem = ep => {
+      const link = `${siteUrl}/podcasts/${ep.id}`;
+      const pub = ep.published_at ? new Date(ep.published_at).toUTCString() : new Date().toUTCString();
+      return `<item>
+  <title><![CDATA[${ep.title}]]></title>
+  <link>${link}</link>
+  <guid isPermaLink="false">podcast-${ep.id}</guid>
+  <pubDate>${pub}</pubDate>
+  <description><![CDATA[${ep.description || ''}]]></description>
+  <enclosure url="${siteUrl}${ep.audio_url}" type="audio/mpeg" />
+  <itunes:author>Purview Panda</itunes:author>
+  <itunes:explicit>false</itunes:explicit>
+  <itunes:episodeType>full</itunes:episodeType>
+</item>`; };
+    const itemsXml = episodes.map(buildItem).join('\n');
+    const lastBuild = episodes.length ? new Date(episodes[0].published_at).toUTCString() : new Date().toUTCString();
+    const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Purview Panda Podcast</title>
+    <link>${siteUrl}/podcasts</link>
+    <atom:link href="${siteUrl}/podcast.rss" rel="self" type="application/rss+xml" />
+    <language>de-de</language>
+    <description>Podcast zu Datensicherheit &amp; Microsoft Purview</description>
+    <itunes:summary>Datensicherheit, Governance, Purview Einblicke.</itunes:summary>
+    <itunes:author>Purview Panda</itunes:author>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:image href="${imageUrl}" />
+    <lastBuildDate>${lastBuild}</lastBuildDate>
+    ${itemsXml}
+  </channel>
+</rss>`;
+    podcastRssCache = { xml: rss, generatedAt: now };
+  setFeedCache(res); res.set('Content-Type','application/rss+xml; charset=utf-8');
     res.send(rss);
   } catch (err) {
+// Blog RSS Feed (14) – einfacher Feed für Artikel
+let blogRssCache = { xml:null, ts:0 };
+router.get('/blog.rss', async (req, res)=>{
+  try {
+    const now=Date.now(); if(blogRssCache.xml && (now-blogRssCache.ts)<5*60*1000){ setFeedCache(res); res.set('Content-Type','application/rss+xml; charset=utf-8'); return res.send(blogRssCache.xml); }
+    const [posts] = await pool.query(`SELECT p.id, p.title, p.content, p.created_at, p.published_at, p.slug FROM posts p WHERE p.status='published' AND (p.published_at IS NULL OR p.published_at<=NOW()) AND p.is_deleted=0 ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT 50`);
+    const siteUrl = (process.env.SITE_URL || (req.protocol+'://'+req.get('host'))).replace(/\/$/,'');
+    const items = posts.map(r=>{ const body=(r.content||'').replace(/<script[\s\S]*?<\/script>/gi,''); return `<item><title><![CDATA[${r.title}]]></title><link>${siteUrl}/blog#post-${r.id}</link><guid isPermaLink="false">post-${r.id}</guid><pubDate>${new Date(r.published_at||r.created_at).toUTCString()}</pubDate><description><![CDATA[${body.slice(0,1200)}]]></description></item>`; }).join('\n');
+    const rss=`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Purview Panda Blog</title><link>${siteUrl}/blog</link><description>Aktuelle Beiträge</description>${items}</channel></rss>`;
+    blogRssCache={xml:rss, ts:now}; setFeedCache(res); res.set('Content-Type','application/rss+xml; charset=utf-8'); res.send(rss);
+  } catch(e){ console.error('Blog RSS Fehler', e); res.status(500).send('Blog RSS Fehler'); }
+});
+
     console.error('Fehler beim Generieren des RSS Feeds:', err);
     res.status(500).send('RSS Feed Fehler');
   }
@@ -311,17 +464,18 @@ router.get('/pandas-way-alt5', async (req, res) => {
   try { await pool.query('ALTER TABLE timeline_entries ADD COLUMN level INT NOT NULL DEFAULT 1 AFTER site_key'); } catch(_) {}
   let [rows] = await pool.query('SELECT id, position, title, phase, content_html, level FROM timeline_entries WHERE site_key=? AND is_active=1 ORDER BY position ASC, id ASC', ['pandas_way_5']);
     if(!rows.length){
+      // Beispiel-Einträge initial erstellen (verteilt auf 3 Level zur Demonstration)
       const seed = [
-        {position:0,title:'Bewusstsein',phase:'Initiate',html:'<p>Warum Schutz? Stories & Risiken sichtbar machen.</p>'},
-        {position:1,title:'Inventar',phase:'Foundation',html:'<p>Systeme & Datenquellen katalogisieren.</p>'},
-        {position:2,title:'Kontrollen',phase:'Foundation',html:'<p>Passwörter, MFA, Verschlüsselung etablieren.</p>'},
-        {position:3,title:'Klassifizierung',phase:'Evolve',html:'<p>Labels & Schutzprofile definieren.</p>'},
-        {position:4,title:'Detektion',phase:'Evolve',html:'<p>Logging + Baselines für Anomalien.</p>'}
+        {position:0,level:1,title:'Bewusstsein',phase:'Initiate',html:'<p>Warum Schutz? Stories & Risiken sichtbar machen.</p>'},
+        {position:1,level:1,title:'Inventar',phase:'Foundation',html:'<p>Systeme & Datenquellen katalogisieren.</p>'},
+        {position:2,level:2,title:'Kontrollen',phase:'Foundation',html:'<p>Passwörter, MFA, Verschlüsselung etablieren.</p>'},
+        {position:3,level:2,title:'Klassifizierung',phase:'Evolve',html:'<p>Labels & Schutzprofile definieren.</p>'},
+        {position:4,level:3,title:'Detektion',phase:'Evolve',html:'<p>Logging + Baselines für Anomalien.</p>'}
       ];
       for(const s of seed){
-        await pool.query('INSERT INTO timeline_entries (site_key, position, title, phase, content_html) VALUES (?,?,?,?,?)',[ 'pandas_way_5', s.position, s.title, s.phase, s.html]);
+        await pool.query('INSERT INTO timeline_entries (site_key, position, level, title, phase, content_html) VALUES (?,?,?,?,?,?)',[ 'pandas_way_5', s.position, s.level, s.title, s.phase, s.html]);
       }
-  ;[rows] = await pool.query('SELECT id, position, title, phase, content_html, level FROM timeline_entries WHERE site_key=? AND is_active=1 ORDER BY position ASC, id ASC', ['pandas_way_5']);
+      ;[rows] = await pool.query('SELECT id, position, title, phase, content_html, level FROM timeline_entries WHERE site_key=? AND is_active=1 ORDER BY position ASC, id ASC', ['pandas_way_5']);
     }
     // Site Config + Level Metadaten laden
     let [cfgRows] = await pool.query('SELECT * FROM timeline_site_config WHERE site_key=?',['pandas_way_5']);
@@ -335,7 +489,7 @@ router.get('/pandas-way-alt5', async (req, res) => {
       const [exists] = await pool.query('SELECT id FROM timeline_levels WHERE site_key=? AND level_index=?',[ 'pandas_way_5', i]);
       if(!exists.length){ await pool.query('INSERT INTO timeline_levels (site_key, level_index, title) VALUES (?,?,?)',[ 'pandas_way_5', i, 'Level '+i]); }
     }
-  const [levelRows] = await pool.query('SELECT level_index, title, image_path FROM timeline_levels WHERE site_key=? ORDER BY level_index ASC',[ 'pandas_way_5' ]);
+  const [levelRows] = await pool.query('SELECT level_index, title, image_path, icon FROM timeline_levels WHERE site_key=? ORDER BY level_index ASC',[ 'pandas_way_5' ]);
   // Render nun mit allen benötigten Variablen (statt nachträglichem res.locals Setzen)
   res.render('pandas_way_alt5', { title: "Panda's Way – ALT 5", entries: rows, timelineSiteConfig: siteCfg, timelineLevels: levelRows });
   } catch (e) {
