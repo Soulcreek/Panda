@@ -7,7 +7,7 @@
       <div class="card shadow-sm h-100">
         <div class="card-body">
           <h5 class="card-title mb-2">Heute</h5>
-          <p class="display-6 mb-0"><%= totalToday %></p>
+          <p class="display-6 mb-0"><%= (typeof totalToday!=='undefined'? totalToday : 0) %></p>
           <div class="text-muted small">Gesamt Calls (alle Endpoints)</div>
         </div>
       </div>
@@ -22,7 +22,7 @@
           <table class="table table-sm mb-0">
             <thead class="table-light"><tr><th>Endpoint</th><th class="text-end">Calls</th></tr></thead>
             <tbody>
-              <% if(today.length){ today.forEach(r=>{ %>
+              <% if(Array.isArray(today) && today.length){ today.forEach(r=>{ %>
                 <tr><td><code><%= r.endpoint %></code></td><td class="text-end"><%= r.calls %></td></tr>
               <% }) } else { %>
                 <tr><td colspan="2" class="text-center text-muted">Keine heutigen Calls</td></tr>
@@ -39,7 +39,7 @@
       <table class="table table-sm mb-0">
         <thead class="table-light"><tr><th>Datum</th><th>Endpoint</th><th class="text-end">Calls</th></tr></thead>
         <tbody>
-          <% if(history.length){ history.forEach(r=>{ %>
+          <% if(Array.isArray(history) && history.length){ history.forEach(r=>{ %>
             <tr><td><%= r.day.toISOString ? r.day.toISOString().slice(0,10) : (r.day) %></td><td><code><%= r.endpoint %></code></td><td class="text-end"><%= r.calls %></td></tr>
           <% }) } else { %>
             <tr><td colspan="3" class="text-center text-muted">Keine Daten</td></tr>
@@ -62,11 +62,12 @@
             <th>Prompt (Auszug, 400 Zeichen)</th>
             <th style="width:70px;" class="text-end">Zeichen</th>
             <th style="width:70px;" class="text-end">Fehler</th>
+            <th style="width:60px;"></th>
           </tr>
         </thead>
         <tbody>
-          <% if(log && log.length){ log.forEach(r=>{ %>
-            <tr>
+          <% if(Array.isArray(log) && log.length){ log.forEach(r=>{ %>
+            <tr data-id="<%= r.id %>">
               <td class="text-nowrap"><%= (r.created_at instanceof Date) ? r.created_at.toISOString().replace('T',' ').slice(0,19) : r.created_at %></td>
               <td><code><%= r.endpoint %></code></td>
               <td style="max-width:600px; white-space:pre-wrap; font-family: var(--bs-font-monospace); font-size: .75rem;">
@@ -74,6 +75,7 @@
               </td>
               <td class="text-end"><%= r.response_chars || '' %></td>
               <td class="text-end"><%= r.error_message ? 'Ja' : '' %></td>
+              <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary ai-log-detail" data-id="<%= r.id %>"><i class="bi bi-search"></i></button></td>
             </tr>
           <% }) } else { %>
             <tr><td colspan="5" class="text-center text-muted">Keine Log-Daten</td></tr>
@@ -90,3 +92,57 @@
   </div>
 </div>
 <%- include('partials/footer') %>
+<div class="modal fade" id="aiLogDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">AI Log Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-muted mb-2" id="aiLogMeta"></div>
+        <h6>Prompt</h6>
+        <pre class="bg-light p-2 border rounded" style="max-height:240px; overflow:auto; font-size:.75rem;" id="aiLogPrompt"></pre>
+        <h6 class="mt-3">Response (Raw gekürzt)</h6>
+        <pre class="bg-light p-2 border rounded" style="max-height:240px; overflow:auto; font-size:.75rem;" id="aiLogResponse"></pre>
+        <div class="mt-2" id="aiLogErrorWrap" style="display:none;">
+          <div class="alert alert-danger py-1 mb-0 small" id="aiLogError"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyPrompt">Prompt kopieren</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyResponse">Response kopieren</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const rowsBtn = document.querySelectorAll('.ai-log-detail');
+  const modalEl=document.getElementById('aiLogDetailModal');
+  if(!modalEl) return;
+  let bsModal;
+  function ensureModal(){ if(!bsModal){ bsModal = new bootstrap.Modal(modalEl); } return bsModal; }
+  async function loadDetail(id, btn){
+    const origHtml = btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span>';
+    try {
+      const resp = await fetch('/admin/ai-usage/log/'+id);
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error||('HTTP '+resp.status));
+      document.getElementById('aiLogMeta').textContent = 'ID '+data.id+' • Endpoint '+data.endpoint+' • '+(data.created_at||'');
+      document.getElementById('aiLogPrompt').textContent = data.prompt||'';
+      document.getElementById('aiLogResponse').textContent = data.response_raw||('[Keine Raw Response gespeichert]');
+      const errWrap=document.getElementById('aiLogErrorWrap');
+      const errBox=document.getElementById('aiLogError');
+      if(data.error_message){ errWrap.style.display='block'; errBox.textContent=data.error_message; } else { errWrap.style.display='none'; }
+      ensureModal().show();
+    } catch(e){ alert('Detail laden fehlgeschlagen: '+e.message); }
+    finally { btn.disabled=false; btn.innerHTML=origHtml; }
+  }
+  rowsBtn.forEach(b=> b.addEventListener('click', ()=> loadDetail(b.getAttribute('data-id'), b)) );
+  function copy(id){ const el=document.getElementById(id); if(!el) return; navigator.clipboard.writeText(el.textContent||''); }
+  document.getElementById('btnCopyPrompt').addEventListener('click',()=>copy('aiLogPrompt'));
+  document.getElementById('btnCopyResponse').addEventListener('click',()=>copy('aiLogResponse'));
+})();
+</script>

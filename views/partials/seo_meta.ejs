@@ -1,11 +1,13 @@
-<% /* Server-side SEO + Social meta tags. Expects optional 'seo' object: {title, description, keywords, image, type, url}. Safe fallbacks provided. */ %>
-<% var __seo = seo || {}; %>
-<% var __title = (__seo.title || title || 'Purview Panda'); %>
-<% var __desc = (__seo.description || 'Purview Panda – Security, Compliance & Data Governance Insights'); %>
-<% var __keywords = (__seo.keywords || 'Purview,Panda,Security,Compliance,Data,Governance,Blog'); %>
-<% var __image = (__seo.image || '/img/logo.png'); %>
-<% var __type = (__seo.type || 'article'); %>
-<% var __url = (__seo.url || (typeof currentUrl !== 'undefined' ? currentUrl : '')); %>
+<% /* Server-side SEO + Social meta tags.
+	Erwartet optionales Objekt 'seo': { title, description, keywords, image, type, url }.
+	Robuste Fallbacks: Verhindert ReferenceError falls 'seo' nicht gesetzt ist. */ %>
+<% var __seo = (typeof seo !== 'undefined' && seo) ? seo : {}; %>
+<% var __title = ( (__seo.title && __seo.title.trim()) ? __seo.title : (typeof title !== 'undefined' ? title : 'Purview Panda') ); %>
+<% var __desc = ( (__seo.description && __seo.description.trim()) ? __seo.description : 'Purview Panda – Security, Compliance & Data Governance Insights'); %>
+<% var __keywords = ( (__seo.keywords && __seo.keywords.trim()) ? __seo.keywords : 'Purview,Panda,Security,Compliance,Data,Governance,Blog'); %>
+<% var __image = ( (__seo.image && __seo.image.trim()) ? __seo.image : '/img/logo.png'); %>
+<% var __type = ( (__seo.type && __seo.type.trim()) ? __seo.type : 'article'); %>
+<% var __url = ( (__seo.url && __seo.url.trim()) ? __seo.url : (typeof currentUrl !== 'undefined' ? currentUrl : '') ); %>
 <meta name="description" content="<%= __desc %>">
 <meta name="keywords" content="<%= __keywords %>">
 <meta property="og:title" content="<%= __title %>">

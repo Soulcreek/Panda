@@ -551,12 +551,16 @@ router.get('/impressum', (req, res) => {
 
 // --- AUTH ROUTES ---
 router.get('/login', (req, res) => {
-  if (req.session.userId) return res.redirect('/admin');
-  res.render('login', { title: 'Login', error: null });
+  // Falls bereits eingeloggt: respektiere redirect Query, sonst Editors Dashboard
+  if (req.session.userId) {
+    const target = (req.query.redirect && /^\/[a-zA-Z0-9/_-]+$/.test(req.query.redirect)) ? req.query.redirect : '/editors';
+    return res.redirect(target);
+  }
+  res.render('login', { title: 'Login', error: null, redirect: (req.query.redirect||'') });
 });
 
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, redirect: redirectRaw } = req.body;
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
     if (!rows.length) return res.status(401).render('login', { title: 'Login', error: 'Ungültige Zugangsdaten' });
@@ -565,7 +569,10 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).render('login', { title: 'Login', error: 'Ungültige Zugangsdaten' });
     req.session.userId = user.id;
     req.session.isLoggedIn = true;
-    res.redirect('/admin');
+    // Ziel bestimmen: redirect Feld (whitelist), sonst Editors Dashboard
+    let target = '/editors';
+    if (redirectRaw && /^\/[a-zA-Z0-9/_-]+$/.test(redirectRaw)) target = redirectRaw;
+    res.redirect(target);
   } catch (err) {
     console.error('Login Fehler:', err);
     res.status(500).render('login', { title: 'Login', error: 'Interner Fehler' });

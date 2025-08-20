@@ -2,7 +2,7 @@
 <%- include('partials/admin_nav') %>
 <div class="container my-5">
   <h1>Blog Konfiguration</h1>
-  <% if (saved) { %>
+  <% if (typeof saved !== 'undefined' && saved) { %>
     <div class="alert alert-success shadow-sm">Einstellungen gespeichert.</div>
   <% } %>
   <p class="text-muted">AI Einstellungen & Prompts anpassen. Primärer Schlüssel zuerst, Fallback automatisch.</p>
@@ -18,40 +18,40 @@
           <div class="col-md-4">
             <label class="form-label">Primärer Key</label>
             <select class="form-select" name="primary_key_choice">
-              <option value="paid" <%= ai.primary_key_choice==='paid'?'selected':'' %>>Paid Tier</option>
-              <option value="free" <%= ai.primary_key_choice==='free'?'selected':'' %>>Free Tier</option>
+              <option value="paid" <%= (ai && ai.primary_key_choice)==='paid'?'selected':'' %>>Paid Tier</option>
+              <option value="free" <%= (ai && ai.primary_key_choice)==='free'?'selected':'' %>>Free Tier</option>
             </select>
           </div>
           <div class="col-md-4">
             <label class="form-label">Max Daily Calls</label>
-            <input type="number" class="form-control" name="max_daily_calls" value="<%= ai.max_daily_calls %>">
+            <input type="number" class="form-control" name="max_daily_calls" value="<%= (ai && ai.max_daily_calls) || 500 %>">
           </div>
           <div class="col-md-4 d-flex align-items-end">
             <div class="alert alert-info w-100 py-2 mb-0 small">Keys: GEMINI_API_KEY_PAID / GEMINI_API_KEY_FREE</div>
           </div>
           <div class="col-md-4">
             <label class="form-label">Max Antwort-Zeichen (Research)</label>
-            <input type="number" class="form-control" name="max_response_chars" value="<%= (ai.limits && ai.limits.max_response_chars) || 10000 %>">
+            <input type="number" class="form-control" name="max_response_chars" value="<%= (ai && ai.limits && ai.limits.max_response_chars) || 10000 %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Max Übersetzung-Zeichen</label>
-            <input type="number" class="form-control" name="max_translate_chars" value="<%= (ai.limits && ai.limits.max_translate_chars) || 10000 %>">
+            <input type="number" class="form-control" name="max_translate_chars" value="<%= (ai && ai.limits && ai.limits.max_translate_chars) || 10000 %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Max Sample-Zeichen</label>
-            <input type="number" class="form-control" name="max_sample_chars" value="<%= (ai.limits && ai.limits.max_sample_chars) || 8000 %>">
+            <input type="number" class="form-control" name="max_sample_chars" value="<%= (ai && ai.limits && ai.limits.max_sample_chars) || 8000 %>">
           </div>
           <div class="col-md-6">
             <label class="form-label">SEO Titel Präfix (optional)</label>
-            <input type="text" class="form-control" name="seo_title_prefix" value="<%= (ai.prompts && ai.prompts.seo_title_prefix) || '' %>" placeholder="Panda | ">
+            <input type="text" class="form-control" name="seo_title_prefix" value="<%= (ai && ai.prompts && ai.prompts.seo_title_prefix) || '' %>" placeholder="Panda | ">
           </div>
           <div class="col-md-6">
             <label class="form-label">Generator Default Sections (Komma)</label>
-            <input type="text" class="form-control" name="generator_default_sections" value="<%= (ai.prompts && ai.prompts.generator_default_sections) || 'hero,intro,posts,cta' %>">
+            <input type="text" class="form-control" name="generator_default_sections" value="<%= (ai && ai.prompts && ai.prompts.generator_default_sections) || 'hero,intro,posts,cta' %>">
           </div>
           <div class="col-md-4">
             <div class="form-check mt-4 pt-2">
-              <input class="form-check-input" type="checkbox" id="enable_generator" name="enable_generator" value="1" <%= (ai.prompts && ai.prompts.enable_generator)?'checked':'' %>>
+              <input class="form-check-input" type="checkbox" id="enable_generator" name="enable_generator" value="1" <%= (ai && ai.prompts && ai.prompts.enable_generator)?'checked':'' %>>
               <label class="form-check-label" for="enable_generator">Generator aktiv</label>
             </div>
           </div>
@@ -67,28 +67,28 @@
         <div class="card-body row g-3">
           <div class="col-md-6">
             <label class="form-label">What's New Research (DE)</label>
-            <textarea name="whats_new_research" class="form-control" rows="4"><%= (ai.prompts && ai.prompts.whats_new_research) || '' %></textarea>
+            <textarea name="whats_new_research" class="form-control" rows="4"><%= (ai && ai.prompts && ai.prompts.whats_new_research) || '' %></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label">Übersetzen Prompt</label>
-            <textarea name="translate_prompt" class="form-control" rows="4"><%= (ai.prompts && ai.prompts.translate) || '' %></textarea>
+            <textarea name="translate_prompt" class="form-control" rows="4"><%= (ai && ai.prompts && ai.prompts.translate) || '' %></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label">Media ALT Text Prompt (DE)</label>
-            <textarea name="media_alt_text" class="form-control" rows="3"><%= (ai.prompts && ai.prompts.media_alt_text) || '' %></textarea>
+            <textarea name="media_alt_text" class="form-control" rows="3"><%= (ai && ai.prompts && ai.prompts.media_alt_text) || '' %></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label">Blog Sample Prompt</label>
-            <textarea name="blog_sample" class="form-control" rows="3"><%= (ai.prompts && ai.prompts.blog_sample) || '' %></textarea>
+            <textarea name="blog_sample" class="form-control" rows="3"><%= (ai && ai.prompts && ai.prompts.blog_sample) || '' %></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label">Verfügbare Blog Tags (Komma)</label>
-            <textarea name="blog_tags" class="form-control" rows="2" placeholder="security, governance, ..."><%= (ai.prompts && ai.prompts.blog_tags) || '' %></textarea>
+            <textarea name="blog_tags" class="form-control" rows="2" placeholder="security, governance, ..."><%= (ai && ai.prompts && ai.prompts.blog_tags) || '' %></textarea>
             <div class="form-text">Diese Liste erscheint als Vorschläge im Editor.</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Media Kategorien (Komma)</label>
-            <textarea name="media_categories" class="form-control" rows="2" placeholder="Blog-Titelbild, Titelbild, ..."><%= (ai.prompts && ai.prompts.media_categories) || '' %></textarea>
+            <textarea name="media_categories" class="form-control" rows="2" placeholder="Blog-Titelbild, Titelbild, ..."><%= (ai && ai.prompts && ai.prompts.media_categories) || '' %></textarea>
             <div class="form-text">Steuert Filterbuttons im Editor.</div>
           </div>
         </div>

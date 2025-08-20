@@ -1,12 +1,12 @@
 <%- include('partials/header') %>
 <%- include('partials/editors_nav') %>
 <div class="container my-5" id="timelineEditorRoot">
-  <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+  <div class="d-flex flex-wrap gap-3 align-items-center mb-4">
     <div>
   <h2 class="mb-1">Timeline Editor <a href="/pandas-way-alt5?level=<%= level %>" target="_blank" class="small ms-2 text-decoration-none" title="Öffentliche Ansicht öffnen"><i class="bi bi-box-arrow-up-right"></i></a></h2>
       <div class="small text-muted">Site: <code><%= site %></code> | Level <%= level %></div>
     </div>
-    <form class="d-flex" method="get" action="/editors/timeline-editor">
+  <form class="d-flex" method="get" action="/editors/timeline-editor">
       <input type="hidden" name="site" value="<%= site %>">
       <select class="form-select form-select-sm me-2" name="level">
         <% const maxLevels = (siteConfig && siteConfig.level_count) ? siteConfig.level_count : 10; 
@@ -48,7 +48,7 @@
           <div id="levelMetaEditor" class="form-control" style="height:180px;overflow:auto;"></div>
           <textarea name="content_html" id="levelMetaContentHtml" hidden></textarea>
         </div>
-        <div class="col-md-12 d-flex justify-content-end">
+        <div class="col-md-12 d-flex justify-content-start">
           <button class="btn btn-sm btn-primary">Level Meta speichern</button>
         </div>
       </form>
@@ -57,7 +57,7 @@
   <div class="row g-4">
     <div class="col-lg-7">
       <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center">
           <strong>Einträge (<%= entries.length %>)</strong>
           <button class="btn btn-sm btn-outline-secondary" id="btnReorderSave" disabled>Reihenfolge speichern</button>
         </div>
@@ -100,7 +100,7 @@
         </div>
       </div>
       <div class="card shadow-sm mt-4" id="embeddedMediaLib">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex flex-wrap gap-3 align-items-center">
           <strong>Medienbibliothek (Schnellzugriff)</strong>
           <div class="d-flex gap-2 align-items-center">
             <select class="form-select form-select-sm" id="embeddedMediaFilter" style="width:160px;">
@@ -277,11 +277,27 @@
   tbody.querySelectorAll('tr').forEach(r=>r.setAttribute('draggable','true'));
   btnSave.addEventListener('click', async ()=>{ if(!orderChanged) return; const rows=[...tbody.querySelectorAll('tr')]; const payload = rows.map((r,i)=>({id:r.dataset.id, position:i})); try { const resp = await fetch('/editors/timeline-editor/reorder',{method:'POST', headers:{'Content-Type':'application/json','CSRF-Token':window.CSRF_TOKEN}, body:JSON.stringify({orders:JSON.stringify(payload)})}); if(!resp.ok) throw new Error('HTTP '+resp.status); rows.forEach((r,i)=> r.querySelector('.pos').textContent=i); btnSave.disabled=true; orderChanged=false; } catch(e){ alert('Reihenfolge Speichern fehlgeschlagen: '+e.message); }});
   const editModalEl = document.getElementById('editTimelineModal');
-  const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+  let editModal = null;
+  function ensureEditModal(){
+    if(!editModalEl) return null;
+    if(!window.bootstrap){
+      // Bootstrap noch nicht geladen – später erneut versuchen
+      return null;
+    }
+    if(!editModal){
+      try { editModal = new window.bootstrap.Modal(editModalEl); }
+      catch(e){ console.warn('Modal init fehlgeschlagen (wartet auf Bootstrap)', e); }
+    }
+    return editModal;
+  }
+  // Falls Bootstrap nachträglich geladen wird, beim load Event erneut versuchen
+  window.addEventListener('load', ()=>{ ensureEditModal(); });
   const livePreviewTitle=document.getElementById('livePreviewTitle');
   const livePreviewContent=document.getElementById('livePreviewContent');
   function loadLivePreview(id, title){ if(!id) return; livePreviewTitle.textContent = title ? ('#'+id+' – '+title) : ('#'+id); livePreviewContent.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lade...</div>'; fetch('/editors/api/timeline-entry/'+id).then(r=> r.ok ? r.json() : Promise.reject('HTTP '+r.status)).then(data=>{ livePreviewContent.innerHTML = data && data.content_html ? data.content_html : '<em class="text-muted">(kein Inhalt)</em>'; }).catch(err=>{ livePreviewContent.innerHTML = '<span class="text-danger">Fehler: '+err+'</span>'; }); }
-  document.querySelectorAll('.edit-entry-btn').forEach(btn=>{ btn.addEventListener('click', async ()=>{ const id=btn.dataset.id; const title=btn.dataset.title||''; const phase=btn.dataset.phase||''; const active = btn.dataset.active==='1'; try { const resp = await fetch('/editors/api/timeline-entry/'+id, { headers:{'CSRF-Token':window.CSRF_TOKEN} }); let html=''; if(resp.ok){ const data = await resp.json(); html = data.content_html || ''; } document.getElementById('editId').value=id; document.getElementById('editTitle').value=title; document.getElementById('editPhase').value=phase; document.getElementById('editActive').checked=active; if(quillEdit){ quillEdit.root.innerHTML = html; } document.getElementById('editContentHtml').value=''; document.getElementById('editTimelineForm').setAttribute('action','/editors/timeline-editor/update/'+id); editModal && editModal.show(); loadLivePreview(id, title); } catch(e){ alert('Laden fehlgeschlagen: '+e.message); } }); });
+  document.querySelectorAll('.edit-entry-btn').forEach(btn=>{ btn.addEventListener('click', async ()=>{ const id=btn.dataset.id; const title=btn.dataset.title||''; const phase=btn.dataset.phase||''; const active = btn.dataset.active==='1'; try { const resp = await fetch('/editors/api/timeline-entry/'+id, { headers:{'CSRF-Token':window.CSRF_TOKEN} }); let html=''; if(resp.ok){ const data = await resp.json(); html = data.content_html || ''; } document.getElementById('editId').value=id; document.getElementById('editTitle').value=title; document.getElementById('editPhase').value=phase; document.getElementById('editActive').checked=active; if(quillEdit){ quillEdit.root.innerHTML = html; } document.getElementById('editContentHtml').value=''; document.getElementById('editTimelineForm').setAttribute('action','/editors/timeline-editor/update/'+id); const modalInstance = ensureEditModal(); if(modalInstance){ modalInstance.show(); } else { // Not yet available; retry shortly
+          setTimeout(()=>{ const m2=ensureEditModal(); if(m2) m2.show(); }, 120); }
+          loadLivePreview(id, title); } catch(e){ alert('Laden fehlgeschlagen: '+e.message); } }); });
   document.querySelectorAll('.preview-entry-btn').forEach(btn=>{ btn.addEventListener('click', ()=>{ const id=btn.dataset.id; if(!id) return; const tr = document.querySelector('#timelineTable tbody tr[data-id="'+id+'"]'); const title = tr ? tr.querySelector('td:nth-child(3)')?.textContent.trim() : ''; loadLivePreview(id, title); document.querySelectorAll('#timelineTable tbody tr').forEach(r=>r.classList.remove('table-active')); if(tr) tr.classList.add('table-active'); }); });
   const editForm=document.getElementById('editTimelineForm');
   editForm.addEventListener('submit', ()=>{ if(quillEdit){ document.getElementById('editContentHtml').value = quillEdit.root.innerHTML; } });

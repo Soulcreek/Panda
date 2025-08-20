@@ -22,9 +22,12 @@
         <input type="text" class="form-control" name="meta_keywords" maxlength="255" value="<%= page? (page.meta_keywords||''):'' %>">
       </div>
       <div class="col-12">
-        <label class="form-label">SEO Description</label>
-        <textarea class="form-control" name="seo_description" rows="2" maxlength="255"><%= page? (page.seo_description||''):'' %></textarea>
-        <div class="form-text">Kurze Beschreibung (max 155-180 Zeichen empfohlen)</div>
+        <div class="d-flex justify-content-between align-items-center">
+          <label class="form-label mb-0">SEO Description</label>
+          <button type="button" id="apSeoAuto" class="btn btn-sm btn-outline-secondary">Ableiten</button>
+        </div>
+        <textarea class="form-control" id="apSeoDesc" name="seo_description" rows="2" maxlength="255"><%= page? (page.seo_description||''):'' %></textarea>
+        <div class="form-text d-flex justify-content-between"><span>Kurze Beschreibung (155-180 empfohlen)</span><span id="apSeoDescCounter" class="small text-muted"></span></div>
       </div>
       <div class="col-md-6">
         <label class="form-label">Meta Image URL</label>
@@ -67,7 +70,29 @@
   </form>
 </div>
 <div id="apLayoutData" data-json="<%= encodeURIComponent(layoutJSON) %>"></div>
+<div id="apDataPosts" data-json="<%= encodeURIComponent(JSON.stringify(typeof posts!=='undefined'?posts:[])) %>"></div>
+<div id="apDataPodcasts" data-json="<%= encodeURIComponent(JSON.stringify(typeof podcasts!=='undefined'?podcasts:[])) %>"></div>
+<script>
+(function(){
+  function parse(id){ try { var el=document.getElementById(id); if(!el) return []; return JSON.parse(decodeURIComponent(el.getAttribute('data-json')||'%5B%5D')); } catch(_){ return []; } }
+  window.__AP_PRE_POSTS = parse('apDataPosts');
+  window.__AP_PRE_PODCASTS = parse('apDataPodcasts');
+})();
+</script>
 <script>(function(){ try { var el=document.getElementById('apLayoutData'); window.__AP_INITIAL_LAYOUT = JSON.parse(decodeURIComponent(el.getAttribute('data-json'))); } catch(e){ window.__AP_INITIAL_LAYOUT={version:2,rows:[]}; } })();</script>
 <link rel="stylesheet" href="/css/advanced_pages.css">
 <script src="/js/advanced_pages_builder.js"></script>
+<script>
+(function(){
+  const seoBtn=document.getElementById('apSeoAuto');
+  const desc=document.getElementById('apSeoDesc');
+  const counter=document.getElementById('apSeoDescCounter');
+  function upd(){ if(!desc||!counter) return; const len=(desc.value||'').length; counter.textContent=len+' / 180'; counter.classList.toggle('text-danger', len>180); }
+  if(desc){ desc.addEventListener('input',upd); upd(); }
+  if(seoBtn){ seoBtn.addEventListener('click',()=>{ if(!desc.value){ try { // naive derive from first text block
+        var raw='';
+        (window.__AP_INITIAL_LAYOUT?.rows||[]).some(r=> (r.columns||[]).some(c=> (c.blocks||[]).some(b=>{ if((b.type==='text'||b.type==='html') && b.html){ raw=b.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); return true; } return false; }))); 
+        desc.value=raw.slice(0,170); if(desc.value.lastIndexOf('.')>60) desc.value=desc.value.slice(0, desc.value.lastIndexOf('.')+1); upd(); } catch(_){ } } }); }
+})();
+</script>
 <%- include('partials/footer') %>

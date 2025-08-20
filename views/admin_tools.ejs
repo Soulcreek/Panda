@@ -30,7 +30,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <% if (posts && posts.length > 0) { %>
+                    <% if (Array.isArray(posts) && posts.length > 0) { %>
                         <% posts.forEach(function(post) { %>
                             <tr>
                                 <td><%= post.id %></td>
@@ -52,7 +52,7 @@
       </div>
       <!-- Rohdaten-Ansicht -->
       <div class="tab-pane fade" id="raw-view" role="tabpanel">
-        <pre class="bg-dark text-light p-3 rounded mt-3"><code><%- JSON.stringify(posts, null, 2) %></code></pre>
+  <pre class="bg-dark text-light p-3 rounded mt-3"><code><%- JSON.stringify(posts||[], null, 2) %></code></pre>
       </div>
     </div>
 </div>

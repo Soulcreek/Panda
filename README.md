@@ -79,12 +79,29 @@ schema_consolidated.sql# Neues konsolidiertes Schema & Content-Patches (MySQL)
 - timeline_levels(id, site_key, level_index, title, content_html, image_path)
 
 ## 6. KI Subsystem (Gemini)
-Zweistufige Aufforderung (Optimierung + finaler JSON Output). Endpunkte:
-- POST /admin/generate-whats-new  (Titel + content_de + whatsnew, Teaser wird NICHT mehr automatisch überschrieben)
-- POST /admin/posts/generate-sample (Beispielartikel, Teaser unverändert)
-- POST /admin/api/translate (DE → EN Title + HTML)
-- POST /admin/generate-alt-text (Einzelnes Medium)
-Limits konfigurierbar unter /admin/blog-config (max_response_chars, max_translate_chars, max_sample_chars). Tolerantes Parsing bei fehlerhaftem JSON (Regex Fallback).
+Zweistufige Prompt-Kaskade (Research / Optimierung → finaler strukturierter JSON Output) für Blog Content. Aktuelle Endpunkte (alle unter /editors):
+- POST /editors/generate-whats-new – Generiert Titel (DE), Content (DE) und liefert interne Zwischenstufe (stage1) als Rohtext. Teaser wird nur gesetzt wenn leer.
+- POST /editors/generate-sample – Beispielartikel (DE) für Themen-Sandbox; EN-Felder werden geleert.
+- POST /editors/api/translate – Übersetzt DE Titel + HTML Body nach EN (JSON Response {title, content}).
+- POST /editors/podcasts/:id/ai-metadata – Ergänzt SEO Felder für Podcasts.
+
+Konfiguration (& Limits / Prompts) via /admin/blog-config:
+- primary_key_choice (paid|free) – LOGIK FÜR KEY-SELEKTION: TODO (derzeit nur GEMINI_API_KEY genutzt; Umschaltung vorbereitet)
+- max_daily_calls (Rate Gate – TODO: Enforcement Endpoint-seitig aktivieren)
+- limits.max_response_chars / max_translate_chars / max_sample_chars (Client & Server Soft-Cut)
+- prompts (whats_new_research, translate, blog_sample, media_alt_text, seo_title_prefix, blog_tags, media_categories)
+
+Logging & Monitoring:
+- Aggregation: ai_usage (day, endpoint, calls)
+- Detail: ai_usage_log (prompt, response_raw, response_chars, error_message)
+- UI: /admin/ai-usage – Verteilung, Historie, Detail-Log mit Modal (Lupe) für vollständigen Prompt & Raw Response, Copy Buttons.
+
+Resilienz / Parsing:
+- JSON Parsing tolerant (Fallback extrahiert Felder / Parse-Warnung Badge im Editor).
+- Safety Settings aktualisiert auf aktuelle Gemini Kategorien (BLOCK_NONE für frühe Entwicklungsphase; TODO Hardening Feintuning).
+- CSRF: KI Endpunkte im Skip-Set, da sie nur intern aufgerufen werden (TODO: Token Validation re-härten sobald stabil).
+
+Noch offen (siehe NEXT_STEPS.md): Key Umschaltung paid/free, Fehlerbudget / Rate Limit Response, Retry/Backoff Policy, Response Caching.
 
 ## 7. Advanced Pages Builder
 - Blöcke: html, text, image, background
@@ -139,7 +156,7 @@ CLEAR_SESSIONS_ON_START=false
 | GET /editors/posts | Beiträge Übersicht |
 | GET /editors/posts/new | Neuer Beitrag |
 | POST /editors/generate-whats-new | KI Research Content |
-| POST /editors/posts/generate-sample | Sample Content |
+| POST /editors/generate-sample | Sample Content |
 | POST /editors/api/translate | Übersetzung |
 | GET /editors/media | Medienbibliothek |
 | POST /editors/api/upload-inline-image | Inline Upload |
@@ -152,7 +169,8 @@ CLEAR_SESSIONS_ON_START=false
 | POST /editors/podcasts/:id/ai-metadata | KI Podcast Metadaten |
 | GET /blog/:slug | Öffentlicher Blogpost (SEO Slug) |
 | GET /pandas-way-alt5 | Timeline ALT5 Öffentlich |
-| GET /admin | Admin Settings Dashboard (Legacy) |
+| GET /admin | Admin Settings Dashboard (Settings / AI Usage) |
+| GET /admin/ai-usage | AI Nutzung & Log Detail |
 
 ## 15. Entwicklungs-Workflow
 Installieren:
@@ -181,23 +199,35 @@ Vorgehen in neuer Umgebung:
 2. App starten – dynamische ALTERs (Advanced Pages) laufen tolerant weiter
 3. Optional: Indizes / zusätzliche Spalten (siehe Hinweise am Ende der SQL Datei)
 
-## 17. Roadmap / Nächste Schritte
-Kurzfristig:
-- ESC Close für Sidepanel & Picker
-- Erweiterte Background Optionen (Padding Controls)
-- Blog Post Revisionen
-- Rate Limiting (Login / KI Endpunkte)
+## 17. Roadmap / Nächste Schritte (Kurzüberblick – Details in NEXT_STEPS.md)
+Kurzfristig (Aktive Sprint-Kandidaten):
+- AI Key Umschaltung (paid/free) & Fallback-Kaskade (Heavy→Fast)
+- Daily Call Enforcement (HTTP 429 mit Restlimit) statt nur Logging
+- Editor: Copy / Expand für AI Response Pane
+- ESC Close für Medienpicker & Advanced Pages Sidepanel
+- Slug Editing UI (manuelles Überschreiben + Lock)
+- Blog Post Revisionen (Shadow Table posts_revisions)
+
 Mittelfristig:
-- Caching Layer (Redis) für KI Antworten
-- Image Optimization Pipeline (Sharp + WebP)
-- Tag Management UI
+- Response Caching (Redis) + Hash Keys (Prompt Fingerprint)
+- Image Pipeline (Sharp resize + WebP + Lazy Manifest)
+- Tag Management UI (CRUD + Frequenz / Auto Suggest Server)
+- Rate Limiting global (IP + Session) für Auth & AI
+- Access Audit Log (user_id, route, ts)
+
 Langfristig:
-- GraphQL/REST API für externe Konsumenten
-- Progressive Enhancement (Service Worker / offline cache)
+- Public Read API (REST/GraphQL) mit Token Auth
+- Service Worker: Offline Cache Blog & Media Manifest
+- AI Model Abstraktion (Adapter Layer für OpenAI / Anthropic)
+- Multi-Tenant (site_key Isolation) Erweiterung
 
 ## 18. Changelog (Auswahl jüngste Änderungen)
 Neueste Schritte ganz oben:
 - Health Endpoint `/health` (+ `?deep=1` für DB-Ping) hinzugefügt (Load Balancer / Uptime Robot geeignet)
+- KI Logging erweitert: ai_usage_log jetzt mit response_raw + Modal Detailansicht
+- AI Editor Feedback Panel (Status, Parse-Warnung, Raw Snippet)
+- Slug-Generierung bei Posts: ensureUniqueSlug + Auto-Migration fehlender Spalten (ensurePostsColumns)
+- Blog Config: Defaults gemerged, Prompts persistenter Merge statt Überschreiben
 - Einheitliche 301 Redirect Middleware für migrierte Content-Pfade `/admin/*` → `/editors/*` (Posts, Media, Podcasts, Advanced Pages, Timeline)
 - Legacy Admin-Content-Views durch schlanke Hinweis-Stubs ersetzt; Originale unter `views/legacy/` archiviert
 - Modularisierung: `routes/editors/` Feature Router (Posts, Media, Podcasts, Advanced Pages, Timeline, AI) + `index.js` Aggregator

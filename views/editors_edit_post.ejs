@@ -5,9 +5,28 @@
     <span><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %></span>
     <span class="small text-muted">/ Editors</span>
   </h1>
-  <form action="<%= post ? '/editors/posts/edit/' + post.id : '/editors/posts/new' %>" method="POST" onsubmit="return syncEditors()" class="row g-4">
+  <form action="<%= post ? '/editors/posts/edit/' + post.id : '/editors/posts/new' %>" method="POST" onsubmit="return syncEditors()" class="row g-4" data-seo-prefix="<%- (typeof seoPrefix!=='undefined' && seoPrefix) ? seoPrefix.replace(/"/g,'&quot;') : '' %>">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="col-12 col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Titelbild</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openMediaPicker()">Wählen</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFeaturedImage()">Entfernen</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <input type="hidden" name="featured_image_id" id="featured_image_id" value="<%= post && post.featured_image_id ? post.featured_image_id : '' %>">
+          <div id="featuredPreview" class="ratio ratio-16x9 border bg-light d-flex align-items-center justify-content-center overflow-hidden" style="max-height:260px;">
+            <% if(post && post.featured_image_path){ %>
+              <img src="<%= post.featured_image_path %>" alt="Featured" class="w-100 h-100 object-fit-cover">
+            <% } else { %>
+              <span class="text-muted small">Kein Bild gewählt</span>
+            <% } %>
+          </div>
+        </div>
+      </div>
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Inhalt</span>
@@ -17,28 +36,48 @@
             <button type="button" id="btnTranslate" class="btn btn-outline-secondary">DE→EN</button>
           </div>
         </div>
+        <div id="aiFeedback" class="px-3 pt-2 border-top" style="display:none;">
+          <div class="alert p-2 mb-0" id="aiFeedbackBox" style="font-size:.8rem;">
+            <pre class="ai-log-text mb-0"></pre>
+          </div>
+        </div>
         <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label">Titel (DE)</label>
-            <input name="title" id="title_de" class="form-control" value="<%= post ? post.title : '' %>" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Inhalt (DE) (HTML erlaubt)</label>
-            <textarea name="content" id="content_de" class="form-control" rows="14"><%= post ? (post.content || '') : '' %></textarea>
-          </div>
-          <hr>
-          <div class="mb-3">
-            <label class="form-label">Titel (EN)</label>
-            <input name="title_en" id="title_en" class="form-control" value="<%= post ? (post.title_en || '') : '' %>">
-          </div>
-            <div class="mb-3">
-            <label class="form-label">Inhalt (EN)</label>
-            <textarea name="content_en" id="content_en" class="form-control" rows="10"><%= post ? (post.content_en || '') : '' %></textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Teaser (DE, max 180 Zeichen)</label>
-            <textarea name="whatsnew" id="whatsnew" class="form-control" maxlength="180" rows="2"><%= post ? (post.whatsnew || '') : '' %></textarea>
-            <div class="small text-muted d-flex justify-content-between"><span>Research News generiert Titel + Inhalt (DE) und optional Teaser.</span><span id="teaserCounter">0</span></div>
+          <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#lang-de" type="button" role="tab">Deutsch</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lang-en" type="button" role="tab">English</button></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="lang-de" role="tabpanel">
+              <div class="mb-3">
+                <label class="form-label">Titel (DE)</label>
+                <input name="title" id="title_de" class="form-control" value="<%= post ? post.title : '' %>" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label d-flex justify-content-between align-items-center">Inhalt (DE)
+                  <span class="small text-muted">Quill Editor</span>
+                </label>
+                <div id="editor_de" class="form-control" style="height:420px;overflow:auto;"></div>
+                <textarea name="content" id="content_de" hidden><%= post ? (post.content || '') : '' %></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Teaser (DE, max 180 Zeichen)</label>
+                <textarea name="whatsnew" id="whatsnew" class="form-control" maxlength="180" rows="2"><%= post ? (post.whatsnew || '') : '' %></textarea>
+                <div class="small text-muted d-flex justify-content-between"><span>Research News generiert Titel + Inhalt (DE) und optional Teaser.</span><span id="teaserCounter">0</span></div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="lang-en" role="tabpanel">
+              <div class="mb-3">
+                <label class="form-label">Titel (EN)</label>
+                <input name="title_en" id="title_en" class="form-control" value="<%= post ? (post.title_en || '') : '' %>">
+              </div>
+              <div class="mb-3">
+                <label class="form-label d-flex justify-content-between align-items-center">Inhalt (EN)
+                  <span class="small text-muted">Quill Editor</span>
+                </label>
+                <div id="editor_en" class="form-control" style="height:340px;overflow:auto;"></div>
+                <textarea name="content_en" id="content_en" hidden><%= post ? (post.content_en || '') : '' %></textarea>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -77,8 +116,15 @@
             <input type="datetime-local" name="published_at" class="form-control" value="<%= post && post.published_at ? new Date(post.published_at).toISOString().slice(0,16) : '' %>">
           </div>
           <div class="col-12">
-            <label class="form-label">Tags (Komma)</label>
+            <label class="form-label d-flex justify-content-between align-items-center">Tags (Komma)
+              <span class="small text-muted">Vorschläge anklicken</span>
+            </label>
             <input name="tags" id="tags" class="form-control" value="<%= post && post.tags ? post.tags : '' %>">
+            <% if (Array.isArray(tagsList) && tagsList.length) { %>
+              <div class="mt-2 d-flex flex-wrap gap-1" id="tagSuggestions">
+                <% tagsList.forEach(tg=>{ %><button type="button" class="btn btn-sm btn-outline-secondary tag-suggestion" data-tag="<%= tg %>"><%= tg %></button><% }) %>
+              </div>
+            <% } %>
           </div>
           <div class="col-12 d-grid gap-2 mt-3">
             <button class="btn btn-primary" type="submit">Speichern</button>
@@ -87,12 +133,33 @@
           </div>
         </div>
       </div>
+      <div class="card mb-4">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">Medien (Drag & Drop / Klick zum Einfügen)
+          <div class="d-flex flex-wrap gap-2 align-items-center" id="mediaCatsBtns">
+            <button type="button" class="btn btn-sm btn-outline-primary active" data-cat="all">Alle</button>
+            <% if (Array.isArray(mediaCats) && mediaCats.length){ mediaCats.slice(0,8).forEach(c=>{ %>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-cat="<%= c %>"><%= c %></button>
+            <% }); } %>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshMedia"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+        <div class="card-body p-2" style="max-height:360px; overflow:auto;">
+          <div class="row g-2" id="mediaQuickGrid"></div>
+        </div>
+      </div>
     </div>
   </form>
 </div>
 <%- include('partials/footer') %>
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 <script>
-function syncEditors(){ return true; }
+function syncEditors(){
+  // Push Quill HTML into hidden textareas before submit
+  if(window.__quill_de){ document.getElementById('content_de').value = window.__quill_de.root.innerHTML; }
+  if(window.__quill_en){ document.getElementById('content_en').value = window.__quill_en.root.innerHTML; }
+  return true;
+}
 (function(){
   const whatsBtn=document.getElementById('btnWhatsNew');
   const sampleBtn=document.getElementById('btnSample');
@@ -102,39 +169,109 @@ function syncEditors(){ return true; }
   function updTeaser(){ if(teaserCounter) teaserCounter.textContent = (teaser.value||'').length + ' / 180'; }
   if(teaser){ teaser.addEventListener('input', ()=>{ if(teaser.value.length>180) teaser.value=teaser.value.slice(0,180); updTeaser(); }); updTeaser(); }
   async function call(endpoint, opts){
-    const resp = await fetch(endpoint, { method:'POST', headers:{ 'CSRF-Token': '<%= csrfToken %>', 'Content-Type': (opts&&opts.body?'application/json':'text/plain') }, body: opts&&opts.body? JSON.stringify(opts.body):undefined });
-    const data = await resp.json().catch(()=>({}));
-    if(!resp.ok) throw new Error(data.error||('HTTP '+resp.status));
+  const headers = { 'csrf-token': '<%= csrfToken %>', 'x-csrf-token':'<%= csrfToken %>', 'x-xsrf-token':'<%= csrfToken %>' };
+  if(!opts) opts={};
+  if(!opts.body) opts.body = { _csrf: '<%= csrfToken %>' }; // ensure body so csurf parses
+  headers['Content-Type']='application/json';
+  const start = performance.now();
+  const resp = await fetch(endpoint, { method:'POST', headers, body: JSON.stringify(opts.body) });
+    const text = await resp.text();
+    let data={}; try { data = JSON.parse(text); } catch(_) { data={ raw:text }; }
+    if(!resp.ok){ const err = new Error(data.error||('HTTP '+resp.status)); err.detail = data.detail; err.status=resp.status; err.raw=text.slice(0,400); throw err; }
+    data._ms = Math.round(performance.now()-start);
     return data;
   }
+  function flash(btn,state,okLabel){
+    if(!btn) return; const orig=btn.getAttribute('data-orig')||btn.textContent; if(!btn.getAttribute('data-orig')) btn.setAttribute('data-orig',orig);
+    if(state==='load'){ btn.disabled=true; btn.textContent='…'; btn.classList.remove('btn-danger','btn-success'); }
+    else if(state==='ok'){ btn.textContent=okLabel||'Fertig'; btn.classList.add('btn-success'); setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.classList.remove('btn-success'); },1500); }
+  else if(state==='err'){ btn.textContent='Fehler'; btn.classList.add('btn-danger'); setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.classList.remove('btn-danger'); },4000); }
+  }
   if(whatsBtn){ whatsBtn.addEventListener('click', async ()=>{
-    const orig=whatsBtn.textContent; whatsBtn.disabled=true; whatsBtn.textContent='…';
+    flash(whatsBtn,'load');
     try { const data = await call('/editors/generate-whats-new');
       if(data.title_de) document.getElementById('title_de').value=data.title_de;
-      if(data.content_de) document.getElementById('content_de').value=data.content_de;
+      if(data.content_de) setEditorValue('content_de', data.content_de);
       if(!teaser.value && data.stage1){ const short=data.stage1.replace(/\n+/g,' ').slice(0,180); teaser.value=short; }
       updTeaser();
-      whatsBtn.textContent='Fertig'; whatsBtn.classList.add('btn-success');
-      setTimeout(()=>{ whatsBtn.disabled=false; whatsBtn.textContent=orig; whatsBtn.classList.remove('btn-success'); },1500);
-    } catch(e){ whatsBtn.textContent='Fehler'; whatsBtn.classList.add('btn-danger'); setTimeout(()=>{ whatsBtn.disabled=false; whatsBtn.textContent=orig; whatsBtn.classList.remove('btn-danger'); },1800);} }); }
+      flash(whatsBtn,'ok'); showAiSuccess(whatsBtn,data);
+  } catch(e){ flash(whatsBtn,'err'); showAiError(whatsBtn,e); console.warn('AI whats-new error',e); } }); }
   if(sampleBtn){ sampleBtn.addEventListener('click', async ()=>{
-    const orig=sampleBtn.textContent; sampleBtn.disabled=true; sampleBtn.textContent='…';
-    try { const data = await call('/editors/posts/generate-sample');
+    flash(sampleBtn,'load');
+  try { const data = await call('/editors/generate-sample');
       if(data.title_de) document.getElementById('title_de').value=data.title_de;
-      if(data.content_de) document.getElementById('content_de').value=data.content_de;
-      document.getElementById('title_en').value=''; document.getElementById('content_en').value='';
-      sampleBtn.textContent='Fertig'; sampleBtn.classList.add('btn-success');
-      setTimeout(()=>{ sampleBtn.disabled=false; sampleBtn.textContent=orig; sampleBtn.classList.remove('btn-success'); },1500);
-    } catch(e){ sampleBtn.textContent='Fehler'; sampleBtn.classList.add('btn-danger'); setTimeout(()=>{ sampleBtn.disabled=false; sampleBtn.textContent=orig; sampleBtn.classList.remove('btn-danger'); },1800);} }); }
+      if(data.content_de) setEditorValue('content_de', data.content_de);
+      document.getElementById('title_en').value=''; setEditorValue('content_en','');
+      flash(sampleBtn,'ok'); showAiSuccess(sampleBtn,data);
+  } catch(e){ flash(sampleBtn,'err'); showAiError(sampleBtn,e); console.warn('AI sample error',e); } }); }
   if(translateBtn){ translateBtn.addEventListener('click', async ()=>{
-    const orig=translateBtn.textContent; translateBtn.disabled=true; translateBtn.textContent='…';
-    try { const title=document.getElementById('title_de').value; const body=document.getElementById('content_de').value; const prompt=`Translate the following German blog post title and HTML body into English. Keep basic HTML tags intact. Respond as JSON: { \"title\": \"...\", \"content\": \"...\" }.\n\nGerman Title: ${title}\n\nGerman HTML Content:\n${body}`; const data= await call('/editors/api/translate',{ body:{ text: prompt }}); const parsed= JSON.parse(data.translation); document.getElementById('title_en').value=parsed.title||''; document.getElementById('content_en').value=parsed.content||''; translateBtn.textContent='Fertig'; translateBtn.classList.add('btn-success'); setTimeout(()=>{ translateBtn.disabled=false; translateBtn.textContent=orig; translateBtn.classList.remove('btn-success'); },1500);} catch(e){ translateBtn.textContent='Fehler'; translateBtn.classList.add('btn-danger'); setTimeout(()=>{ translateBtn.disabled=false; translateBtn.textContent=orig; translateBtn.classList.remove('btn-danger'); },1800);} }); }
+    flash(translateBtn,'load');
+    try { const title=document.getElementById('title_de').value; const body=getEditorValue('content_de'); const prompt=`Translate the following German blog post title and HTML body into English. Keep basic HTML tags intact. Respond as JSON: { \"title\": \"...\", \"content\": \"...\" }.\n\nGerman Title: ${title}\n\nGerman HTML Content:\n${body}`; const data= await call('/editors/api/translate',{ body:{ text: prompt }});
+      let parsed={};
+      try{ parsed= JSON.parse(data.translation||'{}'); }catch(pe){ console.warn('Translate JSON parse fail', pe, data.translation); }
+      document.getElementById('title_en').value=parsed.title||''; setEditorValue('content_en', parsed.content||'');
+      flash(translateBtn,'ok'); showAiSuccess(translateBtn,data);
+  } catch(e){ flash(translateBtn,'err'); showAiError(translateBtn,e); console.warn('AI translate error',e); } }); }
   // SEO Ableiten
   const seoBtn=document.getElementById('btnSeoFromContent');
   const seoDesc=document.getElementById('seo_description');
   const seoDescCounter=document.getElementById('seoDescCounter');
   function updSeo(){ if(!seoDescCounter) return; const len=(seoDesc.value||'').length; seoDescCounter.textContent=len+' / 160'; seoDescCounter.classList.toggle('text-danger',len>170); }
   if(seoDesc){ seoDesc.addEventListener('input', updSeo); updSeo(); }
-  if(seoBtn){ seoBtn.addEventListener('click',()=>{ const title=document.getElementById('title_de'); const seoTitle=document.querySelector('input[name="seo_title"]'); if(title && seoTitle && !seoTitle.value) seoTitle.value=title.value.slice(0,60); if(seoDesc && !seoDesc.value){ let text=(document.getElementById('content_de').value||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); let snip=text.slice(0,160); const lastDot=snip.lastIndexOf('.'); if(lastDot>70) snip=snip.slice(0,lastDot+1); seoDesc.value=snip; updSeo(); } }); }
+  if(seoBtn){ seoBtn.addEventListener('click',()=>{ const title=document.getElementById('title_de'); const seoTitle=document.querySelector('input[name="seo_title"]'); if(title && seoTitle && !seoTitle.value) seoTitle.value=title.value.slice(0,60); if(seoDesc && !seoDesc.value){ let text=(getEditorValue('content_de')||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); let snip=text.slice(0,160); const lastDot=snip.lastIndexOf('.'); if(lastDot>70) snip=snip.slice(0,lastDot+1); seoDesc.value=snip; updSeo(); } }); }
+  // Quill initialisieren
+  const quilOpts={ theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } };
+  if(window.Quill){
+    window.__quill_de = new Quill('#editor_de', quilOpts);
+    window.__quill_en = new Quill('#editor_en', quilOpts);
+    // Seed initial HTML
+    window.__quill_de.root.innerHTML = document.getElementById('content_de').value;
+    window.__quill_en.root.innerHTML = document.getElementById('content_en').value;
+  }
+  window.getEditorValue = function(id){ if(id==='content_de' && window.__quill_de) return window.__quill_de.root.innerHTML; if(id==='content_en' && window.__quill_en) return window.__quill_en.root.innerHTML; const el=document.getElementById(id); return el?el.value:''; };
+  window.setEditorValue = function(id,val){ if(id==='content_de' && window.__quill_de){ window.__quill_de.root.innerHTML = val||''; return; } if(id==='content_en' && window.__quill_en){ window.__quill_en.root.innerHTML = val||''; return; } const el=document.getElementById(id); if(el) el.value=val||''; };
+  // Media Library (drag/drop + click insert)
+  const grid=document.getElementById('mediaQuickGrid');
+  const catsBtns=document.getElementById('mediaCatsBtns');
+  let currentCat='all';
+  const refresh=document.getElementById('btnRefreshMedia');
+  async function loadMedia(){ if(!grid) return; grid.innerHTML='<div class="col-12 text-center py-3 text-muted"><div class="spinner-border spinner-border-sm"></div></div>'; let url='/editors/api/media'; if(currentCat && currentCat!=='all') url+='?category='+encodeURIComponent(currentCat); try { const resp=await fetch(url); if(!resp.ok) throw new Error('HTTP '+resp.status); const data=await resp.json(); grid.innerHTML='';
+    data.filter(m=>/^image\//.test(m.type||'')).slice(0,300).forEach(m=>{ const col=document.createElement('div'); col.className='col-4 col-sm-3 col-md-3'; const wrap=document.createElement('div'); wrap.className='position-relative border rounded bg-white p-1 h-100 d-flex flex-column media-thumb'; wrap.style.cursor='grab'; wrap.draggable=true; wrap.dataset.path=m.path; const img=document.createElement('img'); img.src=m.path; img.alt=m.alt_text||m.name||''; img.className='img-fluid rounded mb-1 flex-grow-1'; img.style.objectFit='cover'; img.style.maxHeight='90px'; const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-light border copy-link-btn'; btn.innerHTML='<i class="bi bi-clipboard"></i>'; btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); navigator.clipboard.writeText(m.path).then(()=>{ btn.innerHTML='<i class="bi bi-check text-success"></i>'; setTimeout(()=>btn.innerHTML='<i class="bi bi-clipboard"></i>',1200); }); }); wrap.appendChild(img); wrap.appendChild(btn); col.appendChild(wrap); grid.appendChild(col); wrap.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', m.path); ev.dataTransfer.effectAllowed='copy'; }); }); if(!grid.children.length) grid.innerHTML='<div class="col-12 small text-muted py-2">Keine Medien.</div>'; }
+    catch(e){ grid.innerHTML='<div class="col-12 small text-danger">Fehler Laden</div>'; }
+  }
+  function insertImage(path){ // active tab
+    const activePane=document.querySelector('.tab-pane.active'); const isDe=activePane && activePane.id==='lang-de'; const q = isDe ? window.__quill_de : window.__quill_en; if(q){ const r=q.getSelection(true)||{index:q.getLength()}; q.insertEmbed(r.index,'image',path,'user'); q.setSelection(r.index+1,0);} }
+  if(grid){ grid.addEventListener('click', e=>{ const el=e.target.closest('.media-thumb'); if(!el) return; insertImage(el.dataset.path); }); loadMedia(); if(refresh) refresh.addEventListener('click', loadMedia); }
+  if(catsBtns){ catsBtns.addEventListener('click', e=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; currentCat=b.dataset.cat; catsBtns.querySelectorAll('button[data-cat]').forEach(x=>x.classList.toggle('active', x===b)); loadMedia(); }); }
+  function enableDragDrop(q){ if(!q) return; q.root.addEventListener('dragover', e=>{ e.preventDefault(); }); q.root.addEventListener('drop', e=>{ e.preventDefault(); const path=e.dataTransfer.getData('text/plain'); if(path){ const r=q.getSelection(true)||{index:q.getLength()}; q.insertEmbed(r.index,'image',path,'user'); q.setSelection(r.index+1,0);} }); }
+  enableDragDrop(window.__quill_de); enableDragDrop(window.__quill_en);
+  // Featured Image helpers
+  function setFeatured(id,path){ const hidden=document.getElementById('featured_image_id'); const prev=document.getElementById('featuredPreview'); if(hidden) hidden.value=id; if(prev){ prev.innerHTML= path ? '<img src="'+path+'" class="w-100 h-100 object-fit-cover" alt="Featured">' : '<span class=\'text-muted small\'>Kein Bild gewählt</span>'; } }
+  window.clearFeaturedImage=function(){ setFeatured('', ''); };
+  window.openMediaPicker=function(){ const lib=document.getElementById('mediaQuickGrid'); if(lib) lib.scrollIntoView({behavior:'smooth'}); };
+  // Tag Suggest Buttons
+  const tagInput=document.getElementById('tags');
+  document.querySelectorAll('.tag-suggestion').forEach(btn=> btn.addEventListener('click',()=>{ if(!tagInput) return; const cur=(tagInput.value||'').split(',').map(s=>s.trim()).filter(Boolean); const val=btn.dataset.tag; if(!cur.includes(val)){ cur.push(val); tagInput.value=cur.join(', ');} }));
+  // SEO Titel Präfix Vorschlag
+  const formEl=document.querySelector('form[data-seo-prefix]');
+  const SEO_PREFIX = formEl ? formEl.getAttribute('data-seo-prefix') : '';
+  if(SEO_PREFIX){ const seoTitle=document.querySelector('input[name="seo_title"]'); const titleDe=document.getElementById('title_de'); function applyPrefix(){ if(!seoTitle) return; if(!seoTitle.value && titleDe && titleDe.value){ seoTitle.value = (SEO_PREFIX + titleDe.value).slice(0,255); } }
+    if(titleDe) titleDe.addEventListener('blur', applyPrefix);
+  }
+  // AI Parse Error Badge (shows last error if any)
+  function showParseBadge(btn, parseError){ if(!btn) return; let badge=btn.parentElement.querySelector('.ai-parse-error'); if(parseError){ if(!badge){ badge=document.createElement('span'); badge.className='badge bg-danger ms-2 ai-parse-error'; badge.style.cursor='help'; btn.parentElement.appendChild(badge); } badge.textContent='Parse?'; badge.title=parseError; } }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function showAiArea(type, msg){ const wrap=document.getElementById('aiFeedback'); const box=document.getElementById('aiFeedbackBox'); if(!wrap||!box) return; wrap.style.display='block'; box.className='alert p-2 mb-0 alert-'+(type==='err'?'danger': (type==='ok'?'success':'info')); const pre=box.querySelector('pre.ai-log-text'); if(pre){ pre.innerHTML=escapeHtml(msg); } }
+  function showAiError(btn, err){ showAiArea('err', `[${btn.id||'AI'}] ${err.detail||err.message||'Unbekannter Fehler'}${err.status? ' (HTTP '+err.status+')':''}${err.raw? '\nRaw:'+err.raw.slice(0,200):''}`); }
+  function showAiSuccess(btn, data){ showAiArea('ok', `[${btn.id}] OK in ${data._ms||'?'} ms${data.parse_error? ' (Parse-Warnung)':''}`); }
+  // Wrap existing AI handlers to display parse errors when present (monkey-patch flash OK path)
+  const origCall = call; call = async function(endpoint, opts){ const data= await origCall(endpoint, opts); if(data && data.parse_error){ if(endpoint.includes('generate-whats-new')) showParseBadge(whatsBtn, data.parse_error); if(endpoint.includes('generate-sample')) showParseBadge(sampleBtn, data.parse_error); if(endpoint.includes('translate')) showParseBadge(translateBtn, data.parse_error); } return data; };
 })();
 </script>
+<style>
+#featuredPreview img{object-fit:cover;}
+.media-thumb{transition:box-shadow .2s, transform .2s;}
+.media-thumb:hover{box-shadow:0 0 0 3px #0d6efd55; transform:scale(1.02);} 
+ #aiFeedbackBox{max-height:240px; overflow:auto; font-family:var(--bs-font-monospace);}
+ #aiFeedbackBox pre{white-space:pre-wrap;}
+</style>

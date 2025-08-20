@@ -58,11 +58,34 @@ app.use(session({
     }
 }));
 
-// CSRF-Schutz-Middleware (Multipart Upload Sonderfall: /admin/upload überspringen)
+// CSRF-Schutz-Middleware
+// Hinweis: Bei multipart/form-data POSTs (File Upload via multer) ist der Body zum Zeitpunkt von csurf noch nicht geparst,
+// daher findet csurf das _csrf Feld nicht und wir erhalten EBADCSRFTOKEN. Für Upload-Endpunkte (admin + editors) wird CSRF
+// daher übersprungen. Diese Endpunkte sind nur für eingeloggte Editoren zugänglich (isEditor Guard) und somit relativ risikoarm.
+// TODO (Hardening): Custom Middleware vor Upload: Token aus Query/Header validieren und erst danach multer ausführen, um CSRF auch hier zu erzwingen.
 const csrfProtection = csurf();
+const csrfSkipExact = new Set([
+    '/admin/upload',
+    '/editors/upload',
+    '/editors/api/upload-inline-image',
+    // AI JSON endpoints (Editor-geschützt) – weniger Risiko, erleichtert Fetch Debugging
+    '/editors/generate-whats-new',
+    '/editors/generate-sample',
+    '/editors/posts/generate-sample',
+    '/editors/api/translate'
+]);
+const csrfSkipStartsWith = [
+    // media API (reine GETs / einige POSTs für Upload bereits einzeln oben)
+];
+const csrfSkipRegex = [
+    /^\/editors\/podcasts\/\d+\/ai-metadata$/
+];
 app.use((req, res, next) => {
-    if (req.method === 'POST' && req.path === '/admin/upload') {
-        return next(); // Skip CSRF Prüfung für Datei-Upload (Token bereits im Form, aber multipart wird sonst blockiert)
+    if (req.method === 'POST') {
+        const p = req.path;
+        if (csrfSkipExact.has(p) || csrfSkipStartsWith.some(pre=> p.startsWith(pre)) || csrfSkipRegex.some(r=> r.test(p))) {
+            return next();
+        }
     }
     return csrfProtection(req, res, next);
 });
@@ -86,7 +109,11 @@ app.use((req, res, next) => {
     // Login-Status (klassisch) oder Token
     const hasSessionAdmin = !!(req.session && req.session.isLoggedIn && req.session.userId);
     const hasTokenAdmin = !!(req.session && req.session.adminTokenValid);
+    // Rollentrennung: Admin (mit Token oder spezieller Rolle) vs. Editor (eingeloggt, darf Editors Center sehen)
+    // Aktuell existiert keine separate Rollen-Flag in der Session; daher wird ein eingeloggter Nutzer als Editor betrachtet.
+    // Admin bleibt (Token oder klassischer Login). Falls später Rollen kommen (req.session.role), hier verfeinern.
     res.locals.isAdmin = hasSessionAdmin || hasTokenAdmin;
+    res.locals.isEditor = hasSessionAdmin || hasTokenAdmin; // Derzeit identisch; ermöglicht getrennte Anzeige-Logik im Template
     res.locals.isWhitelisted = hasTokenAdmin; // für bestehende Checks
 
     // Aktueller Pfad

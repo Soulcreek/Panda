@@ -1,43 +1,25 @@
-<!-- views/partials/admin_nav.ejs -->
+<!-- views/partials/admin_nav.ejs redesigned to mirror editors nav -->
 <div class="admin-nav bg-white border-bottom mb-4 admin-nav-shell">
     <div class="container">
-    <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2 admin-nav-groups position-relative">
-            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="info">
-                <span class="nav-group-label badge rounded-pill text-bg-primary-subtle border border-primary-subtle small text-uppercase fw-semibold me-1">Info</span>
-                <a class="nav-link px-2" href="/admin">Dashboard</a>
-                <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
-                <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
-                <a class="nav-link px-2" href="/admin/tools">Tools</a>
-            </div>
-            <div class="vr d-none d-lg-inline flex-shrink-0" style="height:32px;opacity:.25;"></div>
-                                    <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="links">
-                                            <span class="nav-group-label badge rounded-pill text-bg-warning-subtle border border-warning-subtle small text-uppercase fw-semibold me-1">Links</span>
-                                            <a class="btn btn-sm btn-outline-primary" href="/editors">Editors Center</a>
-                                            <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
-                                                <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
-                                            <% } %>
-                                    </div>
+        <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2">
+            <a class="nav-link px-2" href="/admin">Dashboard</a>
+            <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
+            <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
+            <a class="nav-link px-2" href="/admin/tools">Tools</a>
+            <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
+                <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
+            <% } %>
+            <a class="btn btn-sm btn-outline-primary" href="/editors">Editors Center</a>
             <a class="btn btn-sm btn-outline-danger ms-auto" href="/logout">Abmelden</a>
         </nav>
     </div>
 </div>
 <style>
-.admin-nav-shell{backdrop-filter:blur(6px);}
+.admin-nav-shell{backdrop-filter:blur(6px);} 
+.admin-nav-shell .nav-link{color:#444;}
+.admin-nav-shell .nav-link.active{font-weight:600;color:#0d6efd;}
 html.dark-mode .admin-nav-shell{background:#1c1c1c !important; border-color:#2a2a2a !important;}
-.admin-nav-groups .nav-link{color:#555;}
-.admin-nav-groups .nav-link:hover{color:#000;}
-html.dark-mode .admin-nav-groups .nav-link{color:#ccc;}
-html.dark-mode .admin-nav-groups .nav-link:hover{color:#fff;}
-.admin-nav-groups .nav-group-label{letter-spacing:.5px;}
-html.dark-mode .admin-nav-groups .nav-group-label{color:#888 !important;}
-/* Active link highlight */
-.admin-nav-groups .nav-link.active{position:relative;font-weight:600;color:#0d6efd;}
-.admin-nav-groups .nav-link.active::after{content:"";position:absolute;left:8px;right:8px;bottom:-6px;height:3px;border-radius:2px;background:#0d6efd;}
-html.dark-mode .admin-nav-groups .nav-link.active{color:#4dabff;}
-html.dark-mode .admin-nav-groups .nav-link.active::after{background:#4dabff;}
+html.dark-mode .admin-nav-shell .nav-link{color:#ccc;}
+html.dark-mode .admin-nav-shell .nav-link.active{color:#4dabff;}
 </style>
-<script>
-// Mark active nav link by comparing pathname (basic)
-(()=>{ try { const path = window.location.pathname; document.querySelectorAll('.admin-nav a.nav-link').forEach(a=>{ if(path===a.getAttribute('href')) a.classList.add('active'); }); } catch(e){} })();
-</script>
-</style>
+<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.admin-nav-shell .nav-link').forEach(a=>{if(a.getAttribute('href')===p) a.classList.add('active');});}catch(e){}})();</script>
