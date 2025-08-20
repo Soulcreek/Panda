@@ -1,0 +1,117 @@
+<%- include('partials/header') %>
+<%- include('partials/editors_nav') %>
+<div class="container my-5">
+  <h1 class="h3 mb-4">Page Generator</h1>
+  <form method="POST" action="/editors/advanced-pages/generate" class="card mb-4 p-3" id="apGenForm">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Thema / Topic</label>
+        <input type="text" name="topic" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Intent</label>
+        <select name="intent" class="form-select">
+          <option value="inform">Inform</option>
+          <option value="promote">Promote</option>
+          <option value="convert">Convert</option>
+          <option value="overview">Overview</option>
+          <option value="faq">FAQ</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Style</label>
+        <select name="styleProfile" class="form-select">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="vibrant">Vibrant</option>
+          <option value="calm">Calm</option>
+          <option value="minimal">Minimal</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Max Posts</label>
+        <input type="number" name="maxPosts" class="form-control" value="3" min="0" max="12">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Sections (Komma getrennt)</label>
+        <input type="text" name="sections" class="form-control" placeholder="hero,posts,cta">
+        <div class="form-text">Mögliche: hero,intro,highlights,posts,podcasts,faq,cta</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Template (optional)</label>
+        <select name="templateId" class="form-select">
+          <option value="">(auto)</option>
+          <% (templates||[]).forEach(t=>{ %>
+            <option value="<%= t.id %>"><%= t.title %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" id="apGenPreviewBtn">Preview (DryRun)</button>
+        <button class="btn btn-primary">Generieren & Speichern</button>
+      </div>
+    </div>
+  </form>
+  <div id="apGenPreview" class="d-none card p-3">
+    <h5>Preview Layout JSON</h5>
+    <pre class="small mb-0" style="max-height:420px;overflow:auto;" id="apGenPreviewPre"></pre>
+  </div>
+  <div class="card mt-4">
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <div><strong>Letzte Generierungen</strong> <small class="text-muted">(max 20)</small></div>
+      <div class="d-flex gap-2 align-items-center small">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshGenLogs">Aktualisieren</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle" id="genLogTable">
+        <thead><tr><th>ID</th><th>Topic</th><th>Intent</th><th>Sections</th><th>Zeit</th><th>Details</th></tr></thead>
+        <tbody>
+          <% if(genLogs && genLogs.length){ genLogs.forEach(g=>{ %>
+            <tr data-id="<%= g.id %>">
+              <td><%= g.id %></td>
+              <td><%= g.topic %></td>
+              <td><%= g.intent %></td>
+              <td><%= g.sections %></td>
+              <td class="small text-muted"><%= new Date(g.created_at).toLocaleString('de-DE') %></td>
+              <td><button type="button" class="btn btn-sm btn-outline-primary" data-view-gen>View</button></td>
+            </tr>
+          <% }) } else { %>
+            <tr><td colspan="6" class="text-muted">Keine Einträge</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>(function(){
+  const form=document.getElementById('apGenForm');
+  const btn=document.getElementById('apGenPreviewBtn');
+  const box=document.getElementById('apGenPreview');
+  const pre=document.getElementById('apGenPreviewPre');
+  btn.addEventListener('click', async ()=>{
+    const fd=new FormData(form); fd.append('dryRun','1');
+    const res = await fetch('/editors/advanced-pages/generate',{ method:'POST', body: fd });
+    if(!res.ok){ alert('Fehler bei Preview'); return; }
+    const data = await res.json();
+    const view = { research_summary: data.research && data.research.summary, articles: (data.research && data.research.articles||[]).map(a=>({title:a.title, link:a.link})), diagnostics: data.diagnostics, layout: data.layout };
+    pre.textContent = JSON.stringify(view, null, 2);
+    box.classList.remove('d-none');
+  });
+  const modalHtml = `<div class=\"modal fade\" id=\"genDiagModal\" tabindex=\"-1\"><div class=\"modal-dialog modal-lg modal-dialog-scrollable\"><div class=\"modal-content\"><div class=\"modal-header\"><h5 class=\"modal-title\">Generator Details</h5><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\"></button></div><div class=\"modal-body\"><pre class=\"small mb-0\" style=\"max-height:60vh;overflow:auto\" id=\"genDiagPre\">Lade…</pre></div><div class=\"modal-footer\"><button type=\"button\" class=\"btn btn-secondary\" data-bs-dismiss=\"modal\">Schließen</button></div></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  const diagPre = document.getElementById('genDiagPre');
+  let diagModal;
+  function openDiag(){ if(!diagModal){ diagModal = new bootstrap.Modal(document.getElementById('genDiagModal')); } diagModal.show(); }
+  document.getElementById('genLogTable')?.addEventListener('click', async e=>{
+    const btn = e.target.closest('[data-view-gen]'); if(!btn) return; const tr=btn.closest('tr'); const id=tr.getAttribute('data-id'); if(!id) return;
+    diagPre.textContent='Lade…'; openDiag();
+    try { const r = await fetch('/editors/advanced-pages/generation/'+id); if(!r.ok) throw new Error('HTTP '+r.status); const data = await r.json(); diagPre.textContent = JSON.stringify(data, null, 2); } catch(err){ diagPre.textContent='Fehler: '+err.message; }
+  });
+  document.getElementById('btnRefreshGenLogs')?.addEventListener('click', async()=>{
+    const tbody = document.querySelector('#genLogTable tbody'); if(!tbody) return; tbody.innerHTML='<tr><td colspan=\"6\" class=\"text-muted\">Lade…</td></tr>';
+    try { const r = await fetch('/editors/advanced-pages/generation?limit=20'); const list = await r.json(); tbody.innerHTML=''; if(!list.length){ tbody.innerHTML='<tr><td colspan=\"6\" class=\"text-muted\">Keine Einträge</td></tr>'; return; } list.forEach(g=>{ const tr=document.createElement('tr'); tr.dataset.id=g.id; tr.innerHTML=`<td>${g.id}</td><td>${g.topic}</td><td>${g.intent}</td><td>${g.sections}</td><td class='small text-muted'>${new Date(g.created_at).toLocaleString('de-DE')}</td><td><button class='btn btn-sm btn-outline-primary' data-view-gen>View</button></td>`; tbody.appendChild(tr); }); } catch(_){ tbody.innerHTML='<tr><td colspan=\"6\" class=\"text-danger\">Fehler beim Laden</td></tr>'; }
+  });
+})();</script>
+<%- include('partials/footer') %>

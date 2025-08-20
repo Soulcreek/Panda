@@ -1,0 +1,31 @@
+<%- include('partials/header') %>
+<%- include('partials/editors_nav') %>
+<div class="container my-5">
+  <h1><%= podcast ? 'Podcast bearbeiten' : 'Neuen Podcast erstellen' %></h1>
+  <form action="<%= podcast ? '/editors/podcasts/edit/' + podcast.id : '/editors/podcasts/new' %>" method="POST" id="podcastForm">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="mb-3"><label class="form-label">Titel</label><input class="form-control" name="title" id="title" value="<%= podcast?podcast.title:'' %>" required></div>
+    <div class="mb-3"><label class="form-label d-flex justify-content-between align-items-center">Beschreibung <button type="button" id="btnAiMeta" class="btn btn-sm btn-outline-primary" <%= podcast ? '' : 'disabled' %>>AI Meta</button></label><textarea class="form-control" name="description" id="description" rows="5"><%= podcast?podcast.description:'' %></textarea><div class="form-text">AI Meta generiert SEO Felder (nur nach Speichern verfügbar).</div></div>
+    <div class="mb-3"><label class="form-label d-flex justify-content-between align-items-center">Audio-Datei <button type="button" id="select-audio-btn" class="btn btn-sm btn-outline-secondary">Aus Medienbibliothek</button></label><input class="form-control" name="audio_url" id="audio_url" value="<%= podcast?podcast.audio_url:'' %>" placeholder="/audio/datei.mp3" required></div>
+    <div class="mb-3"><label class="form-label">Tags (Komma)</label><input class="form-control" name="tags" value="<%= podcast?(podcast.tags||''):'' %>"></div>
+    <div class="card mb-3"><div class="card-header">SEO</div><div class="card-body row g-3">
+      <div class="col-md-6"><label class="form-label">SEO Titel</label><input name="seo_title" id="seo_title" class="form-control" value="<%= podcast?(podcast.seo_title||''):'' %>"></div>
+      <div class="col-md-6"><label class="form-label">SEO Beschreibung</label><input name="seo_description" id="seo_description" class="form-control" value="<%= podcast?(podcast.seo_description||''):'' %>"></div>
+      <div class="col-md-12"><label class="form-label">Meta Keywords</label><input name="meta_keywords" id="meta_keywords" class="form-control" value="<%= podcast?(podcast.meta_keywords||''):'' %>"></div>
+      <div class="col-md-6"><label class="form-label">Veröffentlicht am</label><input type="datetime-local" name="published_at" class="form-control" value="<%= podcast && podcast.published_at ? new Date(podcast.published_at).toISOString().slice(0,16):'' %>"></div>
+    </div></div>
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Speichern</button><a href="/editors/podcasts" class="btn btn-secondary">Abbrechen</a></div>
+  </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{ const btn=document.getElementById('select-audio-btn'); if(btn){ btn.addEventListener('click',()=>{ if(typeof openMediaLibraryModal==='function'){ openMediaLibraryModal({ returnObject:true, callback:(m)=>{ if(m.type && m.type.startsWith('audio/')){ document.getElementById('audio_url').value=m.path || ('/uploads/'+m.name); } else alert('Bitte eine Audiodatei wählen.'); }}); } else alert('Medienbibliothek nicht geladen.'); }); }});
+(function(){
+  const metaBtn=document.getElementById('btnAiMeta'); if(!metaBtn) return;
+  const hasPodcast = !!document.getElementById('podcastForm').action.match(/\/edit\//);
+  metaBtn.addEventListener('click', async ()=>{
+    if(!hasPodcast){ return; }
+    const orig=metaBtn.textContent; metaBtn.disabled=true; metaBtn.textContent='…';
+    try { const resp= await fetch('/editors/podcasts/<%= podcast?podcast.id:0 %>/ai-metadata',{ method:'POST', headers:{'CSRF-Token': (window.CSRF_TOKEN||'')} }); const data= await resp.json(); if(!resp.ok) throw new Error(data.error||('HTTP '+resp.status)); if(data.seo_title && !document.getElementById('seo_title').value) document.getElementById('seo_title').value=data.seo_title; if(data.seo_description && !document.getElementById('seo_description').value) document.getElementById('seo_description').value=data.seo_description; if(data.meta_keywords && !document.getElementById('meta_keywords').value) document.getElementById('meta_keywords').value=data.meta_keywords; metaBtn.textContent='Fertig'; metaBtn.classList.remove('btn-outline-primary'); metaBtn.classList.add('btn-success'); setTimeout(()=>{ metaBtn.classList.remove('btn-success'); metaBtn.classList.add('btn-outline-primary'); metaBtn.textContent=orig; metaBtn.disabled=false; },1700);} catch(e){ metaBtn.textContent='Fehler'; metaBtn.classList.remove('btn-outline-primary'); metaBtn.classList.add('btn-danger'); setTimeout(()=>{ metaBtn.classList.remove('btn-danger'); metaBtn.classList.add('btn-outline-primary'); metaBtn.textContent=orig; metaBtn.disabled=false; },2000);} });
+})();
+</script>
+<%- include('partials/footer') %>

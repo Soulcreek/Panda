@@ -1,43 +1,17 @@
 <%- include('partials/header') %>
-<%- include('partials/admin_nav') %>
-<div class="container my-5" id="timelineEditorRoot">
-  <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
-    <div>
-  <h2 class="mb-1">Timeline Editor <a href="/pandas-way-alt5?level=<%= level %>" target="_blank" class="small ms-2 text-decoration-none" title="Öffentliche Ansicht öffnen"><i class="bi bi-box-arrow-up-right"></i></a></h2>
-      <div class="small text-muted">Site: <code><%= site %></code> | Level <%= level %></div>
-    </div>
-    <form class="d-flex" method="get" action="/admin/timeline-editor">
-      <input type="hidden" name="site" value="<%= site %>">
-      <select class="form-select form-select-sm me-2" name="level">
-        <% const maxLevels = (siteConfig && siteConfig.level_count) ? siteConfig.level_count : 10; 
-           for(let i=1;i<= maxLevels; i++){ %>
-          <option value="<%= i %>" <%= level===i? 'selected':'' %>>Level <%= i %></option>
-        <% } %>
-      </select>
-      <button class="btn btn-sm btn-outline-primary">Wechseln</button>
-      <a href="/admin/timeline-editor?site=<%= encodeURIComponent(site) %>" class="btn btn-sm btn-secondary ms-2">Zurück zu Levels</a>
-    </form>
+<div class="container py-5">
+  <div class="alert alert-warning shadow-sm">
+    <h1 class="h5 mb-2">Timeline Editor (Legacy)</h1>
+    <p>Der Timeline Editor wurde ins <strong>Editors Center</strong> verschoben.</p>
+    <ul class="small mb-3">
+      <li>Levels: <code>/editors/timeline?site=&lt;site&gt;</code></li>
+      <li>Level bearbeiten: <code>/editors/timeline?site=&lt;site&gt;&level=&lt;level&gt;</code></li>
+    </ul>
+    <a href="/editors/timeline" class="btn btn-primary btn-sm">Zum Editors Timeline</a>
   </div>
-  <div class="alert alert-info py-2 small mb-4">Bearbeite Level-spezifische Meta unten (Titel, Bild) und füge Karten hinzu. Reihenfolge durch Position oder Drag & Drop.</div>
-  <div class="card mb-4 shadow-sm">
-    <div class="card-body">
-      <form class="row g-3 align-items-end" method="post" action="/admin/timeline-editor/level-meta/<%= site %>/<%= level %>" id="levelMetaForm">
-        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <% } %>
-  <textarea id="levelMetaSeed" hidden><%- (levelMeta && levelMeta.content_html) ? levelMeta.content_html : '' %></textarea>
-        <div class="col-md-3">
-          <label class="form-label">Level Titel</label>
-          <input class="form-control form-control-sm" name="title" value="<%= (levelMeta && levelMeta.title) || '' %>">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Bild (Pfad)</label>
-          <div class="input-group input-group-sm">
-            <input class="form-control" name="image_path" id="levelImagePath" value="<%= (levelMeta && levelMeta.image_path) || '' %>">
-            <button type="button" class="btn btn-outline-secondary" id="btnPickLevelImage"><i class="bi bi-image"></i></button>
-          </div>
-        </div>
-        <div class="col-md-3">
+  <p class="text-muted small">Archiv: <code>views/legacy/admin_timeline_editor.ejs</code></p>
+</div>
+<%- include('partials/footer') %>
           <label class="form-label">Icon (Bootstrap Klasse)</label>
           <input class="form-control form-control-sm" name="icon" placeholder="z.B. bi-shield-lock" value="<%= (levelMeta && levelMeta.icon) || '' %>">
           <div class="form-text">Optional: Bootstrap Icon Klasse ohne &lt;i&gt; Tag.</div>
@@ -267,7 +241,7 @@
   async function loadEmbeddedMedia(){
     if(!embeddedGrid) return;
     embeddedGrid.innerHTML = '<div class="col-12 text-center py-3 text-muted"><div class="spinner-border spinner-border-sm"></div></div>';
-    let url = '/admin/api/media';
+  let url = '/editors/api/media';
     const cat = embeddedFilter.value;
     if(cat && cat !== 'all') url += '?category='+encodeURIComponent(cat);
     try {

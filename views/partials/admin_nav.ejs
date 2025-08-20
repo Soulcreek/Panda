@@ -1,26 +1,22 @@
 <!-- views/partials/admin_nav.ejs -->
-<div class="admin-nav bg-light border-bottom mb-4 admin-nav-shell">
+<div class="admin-nav bg-white border-bottom mb-4 admin-nav-shell">
     <div class="container">
     <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2 admin-nav-groups position-relative">
-            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="content">
-                <span class="nav-group-label badge rounded-pill text-bg-primary-subtle border border-primary-subtle small text-uppercase fw-semibold me-1">Content</span>
-                <a class="nav-link px-2" href="/admin/posts">Beiträge</a>
-                <a class="nav-link px-2" href="/admin/media">Medien</a>
-                <a class="nav-link px-2" href="/admin/podcasts">Podcasts</a>
-                <a class="nav-link px-2" href="/admin/advanced-pages">Advanced Pages</a>
-                <a class="nav-link px-2" href="/admin/timeline-editor">Timeline Editor</a>
+            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="info">
+                <span class="nav-group-label badge rounded-pill text-bg-primary-subtle border border-primary-subtle small text-uppercase fw-semibold me-1">Info</span>
+                <a class="nav-link px-2" href="/admin">Dashboard</a>
+                <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
+                <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
+                <a class="nav-link px-2" href="/admin/tools">Tools</a>
             </div>
             <div class="vr d-none d-lg-inline flex-shrink-0" style="height:32px;opacity:.25;"></div>
-            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="settings">
-                <span class="nav-group-label badge rounded-pill text-bg-warning-subtle border border-warning-subtle small text-uppercase fw-semibold me-1">Settings</span>
-                <a class="nav-link px-2" href="/admin">Dashboard</a>
-                <a class="nav-link px-2" href="/admin/tools">Tools</a>
-                <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
-                <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
-                <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
-                    <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
-                <% } %>
-            </div>
+                                    <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="links">
+                                            <span class="nav-group-label badge rounded-pill text-bg-warning-subtle border border-warning-subtle small text-uppercase fw-semibold me-1">Links</span>
+                                            <a class="btn btn-sm btn-outline-primary" href="/editors">Editors Center</a>
+                                            <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
+                                                <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
+                                            <% } %>
+                                    </div>
             <a class="btn btn-sm btn-outline-danger ms-auto" href="/logout">Abmelden</a>
         </nav>
     </div>

@@ -1,0 +1,16 @@
+<div class="admin-nav bg-white border-bottom mb-4 editors-nav-shell">
+  <div class="container">
+    <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2">
+      <a class="nav-link px-2" href="/editors">Dashboard</a>
+      <a class="nav-link px-2" href="/editors/posts">Beiträge</a>
+      <a class="nav-link px-2" href="/editors/media">Medien</a>
+      <a class="nav-link px-2" href="/editors/podcasts">Podcasts</a>
+      <a class="nav-link px-2" href="/editors/advanced-pages">Advanced Pages</a>
+      <a class="nav-link px-2" href="/editors/timeline-editor">Timeline</a>
+  <a class="btn btn-sm btn-outline-warning" href="/admin">Settings Center</a>
+      <a class="btn btn-sm btn-outline-danger ms-auto" href="/logout">Abmelden</a>
+    </nav>
+  </div>
+</div>
+<style>.editors-nav-shell{backdrop-filter:blur(6px);} .editors-nav-shell .nav-link{color:#444;} .editors-nav-shell .nav-link.active{font-weight:600;color:#0d6efd;}</style>
+<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.editors-nav-shell .nav-link').forEach(a=>{if(a.getAttribute('href')===p) a.classList.add('active');});}catch(e){}})();</script>

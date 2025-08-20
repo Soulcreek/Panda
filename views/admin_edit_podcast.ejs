@@ -1,67 +1,14 @@
 <%- include('partials/header') %>
-<%- include('partials/admin_nav') %>
-
-<div class="container my-5">
-    <h1><%= podcast ? 'Podcast bearbeiten' : 'Neuen Podcast erstellen' %></h1>
-
-    <form action="<%= podcast ? '/admin/podcasts/edit/' + podcast.id : '/admin/podcasts/new' %>" method="POST">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <div class="mb-3">
-            <label for="title" class="form-label">Titel</label>
-            <input type="text" class="form-control" id="title" name="title" value="<%= podcast ? podcast.title : '' %>" required>
-        </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Beschreibung</label>
-            <textarea class="form-control" id="description" name="description" rows="5"><%= podcast ? podcast.description : '' %></textarea>
-        </div>
-        <div class="mb-3">
-            <label for="audio_url" class="form-label d-flex justify-content-between align-items-center">Audio-Datei
-                <button type="button" id="select-audio-btn" class="btn btn-sm btn-outline-secondary">Aus Medienbibliothek</button>
-            </label>
-            <input type="text" class="form-control" id="audio_url" name="audio_url" value="<%= podcast ? podcast.audio_url : '' %>" placeholder="/audio/dateiname.mp3" required>
-            <div class="form-text">Wähle eine hochgeladene Audiodatei oder gib einen Pfad an (z.B. /audio/beispiel.mp3)</div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Tags (Komma)</label>
-            <input type="text" class="form-control" name="tags" value="<%= podcast ? (podcast.tags || '') : '' %>">
-        </div>
-        <div class="card mb-3">
-            <div class="card-header">SEO</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">SEO Titel</label>
-                    <input type="text" class="form-control" name="seo_title" value="<%= podcast ? (podcast.seo_title || '') : '' %>" maxlength="255">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">SEO Beschreibung</label>
-                    <textarea class="form-control" name="seo_description" rows="2" maxlength="255"><%= podcast ? (podcast.seo_description || '') : '' %></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Meta Keywords</label>
-                    <input type="text" class="form-control" name="meta_keywords" value="<%= podcast ? (podcast.meta_keywords || '') : '' %>">
-                </div>
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary">Speichern</button>
-        <a href="/admin/podcasts" class="btn btn-secondary">Abbrechen</a>
-    </form>
+<div class="container py-5">
+    <div class="alert alert-warning shadow-sm">
+        <h1 class="h4 mb-2">Podcast Editor (Legacy)</h1>
+        <p>Dieser Editor wurde verlagert. Bitte nutze das <strong>Editors Center</strong>.</p>
+        <ul class="small mb-3">
+            <li>Neuer Podcast: <code>/editors/podcasts/new</code></li>
+            <li>Bearbeiten: <code>/editors/podcasts/edit/:id</code></li>
+        </ul>
+        <a href="/editors/podcasts" class="btn btn-primary">Zum Editors Center</a>
+    </div>
+    <p class="text-muted small">Archivierte Original-Datei: <code>views/legacy/admin_edit_podcast.ejs</code></p>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', ()=>{
-    const btn = document.getElementById('select-audio-btn');
-    if(btn){
-        btn.addEventListener('click', ()=>{
-            // Re-use media modal, filter to audio
-            if(typeof openMediaLibraryModal==='function'){
-                openMediaLibraryModal({ filter:null, returnObject:true, callback:(media)=>{
-                        if(media.type && media.type.startsWith('audio/')){
-                            document.getElementById('audio_url').value = media.path || ('/uploads/'+media.filename);
-                        } else { alert('Bitte eine Audiodatei wählen.'); }
-                }});
-            } else { alert('Medienbibliothek nicht geladen.'); }
-        });
-    }
-});
-</script>
 <%- include('partials/footer') %>

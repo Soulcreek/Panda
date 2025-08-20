@@ -386,6 +386,42 @@ router.get('/blog.rss', async (req, res)=>{
   } catch(e){ console.error('Blog RSS Fehler', e); res.status(500).send('Blog RSS Fehler'); }
 });
 
+// Individual blog post by slug with SEO meta
+router.get('/blog/:slug', async (req,res)=>{
+  try {
+    const slug = req.params.slug; if(!slug) return res.redirect('/blog');
+    const [rows] = await pool.query(`SELECT p.*, m.path AS featured_image_path FROM posts p LEFT JOIN media m ON p.featured_image_id=m.id WHERE p.slug=? AND p.status='published' AND COALESCE(p.is_deleted,0)=0 LIMIT 1`, [slug]);
+    if(!rows.length) return res.status(404).render('partials/error_404',{ title:'Nicht gefunden' });
+    const post = rows[0];
+    // Basic related posts (same tags)
+    let related=[];
+    if(post.tags){
+      const firstTag = post.tags.split(',')[0];
+      if(firstTag){
+        const [rel] = await pool.query(`SELECT id,title,slug,whatsnew,published_at FROM posts WHERE id<>? AND tags LIKE ? AND status='published' AND COALESCE(is_deleted,0)=0 ORDER BY published_at DESC LIMIT 5`, [post.id, '%'+firstTag.trim()+'%']);
+        related = rel;
+      }
+    }
+    // Expose SEO fields
+  const currentUrl = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/,'') + req.originalUrl;
+  res.render('blog_detail',{ title: post.seo_title || post.title, post, related, currentUrl, seo:{ title: post.seo_title||post.title, description: post.seo_description||post.whatsnew||'', keywords: post.meta_keywords||'', image: post.featured_image_path||'', url: currentUrl, type: 'article' } });
+  } catch(e){ console.error('Slug route Fehler', e); res.status(500).render('partials/error_500',{ title:'Fehler', error:e }); }
+});
+
+// Public Advanced Page by slug
+router.get('/pages/:slug', async (req,res)=>{
+  const slug = req.params.slug;
+  try {
+    const [rows] = await pool.query('SELECT * FROM advanced_pages WHERE slug=? AND is_template=0 AND status="published" LIMIT 1',[slug]);
+    if(!rows.length) return res.status(404).render('partials/error_404',{ title:'Seite nicht gefunden' });
+    const page = rows[0];
+  const currentUrl = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/,'') + req.originalUrl;
+  const fallbackDesc = (page.rendered_html||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180);
+  const seo = { title: page.seo_title||page.title, description: page.seo_description||fallbackDesc, keywords: page.meta_keywords||'', image: page.meta_image||'', url: currentUrl, type:'website' };
+    res.render('advanced_page_public', { title: page.title, page, currentUrl, seo });
+  } catch(e){ console.error('Public adv page Fehler', e); res.status(500).render('partials/error_500',{ title:'Fehler', error:e }); }
+});
+
     console.error('Fehler beim Generieren des RSS Feeds:', err);
     res.status(500).send('RSS Feed Fehler');
   }

@@ -1,46 +1,14 @@
 <%- include('partials/header') %>
-<%- include('partials/admin_nav') %>
-
-<div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Podcasts verwalten</h1>
-        <a href="/admin/podcasts/new" class="btn btn-primary">Neuen Podcast hinzufügen</a>
+<div class="container py-5">
+    <div class="alert alert-warning shadow-sm">
+        <h1 class="h4 mb-2">Podcasts (Legacy)</h1>
+        <p class="mb-2">Die Podcast-Verwaltung wurde ins <strong>Editors Center</strong> umgezogen.</p>
+        <ul class="small mb-3">
+            <li>Übersicht: <code>/editors/podcasts</code></li>
+            <li>Neu: <code>/editors/podcasts/new</code></li>
+        </ul>
+        <a href="/editors/podcasts" class="btn btn-primary">Zum Editors Center</a>
     </div>
-
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Titel</th>
-                <th>Veröffentlicht am</th>
-                <th>AI</th>
-                <th>Aktionen</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% if (podcasts && podcasts.length > 0) { %>
-                <% podcasts.forEach(podcast => { %>
-                    <tr>
-                        <td><%= podcast.title %></td>
-                        <td><%= new Date(podcast.published_at).toLocaleDateString('de-DE') %></td>
-                        <td>
-                            <form action="/admin/podcasts/<%= podcast.id %>/ai-metadata" method="POST" class="d-inline">
-                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                <button class="btn btn-sm btn-outline-primary" title="AI SEO/Tags">AI</button>
-                            </form>
-                        </td>
-                        <td>
-                            <a href="/admin/podcasts/edit/<%= podcast.id %>" class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
-                            <!-- Delete Button Form -->
-                        </td>
-                    </tr>
-                <% }); %>
-            <% } else { %>
-                <tr>
-                    <td colspan="4" class="text-center">Keine Podcasts gefunden.</td>
-                </tr>
-            <% } %>
-        </tbody>
-    </table>
+    <p class="text-muted small">Archivierte Original-Version: <code>views/legacy/admin_podcasts.ejs</code></p>
 </div>
-
 <%- include('partials/footer') %>

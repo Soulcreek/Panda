@@ -1,0 +1,40 @@
+<%- include('partials/header') %>
+<%- include('partials/editors_nav') %>
+<div class="container my-4">
+  <h1 class="h3 mb-4">Editors Dashboard</h1>
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100"><div class="card-body small"><div class="text-muted">Beiträge</div><div class="display-6"><%= stats.posts %></div></div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100"><div class="card-body small"><div class="text-muted">Medien</div><div class="display-6"><%= stats.media %></div></div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100"><div class="card-body small"><div class="text-muted">Podcasts</div><div class="display-6"><%= stats.podcasts %></div></div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100"><div class="card-body small d-flex flex-column justify-content-center"><div class="text-muted">Schnellzugriff</div><div class="mt-2 d-flex flex-wrap gap-2"><a class="btn btn-sm btn-primary" href="/editors/posts/new">Neuer Beitrag</a><a class="btn btn-sm btn-outline-secondary" href="/editors/media">Medien</a></div></div></div>
+    </div>
+  </div>
+  <h2 class="h5">Letzte Beiträge</h2>
+  <div class="table-responsive small">
+    <table class="table table-sm align-middle">
+      <thead><tr><th>ID</th><th>Titel</th><th>Status</th><th>Aktualisiert</th><th></th></tr></thead>
+      <tbody>
+      <% latest.forEach(p=>{ %>
+        <tr>
+          <td><%= p.id %></td>
+          <td><%= p.title %></td>
+          <td><span class="badge bg-<%= p.status==='published'?'success':'secondary' %>"><%= p.status %></span></td>
+          <td><%= p.updated_at.toISOString().slice(0,16).replace('T',' ') %></td>
+          <td><a class="btn btn-sm btn-outline-primary" href="/editors/posts/edit/<%= p.id %>">Bearbeiten</a></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-5">
+    <a href="/admin" class="btn btn-outline-secondary btn-sm">Zum Settings Center</a>
+  </div>
+</div>
+<%- include('partials/footer') %>

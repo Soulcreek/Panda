@@ -1,51 +1,8 @@
 <%- include('partials/header') %>
 <%- include('partials/admin_nav') %>
-<div class="container" data-aos="fade-in">
-  <h1 class="h3 mb-4"><%= page? 'Advanced Page bearbeiten' : 'Neue Advanced Page' %></h1>
-  <form method="POST" action="/admin/advanced-pages/save" id="advancedPageForm">
-    <input type="hidden" name="id" value="<%= page? page.id:'' %>">
-    <div class="mb-3">
-      <label class="form-label">Titel</label>
-      <input type="text" class="form-control" name="title" id="apTitle" value="<%= page? page.title:'' %>" required>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Slug</label>
-      <input type="text" class="form-control" name="slug" id="apSlug" value="<%= page? page.slug:'' %>" required>
-      <div class="form-text">Wird nicht veröffentlicht (Phase 1), dient nur zur Identifikation.</div>
-    </div>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <button type="button" class="btn btn-sm btn-outline-primary ap-add-row" data-preset="full">+ Full</button>
-      <button type="button" class="btn btn-sm btn-outline-primary ap-add-row" data-preset="two-equal">+ 50/50</button>
-      <button type="button" class="btn btn-sm btn-outline-primary ap-add-row" data-preset="two-67-33">+ 67/33</button>
-      <button type="button" class="btn btn-sm btn-outline-primary ap-add-row" data-preset="two-33-67">+ 33/67</button>
-      <button type="button" class="btn btn-sm btn-outline-primary ap-add-row" data-preset="three">+ 3 Col</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="apExpandAll">Expand</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="apCollapseAll">Collapse</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="apJSONToggle">Layout JSON</button>
-    </div>
-    <div id="apBuilder" class="mb-4"></div>
-    <div class="mb-3 d-none" id="apJsonWrapper">
-      <label class="form-label">Layout JSON (editierbar)</label>
-      <textarea class="form-control font-monospace" rows="10" id="apJsonTextarea"></textarea>
-    </div>
-    <input type="hidden" name="layout_json" id="apLayoutInput">
-    <div class="form-check form-switch mb-3">
-      <input class="form-check-input" type="checkbox" id="apMakeTemplate" name="make_template" value="1" <%= page && page.is_template? 'checked':'' %>>
-      <label class="form-check-label" for="apMakeTemplate">Als Template speichern</label>
-    </div>
-    <div class="mb-5">
-      <button class="btn btn-success">Speichern</button>
-      <a href="/admin/advanced-pages" class="btn btn-outline-secondary">Zurück</a>
-    </div>
-  </form>
+<div class="container py-5">
+  <div class="alert alert-warning">Dieser Editor ist veraltet. Bitte nutze das <strong>Editors Center</strong>.</div>
+  <a href="/editors/advanced-pages" class="btn btn-primary">Zum Editors Center</a>
+  <p class="small text-muted mt-4">Original-Vorlage archiviert unter <code>/views/legacy/admin_advanced_pages_edit.ejs</code>.</p>
 </div>
-<div id="apLayoutData" data-json="<%= encodeURIComponent(layoutJSON) %>"></div>
-<script>
-(function(){
-  try { var el=document.getElementById('apLayoutData'); window.__AP_INITIAL_LAYOUT = JSON.parse(decodeURIComponent(el.getAttribute('data-json'))); }
-  catch(e){ window.__AP_INITIAL_LAYOUT={version:1,rows:[]}; }
-})();
-</script>
-<link rel="stylesheet" href="/css/advanced_pages.css">
-<script src="/js/advanced_pages_builder.js"></script>
 <%- include('partials/footer') %>

@@ -22,3 +22,6 @@ CREATE TABLE podcasts_content (
     FOREIGN KEY(podcast_id) REFERENCES podcasts(id) ON DELETE CASCADE,
     PRIMARY KEY (podcast_id, lang)
 );
+
+-- DEPRECATED: Original Migration archiviert unter migrations_legacy/002-update-podcast-schema.sql
+-- Nutze statt dessen schema_consolidated.sql

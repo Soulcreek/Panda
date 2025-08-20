@@ -1,50 +1,10 @@
 <%- include('partials/header') %>
-
-<div class="admin-container container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Beitrags-Status (Debug-Ansicht)</h2>
-                <form action="/admin/fix-posts" method="POST">
-                        <% /* CSRF Token hinzufügen */ %>
-                        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
-                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                        <% } %>
-            <button type="submit" class="btn btn-success">
-                <i class="bi bi-check-circle-fill me-2"></i>Alle Beiträge reparieren & veröffentlichen
-            </button>
-        </form>
+<div class="container py-5">
+    <div class="alert alert-warning shadow-sm">
+        <h1 class="h5 mb-2">Debug-Ansicht (Legacy)</h1>
+        <p>Diese Debug-Seite wurde entfernt. Nutze die Listen & Filter im <strong>Editors Center</strong>.</p>
+        <a href="/editors/posts" class="btn btn-primary btn-sm">Beiträge im Editors Center</a>
     </div>
-    <p class="text-muted">Diese Seite zeigt den wahren Status aller nicht gelöschten Beiträge in der Datenbank. Nutzen Sie den Button oben, um alle Beiträge auf "sichtbar" zu setzen und ihnen ein gültiges Veröffentlichungsdatum zu geben.</p>
-
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Titel</th>
-                <th>Sichtbar?</th>
-                <th>Gelöscht?</th>
-                <th>Veröffentlicht am</th>
-                <th>Hervorgehoben?</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% if (posts && posts.length > 0) { %>
-                <% posts.forEach(function(post) { %>
-                    <tr>
-                        <td><%= post.id %></td>
-                        <td><%= post.title %></td>
-                        <td><span class="badge <%= post.is_visible ? 'bg-success' : 'bg-danger' %>"><%= post.is_visible ? 'Ja' : 'Nein' %></span></td>
-                        <td><span class="badge <%= post.is_deleted ? 'bg-danger' : 'bg-secondary' %>"><%= post.is_deleted ? 'Ja' : 'Nein' %></span></td>
-                        <td><%= post.published_at ? new Date(post.published_at).toLocaleString('de-DE') : 'Nicht gesetzt' %></td>
-                        <td><span class="badge <%= post.is_featured ? 'bg-primary' : 'bg-secondary' %>"><%= post.is_featured ? 'Ja' : 'Nein' %></span></td>
-                    </tr>
-                <% }); %>
-            <% } else { %>
-                <tr>
-                    <td colspan="6" class="text-center text-muted">Keine Beiträge in der Datenbank gefunden.</td>
-                </tr>
-            <% } %>
-        </tbody>
-    </table>
+    <p class="text-muted small">Archiv: <code>views/legacy/admin_debug.ejs</code></p>
 </div>
-
 <%- include('partials/footer') %>

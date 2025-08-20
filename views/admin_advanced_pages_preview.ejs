@@ -1,14 +1,8 @@
 <%- include('partials/header') %>
 <%- include('partials/admin_nav') %>
-<div class="container-fluid py-4" data-aos="fade-in">
-  <h1 class="h4 mb-4">Preview: <%= page.title %></h1>
-  <div class="ap-preview-wrapper border rounded p-3 bg-white dark-mode:bg-dark">
-    <%- page.rendered_html %>
-  </div>
-  <div class="mt-4">
-    <a href="/admin/advanced-pages" class="btn btn-sm btn-outline-secondary">Zurück</a>
-    <a href="/admin/advanced-pages/edit/<%= page.id %>" class="btn btn-sm btn-primary">Bearbeiten</a>
-  </div>
+<div class="container py-5">
+  <div class="alert alert-warning">Legacy Preview. Verwende das Editors Center.</div>
+  <a href="/editors/advanced-pages" class="btn btn-primary">Zum Editors Center</a>
+  <p class="small text-muted mt-4">Original archiviert unter <code>/views/legacy/admin_advanced_pages_preview.ejs</code>.</p>
 </div>
-<link rel="stylesheet" href="/css/advanced_pages.css">
 <%- include('partials/footer') %>

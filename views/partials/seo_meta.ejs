@@ -1,0 +1,19 @@
+<% /* Server-side SEO + Social meta tags. Expects optional 'seo' object: {title, description, keywords, image, type, url}. Safe fallbacks provided. */ %>
+<% var __seo = seo || {}; %>
+<% var __title = (__seo.title || title || 'Purview Panda'); %>
+<% var __desc = (__seo.description || 'Purview Panda – Security, Compliance & Data Governance Insights'); %>
+<% var __keywords = (__seo.keywords || 'Purview,Panda,Security,Compliance,Data,Governance,Blog'); %>
+<% var __image = (__seo.image || '/img/logo.png'); %>
+<% var __type = (__seo.type || 'article'); %>
+<% var __url = (__seo.url || (typeof currentUrl !== 'undefined' ? currentUrl : '')); %>
+<meta name="description" content="<%= __desc %>">
+<meta name="keywords" content="<%= __keywords %>">
+<meta property="og:title" content="<%= __title %>">
+<meta property="og:description" content="<%= __desc %>">
+<meta property="og:type" content="<%= __type %>">
+<% if(__url){ %><meta property="og:url" content="<%= __url %>"><% } %>
+<% if(__image){ %><meta property="og:image" content="<%= __image %>"><% } %>
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="<%= __title %>">
+<meta name="twitter:description" content="<%= __desc %>">
+<% if(__image){ %><meta name="twitter:image" content="<%= __image %>"><% } %>

@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<%- include('partials/editors_nav') %>
+<div class="container my-5">
+  <h2 class="mb-4">Mediendatei bearbeiten</h2>
+  <div class="card"><div class="card-body">
+    <% if (!file) { %><div class="alert alert-danger">Datei nicht gefunden.</div><% } else { %>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <img src="<%= file.path %>" class="img-fluid rounded border" alt="<%= file.alt_text || '' %>">
+        <p class="small text-muted mb-0">Originalname: <strong><%= file.name %></strong></p>
+        <p class="small text-muted mb-0">Typ: <%= file.type || 'unbekannt' %></p>
+        <p class="small text-muted">Hochgeladen: <%= file.uploaded_at ? new Date(file.uploaded_at).toLocaleString('de-DE') : '-' %></p>
+      </div>
+      <div class="col-md-8">
+        <form action="/editors/media/edit/<%= file.id %>" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="mb-3"><label class="form-label">Anzeigename</label><input class="form-control" name="name" value="<%= file.name %>"></div>
+          <div class="mb-3"><label class="form-label">Alternativtext (SEO)</label><input class="form-control" name="alt_text" value="<%= file.alt_text || '' %>"></div>
+          <div class="mb-3"><label class="form-label">Beschreibung</label><textarea class="form-control" name="description" rows="3"><%= file.description || '' %></textarea></div>
+          <div class="mb-3"><label class="form-label">SEO Alt (überschreibt Alt Text)</label><input class="form-control" name="seo_alt" value="<%= file.seo_alt || '' %>"></div>
+          <div class="mb-3"><label class="form-label">SEO Beschreibung</label><textarea class="form-control" name="seo_description" rows="2"><%= file.seo_description || '' %></textarea></div>
+          <div class="mb-3"><label class="form-label">Meta Keywords</label><input class="form-control" name="meta_keywords" value="<%= file.meta_keywords || '' %>"></div>
+          <div class="mb-3"><label class="form-label">Kategorie</label><select class="form-select" name="category"><option value="" <%= !file.category?'selected':'' %>>Keine</option><option <%= file.category==='Icon'?'selected':'' %>>Icon</option><option <%= file.category==='Banner'?'selected':'' %>>Banner</option><option <%= file.category==='Illustration'?'selected':'' %>>Illustration</option><option <%= file.category==='Logo'?'selected':'' %>>Logo</option><option <%= file.category==='Feature'?'selected':'' %>>Feature</option><option <%= file.category==='Sonstiges'?'selected':'' %>>Sonstiges</option></select></div>
+          <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Speichern</button><a href="/editors/media" class="btn btn-secondary">Zurück</a></div>
+        </form>
+      </div>
+    </div>
+    <% } %>
+  </div></div>
+  <div class="mt-4"><a class="btn btn-sm btn-outline-secondary" href="/admin">Zum Settings Center</a></div>
+</div>
+<%- include('partials/footer') %>

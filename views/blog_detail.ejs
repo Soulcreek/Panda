@@ -1,0 +1,40 @@
+<%- include('partials/header') %>
+<main class="container my-5 blog-detail">
+  <script type="application/json" id="seoData"><%- JSON.stringify(seo||{}) %></script>
+  <article class="mb-5">
+    <header class="mb-4">
+      <h1 class="mb-3"><%= post.title %></h1>
+      <div class="text-muted small d-flex flex-wrap gap-3">
+        <span>Veröffentlicht: <%= post.published_at ? new Date(post.published_at).toLocaleDateString('de-DE') : new Date(post.created_at).toLocaleDateString('de-DE') %></span>
+        <% if (post.tags) { %><span>Tags: <%= post.tags %></span><% } %>
+      </div>
+      <% if (post.featured_image_path) { %>
+        <figure class="mt-3">
+          <img src="<%= post.featured_image_path %>" alt="" class="img-fluid rounded shadow-sm" style="max-height:420px;object-fit:cover;width:100%;">
+        </figure>
+      <% } %>
+      <% if (post.whatsnew) { %><p class="lead mt-3"><%= post.whatsnew %></p><% } %>
+    </header>
+    <div class="post-body"><%- post.content %></div>
+  </article>
+  <% if (related && related.length) { %>
+    <aside class="mb-5">
+      <h2 class="h5 mb-3">Ähnliche Beiträge</h2>
+      <div class="row g-3">
+        <% related.forEach(r=>{ %>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h3 class="h6"><a href="/blog/<%= r.slug %>" class="text-decoration-none"><%= r.title %></a></h3>
+                <% if(r.whatsnew){ %><p class="small text-muted mb-0"><%= r.whatsnew.slice(0,140) %></p><% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </aside>
+  <% } %>
+  <div class="my-4"><a href="/blog" class="btn btn-outline-secondary btn-sm">Zurück zum Blog</a></div>
+</main>
+<!-- Server-side SEO meta tags now rendered via partials/seo_meta.ejs -->
+<%- include('partials/footer') %>

@@ -7,7 +7,14 @@ const path = require('path');
 const pool = require('./db'); // Stellt sicher, dass db.js den Pool exportiert
 
 const publicRoutes = require('./routes/public');
-const adminRoutes = require('./routes/admin');
+let adminRoutes;
+// Prefer the new modular admin; fall back to temporary clean router only if it fails.
+try { adminRoutes = require('./routes/admin'); }
+catch(e){
+    console.warn('[server] Falling back to admin_clean router:', e.message);
+    try { adminRoutes = require('./routes/admin_clean'); }
+    catch(e2){ console.error('[server] No admin router available', e2); adminRoutes = express.Router(); }
+}
 
 const app = express();
 // Internationalization (lightweight JSON-based)
@@ -102,6 +109,44 @@ app.use((req, res, next) => {
 // Routen einbinden
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);
+// Mount new modular editors center (index.js inside routes/editors/) falling back to legacy if needed
+try { app.use('/editors', require('./routes/editors/index.js')); }
+catch(e){
+    console.warn('[server] modular editors router failed, attempting legacy editors.js:', e.message);
+    try { app.use('/editors', require('./routes/editors.js')); }
+    catch(e2){ console.warn('[server] no editors router available', e2.message); }
+}
+
+// Legacy content route redirects (/admin -> /editors) for migrated areas.
+// Keep BEFORE settings-specific /admin pages so only content modules redirect.
+app.use((req,res,next)=>{
+    // Allow core settings pages to continue: /admin$, /admin/blog-config, /admin/ai-usage, /admin/tools, /admin/api_keys
+    const allowList = [/^\/admin\/?$/, /^\/admin\/blog-config$/, /^\/admin\/ai-usage$/, /^\/admin\/tools$/, /^\/admin\/api_keys$/];
+    if(allowList.some(r=> r.test(req.path))) return next();
+    const redirectRules = [
+        { label:'posts', from:/^\/admin\/(posts)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(posts)/,'/editors/$1') },
+        { label:'media', from:/^\/admin\/(media)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(media)/,'/editors/$1') },
+        { label:'podcasts', from:/^\/admin\/(podcasts)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(podcasts)/,'/editors/$1') },
+        { label:'advanced-pages', from:/^\/admin\/(advanced-pages)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(advanced-pages)/,'/editors/$1') },
+        { label:'timeline-editor', from:/^\/admin\/(timeline-editor)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(timeline-editor)/,'/editors/$1') }
+    ];
+    for(const rule of redirectRules){
+        if(rule.from.test(req.path)){
+            const target = rule.to(req.path);
+            return res.redirect(301, target);
+        }
+    }
+    return next();
+});
+
+// Lightweight health check (no DB to avoid slow fail cascading; add ?deep=1 for a quick DB ping)
+app.get('/health', async (req,res)=>{
+    if(req.query.deep==='1'){
+        try { await pool.query('SELECT 1'); return res.json({ status:'ok', db:true, mode:process.env.NODE_ENV||'dev'}); }
+        catch(e){ return res.status(500).json({ status:'degraded', db:false, error:e.message }); }
+    }
+    return res.json({ status:'ok', mode:process.env.NODE_ENV||'dev' });
+});
 
 // AI Usage Info Badge (lightweight; errors ignored)
 app.use(async (req, res, next) => {

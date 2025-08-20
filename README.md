@@ -40,26 +40,31 @@ Purview Panda ist eine modulare Content-Plattform (DE/EN) mit:
 - Security: CSRF (csurf), Basic CSP, Header Hardenings
 - Sanitization: DOMPurify (Server) für Advanced Pages Block HTML
 - Frontend Tools: Quill Editor (Blog), Custom Builder (Advanced Pages), AOS
+- Namespacing: /admin (Settings, legacy bridges) vs /editors (alle aktiven Content- & KI-Workflows)
 
 ## 3. Struktur
 ```
 server.js              # App Bootstrap, Middleware, CSP
-routes/public.js       # Öffentliche Seiten & Timeline ALT5 Seeding
-routes/admin.js        # Admin Panel, Media, KI Endpunkte, Advanced Pages
+routes/public.js       # Öffentliche Seiten, Blog Slug Route, Timeline ALT5
+routes/admin.js        # Admin Settings (Konfiguration, AI Usage, Tools) – KEIN Content mehr
+routes/editors/        # Modular Editors Center (posts.js, media.js, podcasts.js, advancedPages.js, timeline.js, ai.js, index.js)
 httpdocs/              # Statische Assets, JS, CSS, uploads/
-views/                 # EJS Templates (partials/, admin_*, blog, pandas_way*.ejs)
+views/                 # EJS Templates (partials/, editors_*, admin_* stubs, blog, pandas_way*.ejs)
 locales/               # i18n JSON (de.json, en.json)
 i18n.js                # Sprachlogik / Helper t()
 db.js                  # MySQL Connection Pool
-migrations/            # SQL Patches
+migrations/            # (deprecated) leer / Platzhalter – alte Dateien archiviert
+migrations_legacy/     # Archiv der ursprünglichen SQL Migrationen
+schema_consolidated.sql# Neues konsolidiertes Schema & Content-Patches (MySQL)
 ```
 
 ## 4. Wichtige Features
-- Blog Editor: Quill + Inline Bild Upload (Drag/Paste) + KI Buttons (Research News / Sample / Translate)
+- Blog Editor (/editors): Quill + Inline Bild Upload (Drag/Paste) + KI Buttons (Research News / Sample / Translate)
 - Featured Image UX: Auswahl über Medienbibliothek, Clear-Link, Statushinweise
-- Medienbibliothek: Kategorien Merge aus Config + DB Distinct Tags
-- Advanced Pages: Mehrspaltige Layout Presets, Drag & Drop, Sidepanel-Konfiguration (Bild / Hintergrundfarbe)
-- Timeline ALT5: Dynamisches Seeding, Level-Buttons, Intersection Reveal, Debug Overlay
+- Medienbibliothek (/editors/media): Kategorien Merge aus Config + DB Distinct Tags
+- Advanced Pages (migriert nach /editors/advanced-pages, alte /admin Pfade 301 Redirect)
+- Timeline ALT5 (öffentlich) + Vollständiger Timeline Editor im Editors Center (/editors/timeline-editor)
+- Server-seitige SEO Meta Tags via `partials/seo_meta.ejs` (Blog Detail, künftig Podcasts)
 - Dark Mode: Sofortiges Laden per serverseitiger html class + Toggle (persist via localStorage + optional Sync /api/user/preferences)
 
 ## 5. Datenbank-Modelle (relevant)
@@ -127,19 +132,27 @@ NODE_ENV=production
 CLEAR_SESSIONS_ON_START=false
 ```
 
-## 14. Admin & API (Auszug)
+## 14. Admin & Editors & API (Auszug)
 | Route | Zweck |
 |-------|-------|
-| GET /admin | Dashboard |
-| POST /admin/generate-whats-new | KI Research Content |
-| POST /admin/posts/generate-sample | Sample Content |
-| POST /admin/api/translate | Übersetzung |
-| POST /admin/generate-alt-text | Medien Alt-Text |
-| GET /admin/blog-config | KI / Blog Settings |
-| POST /admin/blog-config | Speichern Settings |
-| GET /admin/advanced-pages | Liste Advanced Pages |
-| POST /admin/advanced-pages/save | Speichern Layout |
-| GET /pandas-way-alt5 | Timeline ALT5 |
+| GET /editors | Editors Dashboard |
+| GET /editors/posts | Beiträge Übersicht |
+| GET /editors/posts/new | Neuer Beitrag |
+| POST /editors/generate-whats-new | KI Research Content |
+| POST /editors/posts/generate-sample | Sample Content |
+| POST /editors/api/translate | Übersetzung |
+| GET /editors/media | Medienbibliothek |
+| POST /editors/api/upload-inline-image | Inline Upload |
+| GET /editors/timeline-editor | Timeline Levels Übersicht |
+| GET /editors/timeline-editor?level=1 | Timeline Einträge Level 1 |
+| GET /health | Health Check (leicht) |
+| GET /health?deep=1 | Health Check inkl. DB Ping |
+| POST /editors/timeline-editor/add | Timeline Eintrag hinzufügen |
+| POST /editors/timeline-editor/reorder | Reorder JSON |
+| POST /editors/podcasts/:id/ai-metadata | KI Podcast Metadaten |
+| GET /blog/:slug | Öffentlicher Blogpost (SEO Slug) |
+| GET /pandas-way-alt5 | Timeline ALT5 Öffentlich |
+| GET /admin | Admin Settings Dashboard (Legacy) |
 
 ## 15. Entwicklungs-Workflow
 Installieren:
@@ -157,7 +170,16 @@ npm start
 MySQL muss laufen; DB Zugang in `db.js` konfigurieren (oder .env Erweiterung hinzufügen falls refactored).
 
 ## 16. Tests / Linting
-Aktuell keine automatisierten Tests. Geplant: Jest + Supertest für Routen, minimale Snapshot Tests für Rendering.
+Aktuell erste Test-Vorbereitung (Jest + Supertest) – Abhängigkeiten noch nicht installiert (ExecutionPolicy Workaround nötig). Ziel: Health, Redirects, Advanced Pages Utils.
+
+### Datenbank / Migrationen (neu)
+Der frühere SQLite-/Datei-Migrationsmechanismus wurde stillgelegt. Statt inkrementeller Dateien gibt es jetzt:
+`schema_consolidated.sql` – enthält CREATE TABLE IF NOT EXISTS + kommentierte Content-Patches (Panda's Way Levels).
+Alte Dateien sind unter `migrations_legacy/` archiviert. Der Ordner `migrations/` bleibt als Stub bestehen, wird aber nicht mehr ausgeführt.
+Vorgehen in neuer Umgebung:
+1. schema_consolidated.sql im MySQL Client ausführen (oder nur relevante Teile)
+2. App starten – dynamische ALTERs (Advanced Pages) laufen tolerant weiter
+3. Optional: Indizes / zusätzliche Spalten (siehe Hinweise am Ende der SQL Datei)
 
 ## 17. Roadmap / Nächste Schritte
 Kurzfristig:
@@ -174,17 +196,19 @@ Langfristig:
 - Progressive Enhancement (Service Worker / offline cache)
 
 ## 18. Changelog (Auswahl jüngste Änderungen)
-- Advanced Pages: Sidepanel Config (statt Modal), Background nur Color Picker
-- ALT5 Timeline: Auto-Seeding + Debug + Auto Level 1 Activation
-- Research News überschreibt Teaser nicht mehr; Sample ebenso
-- KI Routen: Robust Parsing (Regex Fallback) / Logging
-- Media Picker Filter für Featured Image korrigiert (`__featuredCombo`)
-- Hero /pandas-way überarbeitet + Auto-Scroll entfernt
-- Dark Mode Toggle refactored (früher Apply & Icon Sync)
- - ALT5 Timeline: Level Navigation unterstützt jetzt Thumbnails (image_path) & Icons
- - ALT5 Timeline: Level Meta HTML Persistenz behoben (Intro blieb zuvor nach Speichern leer)
- - Admin: Direktlinks zur öffentlichen ALT5 Seite in "Timeline Levels" & "Timeline Editor" Überschriften
- - Navbar Light/Dark Mode Kontrast überarbeitet (Light immer weißer Hintergrund, Dark konsistente Farben)
+Neueste Schritte ganz oben:
+- Health Endpoint `/health` (+ `?deep=1` für DB-Ping) hinzugefügt (Load Balancer / Uptime Robot geeignet)
+- Einheitliche 301 Redirect Middleware für migrierte Content-Pfade `/admin/*` → `/editors/*` (Posts, Media, Podcasts, Advanced Pages, Timeline)
+- Legacy Admin-Content-Views durch schlanke Hinweis-Stubs ersetzt; Originale unter `views/legacy/` archiviert
+- Modularisierung: `routes/editors/` Feature Router (Posts, Media, Podcasts, Advanced Pages, Timeline, AI) + `index.js` Aggregator
+- Editors Center eingeführt: Alle aktiven Content- & KI-Routen von /admin → /editors migriert
+- Legacy Blog Editor durch Stub + Soft Redirect ersetzt (/admin_edit_post.ejs)
+- Timeline Editor komplett nach /editors/timeline-editor verlagert (CRUD + Level Meta + Reorder)
+- Redirect-Stubs für /admin/timeline-editor & /admin/advanced-pages implementiert (jetzt durch zentrale Middleware ersetzt)
+- SEO: Serverseitige Meta Tags (og:/twitter) via neues Partial `partials/seo_meta.ejs` + Slug Route /blog/:slug
+- Podcast & Blog Slug Infrastruktur vorbereitet (Podcast SEO folgt)
+- Media API konsolidiert (/editors/api/media) und Legacy Timeline Editor Verweise aktualisiert
+- Code Cleanup & Namespace Dokumentation aktualisiert
 
 ## 19. Troubleshooting
 | Problem | Ursache | Lösung |

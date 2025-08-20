@@ -1,0 +1,55 @@
+<%- include('partials/header') %>
+<%- include('partials/editors_nav') %>
+<div class="container mb-5" data-aos="fade-in">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h3 mb-0">Advanced Pages</h1>
+    <div class="d-flex gap-2">
+      <a href="/editors/advanced-pages/new" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Neue Seite</a>
+      <a href="/editors/advanced-pages/generator" class="btn btn-sm btn-outline-primary">Generator</a>
+    </div>
+  </div>
+  <table class="table table-sm align-middle">
+  <thead><tr><th>ID</th><th>Titel</th><th>Slug</th><th>Status</th><th>Aktualisiert</th><th>Public</th><th></th></tr></thead>
+    <tbody>
+    <% if(pages && pages.length){ pages.forEach(p=>{ %>
+      <tr>
+        <td><%= p.id %></td>
+        <td><%= p.title %></td>
+        <td><code><%= p.slug %></code></td>
+        <td><span class="badge bg-secondary"><%= p.status %></span></td>
+        <td><%= p.updated_at.toISOString().substring(0,19).replace('T',' ') %></td>
+        <td class="small"><% if(p.status==='published'){ %><a href="/pages/<%= p.slug %>" target="_blank">Öffnen</a><% } else { %><span class="text-muted">-</span><% } %></td>
+        <td class="text-end">
+          <a href="/editors/advanced-pages/edit/<%= p.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
+          <a href="/editors/advanced-pages/preview/<%= p.id %>" class="btn btn-sm btn-outline-secondary">Preview</a>
+          <form action="/editors/advanced-pages/delete/<%= p.id %>" method="POST" class="d-inline" onsubmit="return confirm('Seite löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+        </td>
+      </tr>
+    <% }); } else { %>
+  <tr><td colspan="7" class="text-muted text-center py-4">Keine Seiten</td></tr>
+    <% } %>
+    </tbody>
+  </table>
+  <h2 class="h5 mt-5">Templates</h2>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>ID</th><th>Titel</th><th>Aktualisiert</th><th></th></tr></thead>
+    <tbody>
+    <% if(templates && templates.length){ templates.forEach(t=>{ %>
+      <tr>
+        <td><%= t.id %></td>
+        <td><%= t.title %></td>
+        <td><%= t.updated_at ? t.updated_at.toISOString().substring(0,19).replace('T',' ') : '' %></td>
+        <td class="text-end">
+          <form action="/editors/advanced-pages/from-template/<%= t.id %>" method="POST" class="d-inline"><button class="btn btn-sm btn-success">Verwenden</button></form>
+          <a href="/editors/advanced-pages/edit/<%= t.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
+          <form action="/editors/advanced-pages/delete/<%= t.id %>" method="POST" class="d-inline" onsubmit="return confirm('Template löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+        </td>
+      </tr>
+    <% }); } else { %>
+      <tr><td colspan="4" class="text-muted text-center py-4">Keine Templates</td></tr>
+    <% } %>
+    </tbody>
+  </table>
+  <p class="small text-muted">Beim Speichern einer Seite kannst du sie als Template markieren.</p>
+</div>
+<%- include('partials/footer') %>
