@@ -6,6 +6,52 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const pool = require('../db');
+// Utility: ensure generator related tables & seed profiles/meta
+async function ensureGeneratorTables(){
+    try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS advanced_page_template_meta (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            template_id INT NOT NULL,
+            category VARCHAR(64) NULL,
+            tags VARCHAR(255) NULL,
+            section_signature VARCHAR(255) NULL,
+            recommended_intents VARCHAR(255) NULL,
+            default_style_profile VARCHAR(32) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX(template_id),
+            FOREIGN KEY (template_id) REFERENCES advanced_pages(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+        await pool.query(`CREATE TABLE IF NOT EXISTS generator_profiles (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            description VARCHAR(255) NULL,
+            default_sections VARCHAR(255) NULL,
+            allowed_sections VARCHAR(255) NULL,
+            heuristics JSON NULL,
+            ai_prompt_template MEDIUMTEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+        const [gp] = await pool.query('SELECT COUNT(*) as c FROM generator_profiles');
+        if(gp[0].c===0){
+            await pool.query('INSERT INTO generator_profiles (name, description, default_sections, allowed_sections, heuristics, ai_prompt_template) VALUES (?,?,?,?,?,?)',[
+                'Default Landing','Basis-Profil für Landing Pages','hero,intro,posts,cta','hero,intro,highlights,posts,podcasts,faq,cta','{"weights":{"structure":0.4,"intent":0.3,"style":0.1,"popularity":0.1,"freshness":0.1}}',
+                'Erzeuge Sektion {{section}} für Thema "{{topic}}" mit Intent {{intent}} in deutscher Sprache. Kurze prägnante Sätze, sachlich.'
+            ]);
+        }
+        // Generation Log Table
+        await pool.query(`CREATE TABLE IF NOT EXISTS advanced_page_generations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            page_id INT NULL,
+            topic VARCHAR(255) NOT NULL,
+            intent VARCHAR(32) NOT NULL,
+            sections VARCHAR(255) NOT NULL,
+            score DECIMAL(5,2) NULL,
+            diagnostics JSON NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX(topic), INDEX(intent)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+    } catch(e){ console.error('Generator Tables Fehler:', e.message); }
+}
 // Advanced Pages helper table ensure
 async function ensureAdvancedPagesTable(){
     try {
@@ -16,14 +62,265 @@ async function ensureAdvancedPagesTable(){
             layout_json MEDIUMTEXT NULL,
             rendered_html MEDIUMTEXT NULL,
             status ENUM('draft','published') NOT NULL DEFAULT 'draft',
+            is_template TINYINT(1) NOT NULL DEFAULT 0,
             author_id INT NULL,
             published_at DATETIME NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX(status), INDEX(author_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+        try { await pool.query('ALTER TABLE advanced_pages ADD COLUMN is_template TINYINT(1) NOT NULL DEFAULT 0 AFTER status'); } catch(_) {}
     } catch(e){ console.error('Advanced Pages Table Fehler:', e.message); }
 }
+// Extend content schemas with SEO / tagging columns (idempotent)
+async function ensureExtendedContentMetadata(){
+    try { await pool.query("ALTER TABLE posts ADD COLUMN seo_title VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE posts ADD COLUMN seo_description VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE posts ADD COLUMN meta_keywords VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE posts ADD COLUMN research_summary MEDIUMTEXT NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE podcasts ADD COLUMN tags VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE podcasts ADD COLUMN seo_title VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE podcasts ADD COLUMN seo_description VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE podcasts ADD COLUMN meta_keywords VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE podcasts ADD COLUMN research_summary MEDIUMTEXT NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE media_files ADD COLUMN seo_alt VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE media_files ADD COLUMN seo_description VARCHAR(255) NULL"); } catch(_) {}
+    try { await pool.query("ALTER TABLE media_files ADD COLUMN meta_keywords VARCHAR(255) NULL"); } catch(_) {}
+    // swallow errors quietly; individual adds are idempotent
+}
+
+// --- Generator Helpers ---
+function tokenize(str){ return (str||'').toLowerCase().replace(/[^a-z0-9äöüß\s]/g,' ').split(/\s+/).filter(Boolean); }
+function overlapScore(aTokens,bTokens){ if(!aTokens.length||!bTokens.length) return 0; const setB=new Set(bTokens); let hit=0; aTokens.forEach(t=>{ if(setB.has(t)) hit++; }); return hit/Math.max(aTokens.length,1); }
+async function buildContentIndex(){
+    const [posts] = await pool.query("SELECT id, title, slug, tags, status, is_deleted, published_at FROM posts WHERE (is_deleted=0 OR is_deleted IS NULL) AND (status='published' OR status='draft') ORDER BY published_at DESC LIMIT 100");
+    let podcasts=[]; try { [podcasts] = await pool.query("SELECT id, title, published_at, tags FROM podcasts ORDER BY published_at DESC LIMIT 100"); } catch(_) {}
+    return { posts, podcasts };
+}
+async function researchTopic(topic, lang){
+    // Simple in-memory cache (per topic+lang for 10 min)
+    if(!global.__GEN_RESEARCH_CACHE) global.__GEN_RESEARCH_CACHE={};
+    const key = (topic+'|'+lang).toLowerCase();
+    const cached = global.__GEN_RESEARCH_CACHE[key];
+    const now = Date.now();
+    if(cached && (now - cached.ts) < 10*60*1000){ return cached.data; }
+    const sources = [
+        'https://www.bsi.bund.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/RSSNewsfeed.xml',
+        'https://azure.microsoft.com/en-us/updates/feed/',
+        'https://feeds.feedburner.com/TheHackersNews'
+    ];
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 8000);
+    const topicTokens = tokenize(topic).filter(t=>t.length>2);
+    let articles = [];
+    try {
+        await Promise.all(sources.map(async url => {
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                if(!res.ok) return; const xml = await res.text();
+                // Very lightweight RSS parsing (no external deps)
+                const itemRegex = /<item[\s\S]*?<\/item>/gi; let m;
+                while((m = itemRegex.exec(xml))){
+                    const item = m[0];
+                    const title = (item.match(/<title>([\s\S]*?)<\/title>/i)||['',''])[1].replace(/<!\[CDATA\[|\]\]>/g,'').trim();
+                    const desc = (item.match(/<description>([\s\S]*?)<\/description>/i)||['',''])[1].replace(/<!\[CDATA\[|\]\]>/g,'').trim();
+                    const link = (item.match(/<link>([\s\S]*?)<\/link>/i)||['',''])[1].trim();
+                    if(!title) continue;
+                    const lower = (title + ' ' + desc).toLowerCase();
+                    const relevance = topicTokens.reduce((acc,t)=> acc + (lower.includes(t)?1:0),0);
+                    if(relevance>0){
+                        articles.push({ title, desc, link, relevance });
+                    }
+                }
+            } catch(e){ /* ignore per source */ }
+        }));
+    } catch(e){ /* global fetch abort or other */ }
+    clearTimeout(timeout);
+    // Sort & trim
+    articles.sort((a,b)=> b.relevance - a.relevance);
+    articles = articles.slice(0,6);
+    // Build key points (simple heuristic: first sentence of desc or title)
+    const key_points = articles.map(a=>{
+        const base = a.desc || a.title;
+        const sent = base.split(/(?<=[.!?])\s+/)[0].slice(0,160);
+        return (a.title.length>90? a.title.slice(0,87)+'…' : a.title)+': '+sent;
+    });
+    // Summarization: concatenate top titles and run frequency filter
+    const allText = articles.map(a=>a.title+' '+a.desc).join(' ');
+    const freq = {}; tokenize(allText).forEach(t=>{ if(t.length>3){ freq[t]=(freq[t]||0)+1; }});
+    const topWords = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+    const summary = articles.length
+        ? `Fokus: ${topic}. Relevante Schlagworte: ${topWords.join(', ')}. Enthaltene Quellen: ${articles.map(a=>a.title).slice(0,3).join(' | ')}.`
+        : `Keine passenden externen Artikel zu ${topic} gefunden (Basis-Sources).`;
+    const data = { summary, key_points, faq: null, articles, lang };
+    global.__GEN_RESEARCH_CACHE[key] = { ts: now, data };
+    return data;
+}
+function chooseTemplate(templates, desiredSections, intent, style){
+    if(!templates.length) return null;
+    // naive scoring based on section_signature overlap
+    let best=null, bestScore=-1;
+    templates.forEach(t=>{
+        const sig=(t.section_signature||'').split('|').filter(Boolean);
+        const overlap = sig.length? desiredSections.filter(s=>sig.includes(s)).length / sig.length : 0;
+        const score = overlap; // extend later with intent/style
+        if(score>bestScore){ bestScore=score; best=t; }
+    });
+    return best;
+}
+function buildLayoutFromSections(sections, topic, contentIndex, options){
+    const layout = { version:2, rows:[] };
+    function addRow(preset,widths){ return { preset, columns: widths.map(w=>({ width:w, blocks:[] })) }; }
+    if(sections.includes('hero')){
+        layout.rows.push(addRow('full',[12]));
+        const heroBlock={ id:'hero1', type:'hero', image:'', title: topic, subtitle: '', ctaText:'Mehr erfahren', ctaUrl:'#', overlayOpacity:0.5, height:'50vh', align:'center' };
+        layout.rows[layout.rows.length-1].columns[0].blocks.push(heroBlock);
+    }
+    if(sections.includes('intro')){
+        layout.rows.push(addRow('full',[12]));
+        layout.rows[layout.rows.length-1].columns[0].blocks.push({ id:'intro1', type:'text', html:`<p>Einführung zu <strong>${topic}</strong>.</p>`, textColor:'', bgColor:'', classes:'lead', spacing:'pad-m' });
+    }
+    if(sections.includes('posts')){
+        const posts = contentIndex.posts.slice(0, options.maxPosts||3);
+        if(posts.length){
+            layout.rows.push(addRow('three',[4,4,4]));
+            posts.forEach((p,i)=>{
+                const col = layout.rows[layout.rows.length-1].columns[i];
+                col.blocks.push({ id:'post'+p.id, type:'post-link', postId:p.id, title:p.title, slug:p.slug });
+            });
+        }
+    }
+    if(sections.includes('podcasts')){
+        const pods = contentIndex.podcasts.slice(0, Math.min(3, (options.maxPodcasts||3)));
+        if(pods.length){
+            layout.rows.push(addRow('three',[4,4,4]));
+            pods.forEach((p,i)=>{ const col=layout.rows[layout.rows.length-1].columns[i]; col.blocks.push({ id:'pod'+p.id, type:'podcast-link', podcastId:p.id, title:p.title, description:'' }); });
+        }
+    }
+    if(sections.includes('highlights')){
+        const points = (options.research && options.research.key_points) ? options.research.key_points.slice(0,3) : ['Highlight 1','Highlight 2','Highlight 3'];
+        layout.rows.push(addRow('three',[4,4,4]));
+        points.forEach((pt,i)=>{ layout.rows[layout.rows.length-1].columns[i].blocks.push({ id:'hl'+i, type:'text', html:`<h4>${pt.split(':')[0]}</h4><p>${pt}</p>`, classes:'ap-highlight text-center', spacing:'pad-m' }); });
+    }
+    if(sections.includes('faq')){
+        const faqs = (options.research && options.research.faq) ? options.research.faq : [
+            {q:`Was ist ${topic}?`, a:`Kurze erklärende Antwort zu ${topic} in einfachen Worten.`},
+            {q:`Warum ist ${topic} wichtig?`, a:`Bedeutung & Nutzen kurz umrissen.`},
+            {q:`Wie starte ich mit ${topic}?`, a:`Ein erster Schritt / Quickstart Hinweis.`}
+        ];
+        layout.rows.push(addRow('full',[12]));
+        const htmlFaq = faqs.map(f=>`<h4>${f.q}</h4><p>${f.a}</p>`).join('');
+        layout.rows[layout.rows.length-1].columns[0].blocks.push({ id:'faq1', type:'text', html: htmlFaq, classes:'ap-faq', spacing:'pad-l' });
+    }
+    if(sections.includes('cta')){
+        layout.rows.push(addRow('full',[12]));
+        layout.rows[layout.rows.length-1].columns[0].blocks.push({ id:'cta1', type:'text', html:`<h3>Jetzt mehr zu ${topic} entdecken</h3><p>Kontakt aufnehmen oder Ressourcen ansehen.</p>`, classes:'text-center fw-bold', spacing:'pad-l' });
+    }
+    return layout;
+}
+// Reuse rendering logic from save route (light wrapper)
+function renderAdvancedPageHTML(layout){
+    try {
+        const layoutObj = typeof layout==='string'? JSON.parse(layout): layout;
+        let htmlParts=['<div class="ap-page">'];
+        (layoutObj.rows||[]).forEach((row,rowIndex)=>{
+            const preset=row.preset||'custom';
+            htmlParts.push(`<section class="ap-row ap-preset-${preset}" data-row="${rowIndex}"><div class="container-fluid"><div class="row g-4">`);
+            (row.columns||[]).forEach((col,colIndex)=>{
+                const width = parseInt(col.width,10)||12;
+                htmlParts.push(`<div class="col-md-${Math.min(Math.max(width,1),12)} ap-col" data-col="${colIndex}">`);
+                (col.blocks||[]).forEach(block=>{ if(!block||typeof block!=='object') return; const bType=block.type||'text';
+                    if(bType==='text'||bType==='html'){ const classes=['ap-block',`ap-block-${bType}`]; if(block.classes) classes.push(block.classes); if(block.spacing) classes.push(block.spacing); htmlParts.push(`<div class="${classes.join(' ')}">${block.html||''}</div>`); }
+                    else if(bType==='post-link'){ if(block.postId&&block.title){ htmlParts.push(`<div class="ap-block ap-block-post-link"><a href="/blog/${block.slug||''}">${block.title}</a></div>`); } }
+                    else if(bType==='podcast-link'){ if(block.podcastId&&block.title){ htmlParts.push(`<div class="ap-block ap-block-podcast-link"><a href="/podcasts#ep-${block.podcastId}">${block.title}</a></div>`); } }
+                    else if(bType==='hero'){ htmlParts.push(`<div class="ap-block ap-block-hero"><div class="ap-hero" style="position:relative;background:${block.image?`url('${block.image}') center/cover no-repeat`:'#222'};height:${block.height||'50vh'}"><div class="ap-hero-overlay" style="position:absolute;inset:0;background:#000;opacity:${block.overlayOpacity||0.5}"></div><div class="ap-hero-inner container h-100 d-flex flex-column justify-content-center text-${block.align||'center'}" style="position:relative;z-index:2;"><div class="ap-hero-title display-6 fw-bold text-white">${block.title||''}</div>${block.subtitle?`<p class='ap-hero-sub lead text-white-50'>${block.subtitle}</p>`:''}${(block.ctaText&&block.ctaUrl)?`<p><a href='${block.ctaUrl}' class='btn btn-primary btn-lg'>${block.ctaText}</a></p>`:''}</div></div></div>`); }
+                });
+                htmlParts.push('</div>');
+            });
+            htmlParts.push('</div></div></section>');
+        });
+        htmlParts.push('</div>');
+        return htmlParts.join('');
+    } catch(e){ return ''; }
+}
+
+// --- Generator Endpoints ---
+router.get('/advanced-pages/generator', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable(); await ensureGeneratorTables(); await ensureExtendedContentMetadata();
+    const [templates] = await pool.query('SELECT ap.id, ap.title, ap.slug, m.section_signature FROM advanced_pages ap LEFT JOIN advanced_page_template_meta m ON m.template_id=ap.id WHERE ap.is_template=1 ORDER BY ap.updated_at DESC LIMIT 50');
+    // recent generation logs (latest 20)
+    let genLogs=[]; try { const [g] = await pool.query('SELECT id, topic, intent, sections, created_at FROM advanced_page_generations ORDER BY id DESC LIMIT 20'); genLogs=g; } catch(_) {}
+    res.render('admin_advanced_pages_generator', { title:'Page Generator', templates, genLogs });
+});
+router.post('/advanced-pages/generate', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable(); await ensureGeneratorTables(); await ensureExtendedContentMetadata();
+    try {
+        const { topic, intent='inform', styleProfile='light', sections='', maxPosts=3, maxPodcasts=3, templateId, dryRun } = req.body;
+        if(!topic || topic.length<3) return res.status(400).send('Topic zu kurz');
+        // Simple in-memory rate limit per user
+        const uid = req.session.userId || 'anon';
+        if(!global.__GEN_LIMIT) global.__GEN_LIMIT={};
+        const bucket = global.__GEN_LIMIT[uid] || { count:0, reset: Date.now()+3600000 };
+        if(Date.now()>bucket.reset){ bucket.count=0; bucket.reset=Date.now()+3600000; }
+        if(bucket.count>=20) return res.status(429).send('Limit erreicht (20/h)');
+    const desiredSections = (sections?sections.split(','):['hero','intro','posts','cta']).map(s=>s.trim()).filter(Boolean);
+    // AI usage tracking (counts every generator invocation)
+    try { await incrementAIUsage('generator'); } catch(_){}
+        const [templates] = await pool.query('SELECT ap.id, ap.title, ap.slug, m.section_signature FROM advanced_pages ap LEFT JOIN advanced_page_template_meta m ON m.template_id=ap.id WHERE ap.is_template=1');
+        const templateMeta = chooseTemplate(templates, desiredSections, intent, styleProfile);
+        const index = await buildContentIndex();
+        const research = await researchTopic(topic,'de');
+        const layout = buildLayoutFromSections(desiredSections, topic, index, { maxPosts: parseInt(maxPosts,10)||3, maxPodcasts: parseInt(maxPodcasts,10)||3, intent, styleProfile, research });
+        const layout_json = JSON.stringify(layout);
+        const rendered_html = renderAdvancedPageHTML(layout);
+        const diagnostics = { template_used: templateMeta?templateMeta.id:null, sections_requested: desiredSections, posts_used: layout.rows.flatMap(r=>r.columns.flatMap(c=>c.blocks)).filter(b=>b.type==='post-link').length, podcasts_used: layout.rows.flatMap(r=>r.columns.flatMap(c=>c.blocks)).filter(b=>b.type==='podcast-link').length, research_summary: research.summary };
+        if(dryRun==='1'){
+            // Log dry-run details (no page insert)
+            try { await ensureAIUsageTable(); await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'generator-dry', JSON.stringify({ topic, intent, sections:desiredSections, templateChosen: templateMeta?templateMeta.id:null, diagnostics }), rendered_html.length ]); } catch(_){}
+            return res.json({ layout: JSON.parse(layout_json), used_template: templateMeta, research, rendered_preview: rendered_html, diagnostics });
+        }
+        const slugBase = topic.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
+        const slug = slugBase+'-'+Date.now();
+        const [ins] = await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, status, is_template, author_id) VALUES (?,?,?,?,?,0,?)',[ topic, slug, layout_json, rendered_html, 'draft', req.session.userId||null ]);
+        const pageId = ins.insertId;
+    await pool.query('INSERT INTO advanced_page_generations (page_id, topic, intent, sections, score, diagnostics) VALUES (?,?,?,?,?,?)',[ pageId, topic, intent, desiredSections.join(','), null, JSON.stringify(diagnostics) ]);
+    try { await ensureAIUsageTable(); await pool.query('INSERT INTO ai_call_log (endpoint, prompt_text, response_chars) VALUES (?,?,?)',[ 'generator', JSON.stringify({ topic, intent, sections:desiredSections, templateChosen: templateMeta?templateMeta.id:null, diagnostics }), rendered_html.length ]); } catch(_){}
+        bucket.count++; global.__GEN_LIMIT[uid]=bucket;
+        res.redirect('/admin/advanced-pages');
+    } catch(e){ console.error('Generate Fehler', e); res.status(500).send('Generator Fehler'); }
+});
+// Generator diagnostics detail JSON
+router.get('/advanced-pages/generation/:id', isAuthenticated, async (req,res)=>{
+    try { const [rows] = await pool.query('SELECT id, page_id, topic, intent, sections, score, diagnostics, created_at FROM advanced_page_generations WHERE id=?',[req.params.id]); if(!rows.length) return res.status(404).json({error:'Not found'}); const row=rows[0]; let diag={}; try{ diag=JSON.parse(row.diagnostics||'{}'); }catch(_){} res.json({ id:row.id, topic:row.topic, intent:row.intent, sections:row.sections, score:row.score, diagnostics:diag, page_id:row.page_id, created_at:row.created_at }); } catch(e){ res.status(500).json({error:'Fetch error'}); }
+});
+router.get('/advanced-pages/generation', isAuthenticated, async (req,res)=>{
+    const limit = Math.min(parseInt(req.query.limit||'20',10),100);
+    try { const [rows] = await pool.query('SELECT id, topic, intent, sections, created_at FROM advanced_page_generations ORDER BY id DESC LIMIT '+limit); res.json(rows); } catch(e){ res.status(500).json({error:'Fetch error'}); }
+});
+
+// --- AI Metadata enrichment endpoints (stubs) ---
+async function aiGenerateMetadata(kind, record){
+    // Placeholder simple heuristics; integrate real AI later
+    const baseTitle = (record.title||'').slice(0,60);
+    return {
+        seo_title: baseTitle,
+        seo_description: `Überblick zu ${baseTitle} – zentrale Punkte & Mehrwert.`,
+        meta_keywords: (record.tags||'').split(/[,\s]+/).filter(Boolean).slice(0,8).join(',') || 'security,data,cloud',
+        tags: record.tags || 'security, governance'
+    };
+}
+router.post('/posts/:id/ai-metadata', isAuthenticated, async (req,res)=>{
+    await ensureExtendedContentMetadata();
+    try { const [rows] = await pool.query('SELECT * FROM posts WHERE id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Post nicht gefunden'); const meta = await aiGenerateMetadata('post', rows[0]); await pool.query('UPDATE posts SET seo_title=?, seo_description=?, meta_keywords=?, tags=? WHERE id=?',[meta.seo_title, meta.seo_description, meta.meta_keywords, meta.tags, req.params.id]); res.redirect('back'); } catch(e){ console.error('AI Meta Post Fehler', e); res.status(500).send('Fehler'); }
+});
+router.post('/podcasts/:id/ai-metadata', isAuthenticated, async (req,res)=>{
+    await ensureExtendedContentMetadata();
+    try { const [rows] = await pool.query('SELECT * FROM podcasts WHERE id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Podcast nicht gefunden'); const meta = await aiGenerateMetadata('podcast', rows[0]); await pool.query('UPDATE podcasts SET seo_title=?, seo_description=?, meta_keywords=?, tags=? WHERE id=?',[meta.seo_title, meta.seo_description, meta.meta_keywords, meta.tags, req.params.id]); res.redirect('back'); } catch(e){ console.error('AI Meta Podcast Fehler', e); res.status(500).send('Fehler'); }
+});
+router.post('/media/:id/ai-metadata', isAuthenticated, async (req,res)=>{
+    await ensureExtendedContentMetadata();
+    try { const [rows] = await pool.query('SELECT * FROM media_files WHERE id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Media nicht gefunden'); const m = rows[0]; const meta = { seo_alt: (m.alt_text||m.name||'').slice(0,120), seo_description: `Visual zu ${(m.category||'Thema')}`, meta_keywords: (m.category||'visual,media') }; await pool.query('UPDATE media_files SET seo_alt=?, seo_description=?, meta_keywords=? WHERE id=?',[meta.seo_alt, meta.seo_description, meta.meta_keywords, req.params.id]); res.redirect('back'); } catch(e){ console.error('AI Meta Media Fehler', e); res.status(500).send('Fehler'); }
+});
 // In-Memory Cache für AI Konfiguration (wird aus DB geladen)
 let aiConfigCache = null; let aiConfigLoadedAt = 0;
 async function getAIConfig(){
@@ -227,13 +524,19 @@ router.get('/', isAuthenticated, async (req, res) => {
         const [mediaCountRows] = await pool.query("SELECT COUNT(*) as count FROM media");
         const [podcastCountRows] = await pool.query("SELECT COUNT(*) as count FROM podcasts");
         const [latestPosts] = await pool.query("SELECT * FROM posts ORDER BY updated_at DESC LIMIT 5");
+        // Additional KPIs
+        let advPageCount=0, templateCount=0, genLogCount=0, aiCallsToday=0;
+        try { await ensureAdvancedPagesTable(); const [ap] = await pool.query('SELECT SUM(CASE WHEN is_template=0 THEN 1 ELSE 0 END) AS pages, SUM(CASE WHEN is_template=1 THEN 1 ELSE 0 END) AS templates FROM advanced_pages'); advPageCount = ap[0].pages||0; templateCount = ap[0].templates||0; } catch(_){}
+        try { const [gl] = await pool.query('SELECT COUNT(*) as c FROM advanced_page_generations WHERE created_at>=DATE_SUB(NOW(), INTERVAL 24 HOUR)'); genLogCount = gl[0].c||0; } catch(_){}
+        try { await ensureAIUsageTable(); const [aiu] = await pool.query('SELECT SUM(calls) as c FROM ai_usage WHERE day=CURDATE()'); aiCallsToday = (aiu[0] && aiu[0].c)||0; } catch(_){}
 
         res.render('admin_dashboard', {
             title: 'Admin Dashboard',
             postCount: postCountRows[0].count,
             mediaCount: mediaCountRows[0].count,
             podcastCount: podcastCountRows[0].count,
-            latestPosts: latestPosts
+            latestPosts: latestPosts,
+            advPageCount, templateCount, genLogCount, aiCallsToday
         });
     } catch (err) {
         console.error('Fehler beim Laden des Admin-Dashboards:', err);
@@ -245,8 +548,10 @@ router.get('/', isAuthenticated, async (req, res) => {
 router.get('/advanced-pages', isAuthenticated, async (req,res)=>{
     await ensureAdvancedPagesTable();
     try {
-        const [rows] = await pool.query('SELECT id, title, slug, status, updated_at FROM advanced_pages ORDER BY updated_at DESC LIMIT 200');
-        res.render('admin_advanced_pages_list', { title:'Advanced Pages', pages: rows });
+    const [rows] = await pool.query('SELECT id, title, slug, status, is_template, updated_at FROM advanced_pages ORDER BY updated_at DESC LIMIT 400');
+    const pages = rows.filter(r=>!r.is_template);
+    const templates = rows.filter(r=>r.is_template);
+    res.render('admin_advanced_pages_list', { title:'Advanced Pages', pages, templates });
     } catch(e){ console.error('Advanced Pages List Fehler:', e); res.status(500).send('Fehler'); }
 });
 router.get('/advanced-pages/new', isAuthenticated, async (req,res)=>{
@@ -264,7 +569,7 @@ router.get('/advanced-pages/edit/:id', isAuthenticated, async (req,res)=>{
 });
 router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
     await ensureAdvancedPagesTable();
-    const { id, title, slug, layout_json } = req.body;
+    const { id, title, slug, layout_json, make_template } = req.body;
     if(!title || !slug) return res.status(400).send('Titel & Slug nötig');
     let layout; try { layout = JSON.parse(layout_json); } catch(e){ return res.status(400).send('Layout JSON ungültig'); }
     // Simple validation
@@ -284,7 +589,7 @@ router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
     // Render HTML
     let htmlParts = [];
     htmlParts.push('<div class="ap-page">');
-    (layout.rows||[]).forEach((row,rowIndex)=>{
+        (layout.rows||[]).forEach((row,rowIndex)=>{
         const preset = row.preset || 'custom';
         htmlParts.push(`<section class="ap-row ap-preset-${preset}" data-row="${rowIndex}"><div class="container-fluid"><div class="row g-4">`);
         (row.columns||[]).forEach((col,colIndex)=>{
@@ -293,8 +598,24 @@ router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
             (col.blocks||[]).forEach(block=>{
                 if(!block || typeof block!=='object') return;
                 const bType = block.type || 'html';
-                if(bType==='html' || bType==='text'){
-                    htmlParts.push(`<div class="ap-block ap-block-${bType}" data-block="${block.id||''}">${cleanHtml(block.html||'')}</div>`);
+                                if(bType==='html' || bType==='text'){
+                                    const styleParts = [];
+                                    if(block.textColor && /^#[0-9a-fA-F]{3,8}$/.test(block.textColor)) styleParts.push(`color:${block.textColor}`);
+                                    if(block.bgColor && /^#[0-9a-fA-F]{3,8}$/.test(block.bgColor)) styleParts.push(`background:${block.bgColor}`);
+                                    const styleAttr = styleParts.length?` style="${styleParts.join(';')}"`:'';
+                                    // Sanitize custom classes
+                                    const custom = (block.classes||'').replace(/[^a-zA-Z0-9_\-\s]/g,' ').trim();
+                                    const classList = [ 'ap-block', `ap-block-${bType}` ];
+                                    if(custom) custom.split(/\s+/).forEach(c=>{ if(c) classList.push(c); });
+                                    // Spacing utility (whitelist)
+                                    const spacing = (block.spacing||'').trim();
+                                    if(['pad-s','pad-m','pad-l'].includes(spacing)) classList.push(spacing);
+                                    // Visibility flags -> bootstrap responsive helper classes
+                                    if(block.hideSM) classList.push('d-none','d-sm-block');
+                                    if(block.hideMD) classList.push('d-sm-none','d-md-block');
+                                    if(block.hideLG) classList.push('d-lg-none');
+                                    const classesAttr = classList.join(' ');
+                                    htmlParts.push(`<div class="${classesAttr}" data-block="${block.id||''}"${styleAttr}>${cleanHtml(block.html||'')}</div>`);
                 } else if(bType==='image'){
                     const src = (block.src||'').replace(/"/g,'&quot;');
                     const alt = (block.alt||'').replace(/"/g,'&quot;');
@@ -304,6 +625,33 @@ router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
                     const bgColor = block.bgColor && /^#[0-9a-fA-F]{3,8}$/.test(block.bgColor) ? block.bgColor : '#f5f5f5';
                     const padding = block.padding && /^[0-9a-zA-Z% \-_.]+$/.test(block.padding) ? block.padding : '40px 20px';
                     htmlParts.push(`<div class="ap-block ap-block-background" data-block="${block.id||''}" style="background:${bgColor};padding:${padding};">${cleanHtml(block.html||'')}</div>`);
+                                } else if(bType==='post-link'){
+                                        const pid = parseInt(block.postId,10)||null; const title = cleanHtml(block.title||''); const slug = cleanHtml(block.slug||'');
+                                        if(pid && title){
+                                                htmlParts.push(`<div class="ap-block ap-block-post-link" data-block="${block.id||''}"><a href="/blog/${slug}" class="ap-post-link">${title}</a></div>`);
+                                        }
+                                } else if(bType==='podcast-link'){
+                                        const pid = parseInt(block.podcastId,10)||null; const title = cleanHtml(block.title||'');
+                                        if(pid && title){ htmlParts.push(`<div class="ap-block ap-block-podcast-link" data-block="${block.id||''}"><a href="/podcasts#ep-${pid}" class="ap-podcast-link">${title}</a></div>`); }
+                                } else if(bType==='hero'){
+                                        const img = (block.image||'').replace(/"/g,'&quot;');
+                                        const title = cleanHtml(block.title||'');
+                                        const subtitle = cleanHtml(block.subtitle||'');
+                                        const ctaText = cleanHtml(block.ctaText||'');
+                                        const ctaUrl = (block.ctaUrl||'').replace(/"/g,'&quot;');
+                                        const height = (block.height||'60vh').replace(/[^0-9a-zA-Z%vhrem.\-]/g,'');
+                                        let overlay = parseFloat(block.overlayOpacity); if(isNaN(overlay)||overlay<0) overlay=0; if(overlay>1) overlay=1;
+                                        const align = ['left','center','right'].includes(block.align)?block.align:'center';
+                                        htmlParts.push(`<div class="ap-block ap-block-hero" data-block="${block.id||''}">`+
+                                            `<div class="ap-hero" style="position:relative;background:${img?`url('${img}') center/cover no-repeat`:'#222'};height:${height};">`+
+                                                `<div class="ap-hero-overlay" style="position:absolute;inset:0;background:#000;opacity:${overlay};"></div>`+
+                                                `<div class="ap-hero-inner container h-100 d-flex flex-column justify-content-center text-${align}" style="position:relative;z-index:2;">`+
+                                                    `<div class="ap-hero-title display-6 fw-bold text-white">${title}</div>`+
+                                                    (subtitle?`<p class="ap-hero-sub lead text-white-50">${subtitle}</p>`:'')+
+                                                    (ctaText&&ctaUrl?`<p><a href="${ctaUrl}" class="btn btn-primary btn-lg">${ctaText}</a></p>`:'')+
+                                                `</div>`+
+                                            `</div>`+
+                                        `</div>`);
                 }
             });
             htmlParts.push('</div>');
@@ -313,13 +661,26 @@ router.post('/advanced-pages/save', isAuthenticated, async (req,res)=>{
     htmlParts.push('</div>');
     const rendered = htmlParts.join('');
     try {
+        const tmplFlag = make_template ? 1 : 0;
         if(id){
-            await pool.query('UPDATE advanced_pages SET title=?, slug=?, layout_json=?, rendered_html=? WHERE id=?',[title, slug, JSON.stringify(layout), rendered, id]);
+            await pool.query('UPDATE advanced_pages SET title=?, slug=?, layout_json=?, rendered_html=?, is_template=? WHERE id=?',[title, slug, JSON.stringify(layout), rendered, tmplFlag, id]);
         } else {
-            await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, author_id) VALUES (?,?,?,?,?)',[title, slug, JSON.stringify(layout), rendered, req.session.userId||null]);
+            await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, author_id) VALUES (?,?,?,?,?,?)',[title, slug, JSON.stringify(layout), rendered, tmplFlag, req.session.userId||null]);
         }
         res.redirect('/admin/advanced-pages');
     } catch(e){ console.error('Save Fehler', e); res.status(500).send('Speichern fehlgeschlagen'); }
+});
+// Create new page from template (clone layout)
+router.post('/advanced-pages/from-template/:id', isAuthenticated, async (req,res)=>{
+    await ensureAdvancedPagesTable();
+    try {
+        const [rows] = await pool.query('SELECT * FROM advanced_pages WHERE id=? AND is_template=1',[req.params.id]);
+        if(!rows.length) return res.status(404).send('Template nicht gefunden');
+        const base = rows[0];
+        const newSlug = (base.slug+'-'+Date.now()).slice(0,190);
+        await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, status, author_id, is_template) VALUES (?,?,?,?,?,?,0)', [ base.title+' Copy', newSlug, base.layout_json, base.rendered_html, 'draft', req.session.userId||null ]);
+        res.redirect('/admin/advanced-pages');
+    } catch(e){ console.error('Template Clone Fehler', e); res.status(500).send('Klonen fehlgeschlagen'); }
 });
 router.post('/advanced-pages/delete/:id', isAuthenticated, async (req,res)=>{
     try { await pool.query('DELETE FROM advanced_pages WHERE id=?',[req.params.id]); res.redirect('/admin/advanced-pages'); }
@@ -365,7 +726,7 @@ router.get('/posts/new', isAuthenticated, async (req, res) => {
 });
 
 router.post('/posts/new', isAuthenticated, async (req, res) => {
-    const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags } = req.body;
+    const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords } = req.body;
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     let whatsNewSan = sanitizeWhatsNew(whatsnew);
     if(whatsNewSan && whatsNewSan.length>180) whatsNewSan = whatsNewSan.slice(0,180).trim();
@@ -382,22 +743,16 @@ router.post('/posts/new', isAuthenticated, async (req, res) => {
     try {
         try {
             await pool.query(
-                'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
+                'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null]
             );
         } catch (e) {
             if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('published_at')) {
                 await pool.query('ALTER TABLE posts ADD COLUMN published_at DATETIME NULL AFTER status');
-                await pool.query(
-                    'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
-                );
+                await pool.query('INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords) VALUES (?,?,?,?, ?,?,?, ?,?,?, ?,?,?,?)',[title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null]);
             } else if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('tags')) {
                 await pool.query("ALTER TABLE posts ADD COLUMN tags VARCHAR(255) NULL AFTER whatsnew");
-                await pool.query(
-                    'INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null]
-                );
+                await pool.query('INSERT INTO posts (title, slug, content, author_id, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords) VALUES (?,?,?,?, ?,?,?, ?,?,?, ?,?,?,?)',[title, slug, contentSan, req.session.userId, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null]);
             } else { throw e; }
         }
         res.redirect('/admin/posts');
@@ -428,7 +783,7 @@ router.get('/posts/edit/:id', isAuthenticated, async (req, res) => {
 });
 
 router.post('/posts/edit/:id', isAuthenticated, async (req, res) => {
-    const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags } = req.body;
+    const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords } = req.body;
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
     let whatsNewSan = sanitizeWhatsNew(whatsnew);
     if(whatsNewSan && whatsNewSan.length>180) whatsNewSan = whatsNewSan.slice(0,180).trim();
@@ -443,22 +798,16 @@ router.post('/posts/edit/:id', isAuthenticated, async (req, res) => {
     try {
         try {
             await pool.query(
-                'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
+                'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ?, seo_title = ?, seo_description = ?, meta_keywords = ? WHERE id = ?',
+                [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null, req.params.id]
             );
         } catch (e) {
             if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('published_at')) {
                 await pool.query('ALTER TABLE posts ADD COLUMN published_at DATETIME NULL AFTER status');
-                await pool.query(
-                    'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                    [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
-                );
+                await pool.query('UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ?, seo_title = ?, seo_description = ?, meta_keywords = ? WHERE id = ?', [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null, req.params.id]);
             } else if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('tags')) {
                 await pool.query("ALTER TABLE posts ADD COLUMN tags VARCHAR(255) NULL AFTER whatsnew");
-                await pool.query(
-                    'UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ? WHERE id = ?',
-                    [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, req.params.id]
-                );
+                await pool.query('UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, title_en = ?, content_en = ?, whatsnew = ?, featured_image_id = ?, published_at = ?, tags = ?, seo_title = ?, seo_description = ?, meta_keywords = ? WHERE id = ?', [title, slug, contentSan, status, title_en, content_en, whatsNewSan, featured_image_id || null, published_at || null, tags || null, seo_title || null, seo_description || null, meta_keywords || null, req.params.id]);
             } else { throw e; }
         }
         res.redirect('/admin/posts');
@@ -545,9 +894,14 @@ router.get('/podcasts/new', isAuthenticated, (req, res) => {
     res.render('admin_edit_podcast', { title: 'Neuer Podcast', podcast: null });
 });
 router.post('/podcasts/new', isAuthenticated, async (req, res) => {
-    const { title, description, audio_url } = req.body;
+    const { title, description, audio_url, tags, seo_title, seo_description, meta_keywords } = req.body;
     try {
-        await pool.query('INSERT INTO podcasts (title, description, audio_url, published_at) VALUES (?, ?, ?, NOW())', [title, description, audio_url]);
+        try {
+            await pool.query('INSERT INTO podcasts (title, description, audio_url, published_at, tags, seo_title, seo_description, meta_keywords) VALUES (?,?,?, NOW(), ?, ?, ?, ?)', [title, description, audio_url, tags || null, seo_title || null, seo_description || null, meta_keywords || null]);
+        } catch(e){
+            if(e.code==='ER_BAD_FIELD_ERROR' && e.message.includes('tags')){ await pool.query('ALTER TABLE podcasts ADD COLUMN tags VARCHAR(255) NULL'); await pool.query('INSERT INTO podcasts (title, description, audio_url, published_at, tags, seo_title, seo_description, meta_keywords) VALUES (?,?,?, NOW(), ?, ?, ?, ?)', [title, description, audio_url, tags || null, seo_title || null, seo_description || null, meta_keywords || null]); }
+            else { throw e; }
+        }
         res.redirect('/admin/podcasts');
     } catch (e) { console.error('Podcast Insert Fehler:', e); res.status(500).send('Fehler beim Speichern'); }
 });
@@ -560,9 +914,10 @@ router.get('/podcasts/edit/:id', isAuthenticated, async (req, res) => {
     } catch(e){ res.status(500).send('Fehler beim Laden'); }
 });
 router.post('/podcasts/edit/:id', isAuthenticated, async (req, res) => {
-    const { title, description, audio_url } = req.body;
+    const { title, description, audio_url, tags, seo_title, seo_description, meta_keywords } = req.body;
     try {
-        await pool.query('UPDATE podcasts SET title=?, description=?, audio_url=? WHERE id=?', [title, description, audio_url, req.params.id]);
+        try { await pool.query('UPDATE podcasts SET title=?, description=?, audio_url=?, tags=?, seo_title=?, seo_description=?, meta_keywords=? WHERE id=?', [title, description, audio_url, tags || null, seo_title || null, seo_description || null, meta_keywords || null, req.params.id]); }
+        catch(e){ if(e.code==='ER_BAD_FIELD_ERROR' && e.message.includes('tags')){ await pool.query('ALTER TABLE podcasts ADD COLUMN tags VARCHAR(255) NULL'); await pool.query('UPDATE podcasts SET title=?, description=?, audio_url=?, tags=?, seo_title=?, seo_description=?, meta_keywords=? WHERE id=?',[title, description, audio_url, tags || null, seo_title || null, seo_description || null, meta_keywords || null, req.params.id]); } else { throw e; } }
         res.redirect('/admin/podcasts');
     } catch(e){ console.error('Podcast Update Fehler:', e); res.status(500).send('Fehler beim Aktualisieren'); }
 });
@@ -791,25 +1146,43 @@ router.get('/media', isAuthenticated, async (req, res) => {
     }
 });
 
+let mediaSequentialCache = { loaded:false, next:1 };
+async function ensureMediaSequentialStart(){
+    if(mediaSequentialCache.loaded) return;
+    try { const [r] = await pool.query('SELECT MAX(id) AS maxId FROM media'); mediaSequentialCache.next = (r[0].maxId||0)+1; } catch(e){ /* fallback bleibt 1 */ }
+    mediaSequentialCache.loaded = true;
+}
 router.post('/upload', isAuthenticated, (req, res) => {
     multiUpload(req, res, async (err) => {
         if (err) { return res.status(500).send("Fehler beim Hochladen der Datei(en)."); }
         if (!req.files || req.files.length === 0) { return res.status(400).send('Keine Datei ausgewählt.'); }
-
-        const { alt_text, description, category } = req.body;
+        const { alt_text, description, category, base_name } = req.body;
+        await ensureMediaSequentialStart();
+        const desiredBase = (base_name||'').trim();
+        const fsSync = require('fs');
+        const path = require('path');
+        const renameMap = [];
+        // Erzeuge neue Dateinamen
+        req.files.forEach((file, idx)=>{
+            const ext = path.extname(file.originalname||file.filename).toLowerCase();
+            let newBase;
+            if(desiredBase){ newBase = req.files.length===1 ? desiredBase : desiredBase+'-'+(idx+1); }
+            else { newBase = String(mediaSequentialCache.next).padStart(4,'0'); mediaSequentialCache.next++; }
+            const newFilename = newBase + ext;
+            if(newFilename !== file.filename){
+                try { fsSync.renameSync(path.join('./httpdocs/uploads/', file.filename), path.join('./httpdocs/uploads/', newFilename)); file.filename = newFilename; }
+                catch(e){ console.warn('Rename fehlgeschlagen für', file.filename, '->', newFilename, e.message); }
+            }
+            renameMap.push(file.filename);
+        });
         const entries = req.files.map(f => [f.filename, f.mimetype, '/uploads/' + f.filename, alt_text || null, description || null, category || null]);
-
         try {
-            try {
-                await pool.query("INSERT INTO media (name, type, path, alt_text, description, category) VALUES ?", [entries]);
-            } catch (e) {
+            try { await pool.query("INSERT INTO media (name, type, path, alt_text, description, category) VALUES ?", [entries]); }
+            catch (e) {
                 if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('category')) {
-                    // Spalte hinzufügen und erneut versuchen
                     await pool.query("ALTER TABLE media ADD COLUMN category VARCHAR(100) NULL AFTER description");
                     await pool.query("INSERT INTO media (name, type, path, alt_text, description, category) VALUES ?", [entries]);
-                } else {
-                    throw e;
-                }
+                } else { throw e; }
             }
             res.redirect('/admin/media');
         } catch (dbErr) {
@@ -848,15 +1221,33 @@ router.get('/media/edit/:id', isAuthenticated, async (req, res) => {
     }
 });
 
+// --- Simple APIs for Advanced Pages pickers ---
+router.get('/api/posts/simple', isAuthenticated, async (req,res)=>{
+    try {
+        const [rows] = await pool.query('SELECT id, title, slug, LEFT(REPLACE(REPLACE(content, "<[^>]+>", ""), "  ", " "), 160) AS excerpt FROM posts WHERE is_deleted=0 ORDER BY updated_at DESC LIMIT 250');
+        res.json(rows.map(r=>({ id:r.id, title:r.title, slug:r.slug, excerpt:r.excerpt })));
+    } catch(e){ res.status(500).json({error:'Fetch Posts fehlgeschlagen'}); }
+});
+router.get('/api/podcasts/simple', isAuthenticated, async (req,res)=>{
+    try {
+        const [rows] = await pool.query('SELECT id, title, LEFT(REPLACE(description, "<[^>]+>", ""), 200) AS description FROM podcasts ORDER BY published_at DESC LIMIT 250');
+        res.json(rows);
+    } catch(e){ res.status(500).json({error:'Fetch Podcasts fehlgeschlagen'}); }
+});
+
 router.post('/media/edit/:id', isAuthenticated, async (req, res) => {
-    const { name, alt_text, description, category } = req.body;
+    const { name, alt_text, description, category, seo_alt, seo_description, meta_keywords } = req.body;
     try {
         try {
-            await pool.query("UPDATE media SET name = ?, alt_text = ?, description = ?, category = ? WHERE id = ?", [name, alt_text, description, category || null, req.params.id]);
+            await pool.query("UPDATE media SET name = ?, alt_text = ?, description = ?, category = ?, seo_alt = ?, seo_description = ?, meta_keywords = ? WHERE id = ?", [name, alt_text, description, category || null, seo_alt || null, seo_description || null, meta_keywords || null, req.params.id]);
         } catch (e) {
-            if (e.code === 'ER_BAD_FIELD_ERROR' && e.message.includes('category')) {
-                await pool.query("ALTER TABLE media ADD COLUMN category VARCHAR(100) NULL AFTER description");
-                await pool.query("UPDATE media SET name = ?, alt_text = ?, description = ?, category = ? WHERE id = ?", [name, alt_text, description, category || null, req.params.id]);
+            // Ensure columns one by one if missing
+            if(e.code==='ER_BAD_FIELD_ERROR'){
+                if(e.message.includes('seo_alt')){ try { await pool.query("ALTER TABLE media ADD COLUMN seo_alt VARCHAR(255) NULL"); } catch(_){} }
+                if(e.message.includes('seo_description')){ try { await pool.query("ALTER TABLE media ADD COLUMN seo_description VARCHAR(255) NULL"); } catch(_){} }
+                if(e.message.includes('meta_keywords')){ try { await pool.query("ALTER TABLE media ADD COLUMN meta_keywords VARCHAR(255) NULL"); } catch(_){} }
+                if(e.message.includes('category')){ try { await pool.query("ALTER TABLE media ADD COLUMN category VARCHAR(100) NULL AFTER description"); } catch(_){} }
+                await pool.query("UPDATE media SET name = ?, alt_text = ?, description = ?, category = ?, seo_alt = ?, seo_description = ?, meta_keywords = ? WHERE id = ?", [name, alt_text, description, category || null, seo_alt || null, seo_description || null, meta_keywords || null, req.params.id]);
             } else { throw e; }
         }
         res.redirect('/admin/media');
@@ -1007,11 +1398,11 @@ router.post('/api/translate', isAuthenticated, async (req, res) => {
 
 // Blog AI Config View & Update
 router.get('/blog-config', isAuthenticated, async (req, res) => {
-    try { const cfg = await refreshAIConfig(true); res.render('admin_blog_config', { title:'Blog Konfiguration', ai: cfg }); }
+    try { const cfg = await refreshAIConfig(true); res.render('admin_blog_config', { title:'Blog Konfiguration', ai: cfg, saved: req.query.saved==='1' }); }
     catch(e){ res.status(500).send('Config Laden fehlgeschlagen'); }
 });
 router.post('/blog-config', isAuthenticated, async (req, res) => {
-    const { primary_key_choice, max_daily_calls, whats_new_research, translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories, max_response_chars, max_translate_chars, max_sample_chars } = req.body;
+    const { primary_key_choice, max_daily_calls, whats_new_research, translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories, max_response_chars, max_translate_chars, max_sample_chars, seo_title_prefix, enable_generator, generator_default_sections } = req.body;
     try {
         // Stelle sicher, dass Tabelle existiert (sicherheitsnetz, falls initialer Load scheiterte)
         await pool.query(`CREATE TABLE IF NOT EXISTS ai_config (
@@ -1022,6 +1413,9 @@ router.post('/blog-config', isAuthenticated, async (req, res) => {
             prompts JSON NULL,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+    // Falls historische Installation ohne limits/prompts Spalten: nachrüsten
+    try { await pool.query('ALTER TABLE ai_config ADD COLUMN limits JSON NULL AFTER max_daily_calls'); } catch(_) {}
+    try { await pool.query('ALTER TABLE ai_config ADD COLUMN prompts JSON NULL AFTER limits'); } catch(_) {}
         // Auto-Insert falls Datensatz fehlt
         const [exists] = await pool.query('SELECT id FROM ai_config WHERE id=1');
         if(!exists.length){
@@ -1032,9 +1426,10 @@ router.post('/blog-config', isAuthenticated, async (req, res) => {
             max_translate_chars: parseInt(max_translate_chars||10000,10),
             max_sample_chars: parseInt(max_sample_chars||8000,10)
         };
-        await pool.query('UPDATE ai_config SET primary_key_choice=?, max_daily_calls=?, limits=?, prompts=? WHERE id=1',[ (primary_key_choice==='free'?'free':'paid'), parseInt(max_daily_calls||500,10), JSON.stringify(limits), JSON.stringify({ whats_new_research, translate: translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories }) ]);
+    const promptsObj = { whats_new_research, translate: translate_prompt, media_alt_text, blog_sample, blog_tags, media_categories, seo_title_prefix, generator_default_sections, enable_generator: enable_generator ? 1 : 0 };
+    await pool.query('UPDATE ai_config SET primary_key_choice=?, max_daily_calls=?, limits=?, prompts=? WHERE id=1',[ (primary_key_choice==='free'?'free':'paid'), parseInt(max_daily_calls||500,10), JSON.stringify(limits), JSON.stringify(promptsObj) ]);
         aiConfigLoadedAt = 0; // invalidate cache
-        res.redirect('/admin/blog-config');
+    res.redirect('/admin/blog-config?saved=1');
     } catch(e){ console.error('Config Update Fehler:', e); res.status(500).send('Speichern fehlgeschlagen: '+ e.message); }
 });
 

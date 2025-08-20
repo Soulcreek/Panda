@@ -70,30 +70,20 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="/" style="display:flex;align-items:center;gap:.5rem;">
-            <img src="/img/logo.png" alt="Purview Panda" height="48" class="d-inline-block align-text-top" style="height:48px;width:auto;">
-        </a>
+                <a class="navbar-brand" href="/" style="display:flex;align-items:center;gap:.5rem;">
+                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="/uploads/1755632270498-Logo_dark.png" alt="Purview Panda" height="48" class="d-inline-block align-text-top" style="height:48px;width:auto;" id="siteLogo">
+                </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto align-items-lg-center">
                 <% const __cp = (typeof currentPath === 'undefined' ? '' : currentPath); %>
-                <li class="nav-item">
-                    <a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="/pandas-way"><%= t('nav.pandas_way') %></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview"><%= t('nav.purview') %></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="/blog"><%= t('nav.blog') %></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="/podcasts"><%= t('nav.podcasts') %></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a>
-                </li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="/blog"><%= t('nav.blog') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="/pandas-way"><%= t('nav.pandas_way') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="/podcasts"><%= t('nav.podcasts') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview"><%= t('nav.purview') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a></li>
                 <% if (isAdmin) { %>
                     <li class="nav-item">
                         <a class="nav-link <%= isAdmin ? 'text-primary fw-bold' : 'text-secondary' %>" href="/admin"><%= t('nav.admin') %></a>
@@ -136,5 +126,18 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
             }
         }
     }
+})();
+</script>
+<script>
+// Swap logo when dark-mode class toggles
+(function(){
+    function swap(){
+        var el=document.getElementById('siteLogo'); if(!el) return;
+        var dark=document.documentElement.classList.contains('dark-mode');
+        var ds=el.getAttribute('data-logo-dark'); var ls=el.getAttribute('data-logo-light');
+        el.src = dark && ds ? ds : (ls||el.src);
+    }
+    swap();
+    new MutationObserver(swap).observe(document.documentElement,{ attributes:true, attributeFilter:['class'] });
 })();
 </script>

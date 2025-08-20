@@ -2,6 +2,9 @@
 <%- include('partials/admin_nav') %>
 <div class="container my-5">
   <h1>Blog Konfiguration</h1>
+  <% if (saved) { %>
+    <div class="alert alert-success shadow-sm">Einstellungen gespeichert.</div>
+  <% } %>
   <p class="text-muted">AI Einstellungen & Prompts anpassen. Primärer Schlüssel zuerst, Fallback automatisch.</p>
   <form method="post" action="/admin/blog-config" class="row g-4">
     <% /* CSRF Token (fehlte zuvor -> EBADCSRFTOKEN) */ %>
@@ -10,7 +13,7 @@
     <% } %>
     <div class="col-12">
       <div class="card">
-        <div class="card-header">AI Schlüssel & Limits</div>
+  <div class="card-header">AI Schlüssel & Limits</div>
         <div class="card-body row g-3">
           <div class="col-md-4">
             <label class="form-label">Primärer Key</label>
@@ -37,6 +40,20 @@
           <div class="col-md-4">
             <label class="form-label">Max Sample-Zeichen</label>
             <input type="number" class="form-control" name="max_sample_chars" value="<%= (ai.limits && ai.limits.max_sample_chars) || 8000 %>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">SEO Titel Präfix (optional)</label>
+            <input type="text" class="form-control" name="seo_title_prefix" value="<%= (ai.prompts && ai.prompts.seo_title_prefix) || '' %>" placeholder="Panda | ">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Generator Default Sections (Komma)</label>
+            <input type="text" class="form-control" name="generator_default_sections" value="<%= (ai.prompts && ai.prompts.generator_default_sections) || 'hero,intro,posts,cta' %>">
+          </div>
+          <div class="col-md-4">
+            <div class="form-check mt-4 pt-2">
+              <input class="form-check-input" type="checkbox" id="enable_generator" name="enable_generator" value="1" <%= (ai.prompts && ai.prompts.enable_generator)?'checked':'' %>>
+              <label class="form-check-label" for="enable_generator">Generator aktiv</label>
+            </div>
           </div>
         </div>
       </div>

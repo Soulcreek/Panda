@@ -12,6 +12,7 @@
             <tr>
                 <th>Titel</th>
                 <th>Veröffentlicht am</th>
+                <th>AI</th>
                 <th>Aktionen</th>
             </tr>
         </thead>
@@ -22,6 +23,12 @@
                         <td><%= podcast.title %></td>
                         <td><%= new Date(podcast.published_at).toLocaleDateString('de-DE') %></td>
                         <td>
+                            <form action="/admin/podcasts/<%= podcast.id %>/ai-metadata" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn btn-sm btn-outline-primary" title="AI SEO/Tags">AI</button>
+                            </form>
+                        </td>
+                        <td>
                             <a href="/admin/podcasts/edit/<%= podcast.id %>" class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
                             <!-- Delete Button Form -->
                         </td>
@@ -29,7 +36,7 @@
                 <% }); %>
             <% } else { %>
                 <tr>
-                    <td colspan="3" class="text-center">Keine Podcasts gefunden.</td>
+                    <td colspan="4" class="text-center">Keine Podcasts gefunden.</td>
                 </tr>
             <% } %>
         </tbody>

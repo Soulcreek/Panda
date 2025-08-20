@@ -31,6 +31,7 @@
                         <th>Status</th>
                         <th>Featured</th>
                         <th>Plan / Aktualisiert</th>
+                        <th>AI</th>
                         <th>Aktionen</th>
                     </tr>
                 </thead>
@@ -60,6 +61,12 @@
                                         <div class="small" title="Geplanter/effektiver Zeitpunkt">🗓 <%= new Date(post.published_at).toLocaleString('de-DE') %></div>
                                     <% } %>
                                     <div class="text-muted small" title="Zuletzt aktualisiert">⟳ <%= new Date(post.updated_at).toLocaleDateString('de-DE') %></div>
+                                </td>
+                                <td>
+                                    <form action="/admin/posts/<%= post.id %>/ai-metadata" method="POST" class="d-inline">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button class="btn btn-sm btn-outline-primary" title="AI SEO/Tags">AI</button>
+                                    </form>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
@@ -96,7 +103,7 @@
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="5" class="text-center">Keine Beiträge gefunden.</td>
+                            <td colspan="6" class="text-center">Keine Beiträge gefunden.</td>
                         </tr>
                     <% } %>
                 </tbody>

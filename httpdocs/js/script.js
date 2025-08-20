@@ -261,16 +261,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const altTextInput = document.getElementById('altText');
         const descInput = document.getElementById('mediaDescription');
         if (generateAltTextBtn && mediaFilesInput) {
+            const lblIdle = generateAltTextBtn.querySelector('.label-idle');
+            const lblWorking = generateAltTextBtn.querySelector('.label-working');
+            const lblDone = generateAltTextBtn.querySelector('.label-done');
+            const spinner = generateAltTextBtn.querySelector('.spinner-border');
+            const hint = document.getElementById('altGenHint');
+            function setState(s){
+                generateAltTextBtn.dataset.state = s;
+                [lblIdle,lblWorking,lblDone].forEach(el=>el && el.classList.add('d-none'));
+                if(s==='idle' && lblIdle) lblIdle.classList.remove('d-none');
+                if(s==='working' && lblWorking) lblWorking.classList.remove('d-none');
+                if(s==='done' && lblDone) lblDone.classList.remove('d-none');
+                if(spinner) spinner.classList.toggle('d-none', s!=='working');
+            }
             function updateBtnState() {
-                generateAltTextBtn.disabled = !(mediaFilesInput.files && mediaFilesInput.files.length === 1);
+                const count = mediaFilesInput.files ? mediaFilesInput.files.length : 0;
+                generateAltTextBtn.disabled = count !== 1;
+                if(hint){
+                    if(count===1){ hint.textContent = 'Bereit: KI kann ALT & Beschreibung generieren.'; }
+                    else if(count>1){ hint.textContent='Mehrfachauswahl: KI deaktiviert (wähle genau 1 Datei).'; }
+                    else { hint.textContent='Wähle genau eine Bilddatei für KI ALT-Generierung.'; }
+                }
+                if(count!==1) setState('idle');
             }
             mediaFilesInput.addEventListener('change', updateBtnState);
             updateBtnState();
             generateAltTextBtn.addEventListener('click', async function() {
-                if (!(mediaFilesInput.files && mediaFilesInput.files.length === 1)) return;
-                const spinner = this.querySelector('.spinner-border');
-                this.disabled = true; spinner.classList.remove('d-none');
+                if (this.disabled || !(mediaFilesInput.files && mediaFilesInput.files.length === 1)) return;
                 const filename = mediaFilesInput.files[0].name;
+                setState('working'); this.disabled = true;
                 try {
                     const resp = await fetch('/admin/generate-alt-text', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': (window.CSRF_TOKEN||'')}, body: JSON.stringify({ filename }) });
                     const ct = resp.headers.get('content-type')||'';
@@ -279,15 +298,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!resp.ok) throw new Error(data.error || 'Fehler');
                     if (altTextInput && !altTextInput.value) altTextInput.value = data.alt;
                     if (descInput && !descInput.value) descInput.value = data.description;
+                    setState('done');
+                    setTimeout(()=>{ setState('idle'); updateBtnState(); }, 1800);
                 } catch(e){
-                    // Fallback Heuristik aus Dateiname
                     const base = filename.replace(/[-_]/g,' ').replace(/\.[a-zA-Z0-9]+$/,'');
                     const simpleAlt = 'Bild: '+ base.substring(0,60);
                     const simpleDesc = 'Auto-Fallback Beschreibung zu '+ base.substring(0,50);
                     if (altTextInput && !altTextInput.value) altTextInput.value = simpleAlt;
                     if (descInput && !descInput.value) descInput.value = simpleDesc;
                     alert('KI Fehler: '+ e.message + ' – Fallback verwendet.');
-                } finally { this.disabled = false; spinner.classList.add('d-none'); }
+                    setState('idle');
+                } finally { this.disabled = false; updateBtnState(); }
             });
         }
 

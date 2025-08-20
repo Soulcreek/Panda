@@ -29,6 +29,10 @@
       <textarea class="form-control font-monospace" rows="10" id="apJsonTextarea"></textarea>
     </div>
     <input type="hidden" name="layout_json" id="apLayoutInput">
+    <div class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="apMakeTemplate" name="make_template" value="1" <%= page && page.is_template? 'checked':'' %>>
+      <label class="form-check-label" for="apMakeTemplate">Als Template speichern</label>
+    </div>
     <div class="mb-5">
       <button class="btn btn-success">Speichern</button>
       <a href="/admin/advanced-pages" class="btn btn-outline-secondary">Zurück</a>

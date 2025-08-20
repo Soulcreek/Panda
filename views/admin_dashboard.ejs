@@ -2,39 +2,104 @@
 <%- include('partials/admin_nav') %> <!-- NEU: Admin-Navigation wird hier eingebunden -->
 
 <div class="container admin-dashboard my-5">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="display-5 mb-4">Admin Dashboard</h1>
+    <header class="mb-4 d-flex flex-column flex-lg-row gap-3 align-items-lg-end">
+        <div>
+            <h1 class="display-5 mb-1">Admin Center</h1>
+            <p class="text-muted mb-0 small">Schneller Zugriff auf Inhalte, Generator & Konfiguration.</p>
+        </div>
+    </header>
+    <!-- Quick Navigation Tiles -->
+    <div class="row g-4 mb-5">
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/posts" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">📝</div>
+                <h5 class="fw-semibold mb-1">Beiträge</h5>
+                <div class="small text-muted mb-2">Verwalte Blog Posts</div>
+                <div class="h3 mb-0"><%= postCount %></div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/media" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">🖼️</div>
+                <h5 class="fw-semibold mb-1">Medien</h5>
+                <div class="small text-muted mb-2">Bilder & Assets</div>
+                <div class="h3 mb-0"><%= mediaCount %></div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/podcasts" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">🎙️</div>
+                <h5 class="fw-semibold mb-1">Podcasts</h5>
+                <div class="small text-muted mb-2">Audio Inhalte</div>
+                <div class="h3 mb-0"><%= podcastCount %></div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/advanced-pages" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">⚙️</div>
+                <h5 class="fw-semibold mb-1">Advanced Pages</h5>
+                <div class="small text-muted mb-2">Seiten & Templates</div>
+                <div class="h5 mb-0"><%= advPageCount %> / <span class="text-muted"><%= templateCount %> T</span></div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/advanced-pages/generator" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">🚀</div>
+                <h5 class="fw-semibold mb-1">Generator</h5>
+                <div class="small text-muted mb-2">Autom. Landing Pages</div>
+                <div class="h5 mb-0"><%= genLogCount %> / 24h</div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/blog-config" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">🔧</div>
+                <h5 class="fw-semibold mb-1">Blog Config</h5>
+                <div class="small text-muted mb-2">Prompts & Limits</div>
+                <div class="h5 mb-0">AI <%= aiCallsToday || 0 %></div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/ai-usage" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">📊</div>
+                <h5 class="fw-semibold mb-1">AI Usage</h5>
+                <div class="small text-muted mb-2">Verbrauch & Limits</div>
+                <div class="h5 mb-0"><%= aiCallsToday || 0 %> heute</div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a href="/admin/tools" class="dash-tile shadow-sm d-block text-decoration-none p-4 h-100 rounded border position-relative overflow-hidden">
+                <div class="dash-icon mb-3">🛠️</div>
+                <h5 class="fw-semibold mb-1">Tools</h5>
+                <div class="small text-muted mb-2">Utility & Helfer</div>
+                <div class="h5 mb-0">&nbsp;</div>
+            </a>
         </div>
     </div>
 
-    <!-- Statistik-Karten -->
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Blog-Beiträge</h5>
-                    <p class="card-text display-4"><%= postCount %></p>
-                    <a href="/admin/posts" class="btn btn-primary">Verwalten</a>
-                </div>
+    <!-- KPI Cards (secondary) -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="kpi shadow-sm rounded border p-3 h-100 bg-white position-relative">
+                <div class="small text-muted">Posts Gesamt</div>
+                <div class="display-6 fw-semibold"><%= postCount %></div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Mediendateien</h5>
-                    <p class="card-text display-4"><%= mediaCount %></p>
-                    <a href="/admin/media" class="btn btn-primary">Verwalten</a>
-                </div>
+        <div class="col-md-3">
+            <div class="kpi shadow-sm rounded border p-3 h-100 bg-white position-relative">
+                <div class="small text-muted">Medien Dateien</div>
+                <div class="display-6 fw-semibold"><%= mediaCount %></div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Podcasts</h5>
-                    <p class="card-text display-4"><%= podcastCount %></p>
-                    <a href="/admin/podcasts" class="btn btn-primary">Verwalten</a>
-                </div>
+        <div class="col-md-3">
+            <div class="kpi shadow-sm rounded border p-3 h-100 bg-white position-relative">
+                <div class="small text-muted">Podcasts</div>
+                <div class="display-6 fw-semibold"><%= podcastCount %></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi shadow-sm rounded border p-3 h-100 bg-white position-relative">
+                <div class="small text-muted">Generator (24h)</div>
+                <div class="display-6 fw-semibold"><%= genLogCount %></div>
             </div>
         </div>
     </div>
@@ -123,5 +188,14 @@
         </div>
     </div>
 </div>
+
+<style>
+.dash-tile{background:linear-gradient(145deg,#ffffff,#f4f7fa);transition:.25s box-shadow, .25s transform;}
+html.dark-mode .dash-tile{background:linear-gradient(145deg,#1e1e1e,#191919);border-color:#2a2a2a;}
+.dash-tile:hover{box-shadow:0 8px 24px -10px rgba(0,0,0,.25);transform:translateY(-4px);}
+.dash-tile .dash-icon{font-size:2rem;line-height:1;opacity:.85;}
+.kpi{background:linear-gradient(135deg,#fff,#f8f9fa);} html.dark-mode .kpi{background:linear-gradient(135deg,#1d1d1d,#181818);border-color:#2a2a2a;}
+html.dark-mode .kpi .text-muted{color:#9aa0a6 !important;}
+</style>
 
 <%- include('partials/footer') %>

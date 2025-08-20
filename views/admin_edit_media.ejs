@@ -29,6 +29,18 @@
                             <label for="description" class="form-label">Beschreibung</label>
                             <textarea class="form-control" id="description" name="description" rows="3"><%= file.description || '' %></textarea>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">SEO Alt (überschreibt Alt Text)</label>
+                            <input type="text" class="form-control" name="seo_alt" value="<%= file.seo_alt || '' %>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">SEO Beschreibung</label>
+                            <textarea class="form-control" name="seo_description" rows="2"><%= file.seo_description || '' %></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Meta Keywords</label>
+                            <input type="text" class="form-control" name="meta_keywords" value="<%= file.meta_keywords || '' %>">
+                        </div>
                                     <div class="mb-3">
                                         <label for="category" class="form-label">Kategorie</label>
                                         <select id="category" name="category" class="form-select">

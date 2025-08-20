@@ -21,6 +21,27 @@
             <input type="text" class="form-control" id="audio_url" name="audio_url" value="<%= podcast ? podcast.audio_url : '' %>" placeholder="/audio/dateiname.mp3" required>
             <div class="form-text">Wähle eine hochgeladene Audiodatei oder gib einen Pfad an (z.B. /audio/beispiel.mp3)</div>
         </div>
+        <div class="mb-3">
+            <label class="form-label">Tags (Komma)</label>
+            <input type="text" class="form-control" name="tags" value="<%= podcast ? (podcast.tags || '') : '' %>">
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">SEO</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">SEO Titel</label>
+                    <input type="text" class="form-control" name="seo_title" value="<%= podcast ? (podcast.seo_title || '') : '' %>" maxlength="255">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">SEO Beschreibung</label>
+                    <textarea class="form-control" name="seo_description" rows="2" maxlength="255"><%= podcast ? (podcast.seo_description || '') : '' %></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Meta Keywords</label>
+                    <input type="text" class="form-control" name="meta_keywords" value="<%= podcast ? (podcast.meta_keywords || '') : '' %>">
+                </div>
+            </div>
+        </div>
         <button type="submit" class="btn btn-primary">Speichern</button>
         <a href="/admin/podcasts" class="btn btn-secondary">Abbrechen</a>
     </form>

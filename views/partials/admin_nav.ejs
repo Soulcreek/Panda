@@ -1,20 +1,47 @@
 <!-- views/partials/admin_nav.ejs -->
-<div class="admin-nav bg-light border-bottom mb-4">
+<div class="admin-nav bg-light border-bottom mb-4 admin-nav-shell">
     <div class="container">
-        <nav class="nav">
-            <a class="nav-link" href="/admin">Dashboard</a>
-            <a class="nav-link" href="/admin/posts">Beiträge</a>
-            <a class="nav-link" href="/admin/media">Medien</a>
-            <a class="nav-link" href="/admin/podcasts">Podcasts</a>
-            <a class="nav-link" href="/admin/tools">Tools</a>
-            <a class="nav-link" href="/admin/timeline-editor">Timeline Editor</a>
-            <a class="nav-link" href="/admin/blog-config">Blog Config</a>
-            <a class="nav-link" href="/admin/advanced-pages">Advanced Pages</a>
-                        <a class="nav-link" href="/admin/ai-usage">AI Usage</a>
-                        <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
-                            <span class="nav-link disabled small text-muted">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
-                        <% } %>
-            <a class="nav-link ms-auto" href="/logout">Abmelden</a>
+    <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2 admin-nav-groups position-relative">
+            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="content">
+                <span class="nav-group-label badge rounded-pill text-bg-primary-subtle border border-primary-subtle small text-uppercase fw-semibold me-1">Content</span>
+                <a class="nav-link px-2" href="/admin/posts">Beiträge</a>
+                <a class="nav-link px-2" href="/admin/media">Medien</a>
+                <a class="nav-link px-2" href="/admin/podcasts">Podcasts</a>
+                <a class="nav-link px-2" href="/admin/advanced-pages">Advanced Pages</a>
+                <a class="nav-link px-2" href="/admin/timeline-editor">Timeline Editor</a>
+            </div>
+            <div class="vr d-none d-lg-inline flex-shrink-0" style="height:32px;opacity:.25;"></div>
+            <div class="d-flex flex-column flex-lg-row flex-wrap gap-2 admin-nav-group" data-group="settings">
+                <span class="nav-group-label badge rounded-pill text-bg-warning-subtle border border-warning-subtle small text-uppercase fw-semibold me-1">Settings</span>
+                <a class="nav-link px-2" href="/admin">Dashboard</a>
+                <a class="nav-link px-2" href="/admin/tools">Tools</a>
+                <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
+                <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
+                <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
+                    <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
+                <% } %>
+            </div>
+            <a class="btn btn-sm btn-outline-danger ms-auto" href="/logout">Abmelden</a>
         </nav>
     </div>
 </div>
+<style>
+.admin-nav-shell{backdrop-filter:blur(6px);}
+html.dark-mode .admin-nav-shell{background:#1c1c1c !important; border-color:#2a2a2a !important;}
+.admin-nav-groups .nav-link{color:#555;}
+.admin-nav-groups .nav-link:hover{color:#000;}
+html.dark-mode .admin-nav-groups .nav-link{color:#ccc;}
+html.dark-mode .admin-nav-groups .nav-link:hover{color:#fff;}
+.admin-nav-groups .nav-group-label{letter-spacing:.5px;}
+html.dark-mode .admin-nav-groups .nav-group-label{color:#888 !important;}
+/* Active link highlight */
+.admin-nav-groups .nav-link.active{position:relative;font-weight:600;color:#0d6efd;}
+.admin-nav-groups .nav-link.active::after{content:"";position:absolute;left:8px;right:8px;bottom:-6px;height:3px;border-radius:2px;background:#0d6efd;}
+html.dark-mode .admin-nav-groups .nav-link.active{color:#4dabff;}
+html.dark-mode .admin-nav-groups .nav-link.active::after{background:#4dabff;}
+</style>
+<script>
+// Mark active nav link by comparing pathname (basic)
+(()=>{ try { const path = window.location.pathname; document.querySelectorAll('.admin-nav a.nav-link').forEach(a=>{ if(path===a.getAttribute('href')) a.classList.add('active'); }); } catch(e){} })();
+</script>
+</style>

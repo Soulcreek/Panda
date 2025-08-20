@@ -26,5 +26,29 @@
     <% } %>
     </tbody>
   </table>
+
+  <h2 class="h5 mt-5">Templates</h2>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>ID</th><th>Titel</th><th>Aktualisiert</th><th></th></tr></thead>
+    <tbody>
+    <% if(templates && templates.length){ templates.forEach(t=>{ %>
+      <tr>
+        <td><%= t.id %></td>
+        <td><%= t.title %></td>
+        <td><%= t.updated_at ? t.updated_at.toISOString().substring(0,19).replace('T',' ') : '' %></td>
+        <td class="text-end">
+          <form action="/admin/advanced-pages/from-template/<%= t.id %>" method="POST" class="d-inline">
+            <button class="btn btn-sm btn-success">Verwenden</button>
+          </form>
+          <a href="/admin/advanced-pages/edit/<%= t.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
+          <form action="/admin/advanced-pages/delete/<%= t.id %>" method="POST" class="d-inline" onsubmit="return confirm('Template löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+        </td>
+      </tr>
+    <% }); } else { %>
+      <tr><td colspan="4" class="text-muted text-center py-4">Keine Templates</td></tr>
+    <% } %>
+    </tbody>
+  </table>
+  <p class="small text-muted">Nutze beim Speichern einer Seite die Option "Als Template speichern", um wiederverwendbare Layouts zu erstellen.</p>
 </div>
 <%- include('partials/footer') %>
