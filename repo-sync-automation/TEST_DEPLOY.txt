@@ -1,0 +1,2 @@
+Test deployment file created at $(date).
+If you see this file on your server, the sync automation is working.

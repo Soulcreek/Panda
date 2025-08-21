@@ -4,25 +4,55 @@ on:
   push:
     branches: [ master ]
   workflow_dispatch:
+  issue_comment:
+    types: [ created ]
+
+permissions:
+  contents: read
+  issues: read
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Check issue comment trigger
+        if: github.event_name == 'issue_comment'
+        id: comment_check
+        env:
+          COMMENT: ${{ github.event.comment.body }}
+          AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          echo "Incoming comment by $AUTHOR: $COMMENT"
+          # Normalize (trim + lowercase)
+          norm=$(echo "$COMMENT" | tr '[:upper:]' '[:lower:]' | sed 's/^ *//;s/ *$//')
+          echo "Normalized comment: '$norm' (len=${#norm})"
+          if [ "$norm" != "start deploy" ]; then
+            echo "No deploy trigger phrase. Marking skip."; echo "trigger=false" >> $GITHUB_OUTPUT; exit 0; fi
+          # Restrict to repo owner (adjust if different username)
+          if [ "$AUTHOR" != "Soulcreek" ]; then
+            echo "Unauthorized author $AUTHOR" >&2; exit 1; fi
+          echo "trigger=true" >> $GITHUB_OUTPUT
+      - name: Guard skip for non-trigger comment
+        if: github.event_name == 'issue_comment' && steps.comment_check.outputs.trigger != 'true'
+        run: echo "Skipping deploy pipeline for non-trigger comment." && exit 0
+  - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install deps
+        if: github.event_name != 'issue_comment' || steps.comment_check.outputs.trigger == 'true'
         run: npm ci || npm install
       - name: Run tests
+        if: github.event_name != 'issue_comment' || steps.comment_check.outputs.trigger == 'true'
         run: npm test
       - name: Archive build (no build step, just source)
+        if: github.event_name != 'issue_comment' || steps.comment_check.outputs.trigger == 'true'
         run: |
           tar -czf artifact.tar.gz .
       - name: Test SSH connectivity (key or password)
+        if: github.event_name != 'issue_comment' || steps.comment_check.outputs.trigger == 'true'
         id: ssh_test
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
@@ -52,12 +82,12 @@ jobs:
             fi
           fi
           echo "result=none" >> $GITHUB_OUTPUT
-      - name: Deploy via rsync (SSH key)
+  - name: Deploy via rsync (SSH key)
         if: steps.ssh_test.outputs.result == 'key'
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          WEB_ROOT: ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+          WEB_ROOT: ${{ secrets.WEB_ROOT }}
         run: |
           mkdir -p deploy_exclude
           echo '**/.git*' >> deploy_exclude/rsync-excludes
@@ -70,13 +100,13 @@ jobs:
           echo 'readme.txt' >> deploy_exclude/rsync-excludes
           echo 'NEXT_STEPS.md' >> deploy_exclude/rsync-excludes
           rsync -az --delete --exclude-from=deploy_exclude/rsync-excludes -e "ssh -i key.pem -o StrictHostKeyChecking=no" ./ $SSH_USER@$SSH_HOST:$WEB_ROOT/
-      - name: Deploy via rsync (SSH password)
+  - name: Deploy via rsync (SSH password)
         if: steps.ssh_test.outputs.result == 'password'
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          WEB_ROOT: ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+          WEB_ROOT: ${{ secrets.WEB_ROOT }}
         run: |
           mkdir -p deploy_exclude
           echo '**/.git*' >> deploy_exclude/rsync-excludes
@@ -90,26 +120,26 @@ jobs:
           echo 'NEXT_STEPS.md' >> deploy_exclude/rsync-excludes
           sudo apt-get update -y && sudo apt-get install -y sshpass rsync
           sshpass -p "$SSH_PASSWORD" rsync -az --delete --exclude-from=deploy_exclude/rsync-excludes -e "ssh -o StrictHostKeyChecking=no" ./ $SSH_USER@$SSH_HOST:$WEB_ROOT/
-      - name: Install server deps & restart (SSH key)
-        if: steps.ssh_test.outputs.result == 'key' && secrets.WEB_ROOT != ''
+  - name: Install server deps & restart (SSH key)
+        if: steps.ssh_test.outputs.result == 'key'
         uses: appleboy/ssh-action@v1.0.3
         with:
             host: ${{ secrets.SSH_HOST }}
             username: ${{ secrets.SSH_USER }}
             key: ${{ secrets.SSH_KEY }}
             script: |
-              cd ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+              cd ${{ secrets.WEB_ROOT }}
               if [ -f package.json ]; then npm install --production --no-audit --no-fund; fi
               if command -v pm2 >/dev/null 2>&1; then pm2 restart ${{ secrets.PM2_APP_NAME || 'panda' }} || pm2 start server.js --name ${{ secrets.PM2_APP_NAME || 'panda' }}; else echo 'pm2 not installed'; fi
-      - name: Install server deps & restart (SSH password)
-        if: steps.ssh_test.outputs.result == 'password' && secrets.WEB_ROOT != ''
+  - name: Install server deps & restart (SSH password)
+        if: steps.ssh_test.outputs.result == 'password'
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "cd ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }} && if [ -f package.json ]; then npm install --production --no-audit --no-fund; fi && if command -v pm2 >/dev/null 2>&1; then pm2 restart ${{ secrets.PM2_APP_NAME || 'panda' }} || pm2 start server.js --name ${{ secrets.PM2_APP_NAME || 'panda' }}; else echo 'pm2 not installed'; fi"
-      - name: Fallback Upload via FTP
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "cd ${{ secrets.WEB_ROOT }} && if [ -f package.json ]; then npm install --production --no-audit --no-fund; fi && if command -v pm2 >/dev/null 2>&1; then pm2 restart ${{ secrets.PM2_APP_NAME }} || pm2 start server.js --name ${{ secrets.PM2_APP_NAME }}; else echo 'pm2 not installed'; fi"
+  - name: Fallback Upload via FTP
         if: steps.ssh_test.outputs.result == 'none'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
