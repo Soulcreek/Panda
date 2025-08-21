@@ -18,7 +18,7 @@
         </div>
         <div class="card-body">
           <input type="hidden" name="featured_image_id" id="featured_image_id" value="<%= post && post.featured_image_id ? post.featured_image_id : '' %>">
-          <div id="featuredPreview" class="ratio ratio-16x9 border bg-light d-flex align-items-center justify-content-center overflow-hidden" style="max-height:260px;">
+          <div id="featuredPreview" class="ratio ratio-16x9 border bg-light d-flex align-items-center justify-content-center overflow-hidden h-260">
             <% if(post && post.featured_image_path){ %>
               <img src="<%= post.featured_image_path %>" alt="Featured" class="w-100 h-100 object-fit-cover">
             <% } else { %>
@@ -36,17 +36,17 @@
             <button type="button" id="btnTranslate" class="btn btn-outline-secondary">DE→EN</button>
           </div>
         </div>
-        <div id="aiFeedback" class="px-3 pt-2 border-top" style="display:none;">
+  <div id="aiFeedback" class="px-3 pt-2 border-top hidden-init">
           <div class="d-flex flex-wrap gap-2 mb-1">
-            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" id="aiToggleRaw" style="font-size:.65rem;">Raw ▼</button>
-            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" id="aiCopyRaw" style="font-size:.65rem;" disabled>Kopieren</button>
+            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm fs-065" id="aiToggleRaw">Raw ▼</button>
+            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm fs-065" id="aiCopyRaw" disabled>Kopieren</button>
             <span class="small text-muted" id="aiMetaInfo"></span>
           </div>
-          <div class="alert p-2 mb-2" id="aiFeedbackBox" style="font-size:.8rem;">
+          <div class="alert p-2 mb-2 fs-08" id="aiFeedbackBox">
             <pre class="ai-log-text mb-0"></pre>
           </div>
-          <div id="aiRawWrapper" class="collapse" style="max-height:260px; overflow:auto; border:1px solid #ddd; border-radius:.25rem; background:#f8f9fa;">
-            <pre id="aiRawText" class="m-0 p-2 small" style="white-space:pre-wrap;"></pre>
+          <div id="aiRawWrapper" class="collapse h-260 of-auto border-ddd bg-f8 rounded">
+            <pre id="aiRawText" class="m-0 p-2 small ws-pre-wrap"></pre>
           </div>
         </div>
         <div class="card-body">
@@ -64,7 +64,7 @@
                 <label class="form-label d-flex justify-content-between align-items-center">Inhalt (DE)
                   <span class="small text-muted">Quill Editor</span>
                 </label>
-                <div id="editor_de" class="form-control" style="height:420px;overflow:auto;"></div>
+                <div id="editor_de" class="form-control h-420 of-auto"></div>
                 <textarea name="content" id="content_de" hidden><%= post ? (post.content || '') : '' %></textarea>
               </div>
               <div class="mb-3">
@@ -82,7 +82,7 @@
                 <label class="form-label d-flex justify-content-between align-items-center">Inhalt (EN)
                   <span class="small text-muted">Quill Editor</span>
                 </label>
-                <div id="editor_en" class="form-control" style="height:340px;overflow:auto;"></div>
+                <div id="editor_en" class="form-control h-340 of-auto"></div>
                 <textarea name="content_en" id="content_en" hidden><%= post ? (post.content_en || '') : '' %></textarea>
               </div>
             </div>
@@ -162,7 +162,7 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshMedia"><i class="bi bi-arrow-clockwise"></i></button>
           </div>
         </div>
-        <div class="card-body p-2" style="max-height:360px; overflow:auto;">
+  <div class="card-body p-2 h-360 of-auto">
           <div class="row g-2" id="mediaQuickGrid"></div>
         </div>
       </div>

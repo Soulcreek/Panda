@@ -1,0 +1,192 @@
+<%- include('partials/admin_header',{ title: title||'Purview' }) %>
+<div class="container py-4" data-page="purview">
+  <h1 class="h3 mb-1 d-flex align-items-center gap-3">System Purview <small class="text-muted fw-normal">(<%= siteKey %>)</small>
+    <span class="badge bg-gradient bg-primary-subtle text-primary small">Preview</span>
+  </h1>
+  <p class="text-muted small mb-4">Ganzheitliche Übersicht über Content-Volumen, Flags & Laufzeit-Ressourcen. (Auto‑Refresh folgt)</p>
+  <div class="row g-3 mb-4 purview-kpi-cards">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm h-100 kpi kpi-posts">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-uppercase kpi-label small">Posts</span><i class="bi bi-journal-text"></i></div>
+          <div class="kpi-value"><%= counts.posts %></div>
+          <div class="kpi-foot small text-muted">veröffentlicht + aktiv</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm h-100 kpi kpi-media">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-uppercase kpi-label small">Media</span><i class="bi bi-image"></i></div>
+          <div class="kpi-value"><%= counts.media %></div>
+          <div class="kpi-foot small text-muted">Dateien</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm h-100 kpi kpi-podcasts">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-uppercase kpi-label small">Podcasts</span><i class="bi bi-soundwave"></i></div>
+          <div class="kpi-value"><%= counts.podcasts %></div>
+          <div class="kpi-foot small text-muted">Episoden</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm h-100 kpi kpi-adv">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-uppercase kpi-label small">Advanced Pages</span><i class="bi bi-layers"></i></div>
+          <div class="kpi-value"><%= counts.pages %></div>
+          <div class="kpi-foot small text-muted">gebaut</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-8">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2"><strong class="small text-uppercase">Feature Flags</strong><span class="badge bg-light text-dark"><%= flags.length %></span></div>
+  <div class="table-responsive scroll-mh-320">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Key</th><th>Aktiv</th><th>Variante</th><th>Beschreibung</th><th>Zuletzt</th></tr></thead>
+            <tbody>
+              <% if(!flags.length){ %><tr><td colspan="5" class="text-muted small">Keine Flags</td></tr><% } %>
+              <% flags.forEach(f=>{ %>
+                <tr>
+                  <td><code><%= f.flag_key %></code></td>
+                  <td><span class="badge <%= f.enabled? 'bg-success':'bg-secondary' %>"><%= f.enabled? 'Ja':'Nein' %></span></td>
+                  <td><%= f.variant||'' %></td>
+                  <td class="small"><%= f.description||'' %></td>
+                  <td class="text-muted small"><%= (f.updated_at||'').toString().replace('T',' ').slice(0,19) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer text-end py-2"><a href="/admin/feature-flags" class="btn btn-sm btn-outline-secondary">Verwalten</a></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center"><strong class="small text-uppercase">Speicher</strong><span class="badge bg-light text-dark small" title="Resident Set Size ~ Gesamtprozess Speicher">RSS</span></div>
+        <div class="card-body small">
+          <% const rssMB = mem.rss? (mem.rss/1024/1024):null; const heapUsedMB = mem.heapUsed? (mem.heapUsed/1024/1024):null; const heapTotalMB = mem.heapTotal? (mem.heapTotal/1024/1024):null; const heapUtil = (heapUsedMB && heapTotalMB)? Math.min(100, (heapUsedMB/heapTotalMB)*100):null; %>
+          <div class="mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">RSS</span><span><%= rssMB!=null? rssMB.toFixed(1)+' MB':'-' %></span></div>
+            <% const rssPctRaw = rssMB? Math.min(100, (rssMB / (heapTotalMB? (heapTotalMB*1.4):(rssMB||1))*100)) : 0; const rssPct = Math.round(rssPctRaw/5)*5; %>
+            <div class="meter"><span class="mw-pct-<%= rssPct %>"></span></div>
+          </div>
+          <div class="mb-2">
+            <div class="d-flex justify-content-between"><span class="text-muted">Heap Used</span><span><%= heapUsedMB!=null? heapUsedMB.toFixed(1)+' MB':'-' %></span></div>
+            <% const heapPctRaw = heapUtil||0; const heapPct = Math.round(heapPctRaw/5)*5; %>
+            <div class="meter meter-heap"><span class="mw-pct-<%= heapPct %> <%= heapUtil && heapUtil>75? 'bg-danger': (heapUtil && heapUtil>55? 'bg-warning':'') %>"></span></div>
+          </div>
+          <div class="d-flex justify-content-between mb-3"><span class="text-muted">Heap Total</span><span><%= heapTotalMB!=null? heapTotalMB.toFixed(1)+' MB':'-' %></span></div>
+          <p class="text-muted mt-1 mb-2">Trend-Metriken folgen (Rolling Window). Ziel: Heap Util < 70% (GC Headroom).</p>
+          <ul class="small ps-3 mb-0 best-practice">
+            <li><strong>< 70%</strong> Heap: gesund</li>
+            <li><strong>70–85%</strong>: beobachten</li>
+            <li><strong>> 85%</strong>: Leaks / Last prüfen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <strong class="small text-uppercase">Nächste Ausbaustufen</strong>
+        </div>
+        <div class="card-body small">
+          <ul class="mb-0">
+            <li>Live-Refresh via Fetch API &amp; JSON Endpoints</li>
+            <li>Per-Route Latenzen (P95/P99) und Fehlerquote</li>
+            <li>Site-Key Inkonsistenzen Auto-Fix Aktionen</li>
+            <li>Top langsame Queries + Slow Query Log Visualisierung</li>
+            <li>Flag Variants Verteilung / Traffic Split Monitoring</li>
+            <li>Health Badges (DB, Cache, Queue, AI)</li>
+            <li>Konfigurierbare Error Budget Schwellen (z.B. 99.5% Verfügbarkeit)</li>
+            <li>Apdex ähnlicher Score (Toleranz Fenster 300–500ms)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header py-2"><strong class="small text-uppercase">Operational Benchmarks (Richtwerte)</strong></div>
+        <div class="card-body small">
+          <table class="table table-sm mb-3 align-middle benchmark-table">
+            <thead class="table-light"><tr><th>Bereich</th><th>Ziel / Good</th><th>Beobachten</th><th>Problem</th></tr></thead>
+            <tbody>
+              <tr><td>Latenz P95 (HTML)</td><td>< 400ms</td><td>400–800ms</td><td>> 800ms</td></tr>
+              <tr><td>API P95</td><td>< 250ms</td><td>250–600ms</td><td>> 600ms</td></tr>
+              <tr><td>Error Rate (5xx)</td><td>< 0.5%</td><td>0.5–1%</td><td>> 1%</td></tr>
+              <tr><td>GC Pause (Node)</td><td>< 50ms P95</td><td>50–120ms</td><td>> 120ms</td></tr>
+              <tr><td>Heap Util</td><td>< 70%</td><td>70–85%</td><td>> 85%</td></tr>
+              <tr><td>Flag Drift (ungelesen)</td><td>< 5%</td><td>5–15%</td><td>> 15%</td></tr>
+            </tbody>
+          </table>
+          <p class="mb-1 text-muted">Richtwerte basieren auf üblichen Web SaaS Applikationen (Mid-Traffic). Anpassung je nach SLA.</p>
+          <ul class="ps-3 mb-0">
+            <li><em>P95</em>: 95% der Requests schneller als Schwelle</li>
+            <li>Error Budget = (1 - Zielverfügbarkeit) * Zeitfenster</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center"><strong class="small text-uppercase">Research & Empfehlungen</strong><span class="badge bg-info-subtle text-info">Guide</span></div>
+        <div class="card-body small">
+          <ol class="ps-3 mb-3 research-list">
+            <li><strong>Feature Flags Hygiene:</strong> Abgelaufene Flags regelmäßig entfernen (Tech Debt Reduktion).</li>
+            <li><strong>Latency Budget Split:</strong> ca. 40% App Logic, 30% DB, 15% Netzwerk, 15% Rendering – frühe Engpass-Erkennung.</li>
+            <li><strong>Memory Guardrails:</strong> Frühwarnung bei >75% Heap (Proaktiv vs. reaktiv GC Pressure).</li>
+            <li><strong>Tenant Isolation Checks:</strong> Stündliche Stichprobe auf Fremd-Zugriffe (Audit Log später korrelieren).</li>
+            <li><strong>Flag Variant Analytics:</strong> Conversion / Engagement Tracking koppeln um Dead Variants zu archivieren.</li>
+            <li><strong>Query Observability:</strong> Top 5 langsamste Queries (avg + 95th) – automatische Regression Alerts.</li>
+            <li><strong>Error Budget Policy:</strong> Bei >50% Budget-Verbrauch: Deploy-Freeze & gezielte Stabilisierung.</li>
+            <li><strong>Backpressure:</strong> Rate Limits & Circuit Breaker vor externen AI / CDN Abhängigkeiten.</li>
+            <li><strong>Synthetic Checks:</strong> 1–5 min Takt für kritische Flows (Login, Content Render) – ergänzend zu Real User.</li>
+          </ol>
+          <p class="text-muted mb-0">Diese Empfehlungen aggregieren gängige SRE & Progressive Delivery Patterns (Ziel: Stabilität + Iterationsgeschwindigkeit).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style nonce="<%= cspNonce %>">
+  /* Purview visual polish */
+  .purview-kpi-cards .card{position:relative;overflow:hidden;border:1px solid var(--bs-border-color);}
+  .purview-kpi-cards .card:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.35),transparent 60%);} 
+  html.dark-mode .purview-kpi-cards .card:before{background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.08),transparent 55%);} 
+  .purview-kpi-cards .kpi-value{font-size:2.1rem;font-weight:600;line-height:1;}
+  .purview-kpi-cards .kpi-label{letter-spacing:.05em;font-weight:500;opacity:.75;}
+  .purview-kpi-cards .kpi-foot{margin-top:.35rem;}
+  .kpi-posts{background:linear-gradient(135deg,#f8faff,#eef5ff);} html.dark-mode .kpi-posts{background:linear-gradient(135deg,#1e2530,#1a2028);} 
+  .kpi-media{background:linear-gradient(135deg,#fff9f3,#fff2e0);} html.dark-mode .kpi-media{background:linear-gradient(135deg,#2a1f16,#221911);} 
+  .kpi-podcasts{background:linear-gradient(135deg,#f6f1ff,#ede3ff);} html.dark-mode .kpi-podcasts{background:linear-gradient(135deg,#251f2f,#1d1727);} 
+  .kpi-adv{background:linear-gradient(135deg,#f3fdf7,#e3f9ed);} html.dark-mode .kpi-adv{background:linear-gradient(135deg,#1a2820,#142019);} 
+  html.dark-mode .purview-kpi-cards .card{border-color:#2a2f36;} 
+  /* Meter bars */
+  .meter{height:.55rem;background:var(--bs-border-color);border-radius:4px;position:relative;overflow:hidden;}
+  .meter span{display:block;height:100%;background:linear-gradient(90deg,#0d6efd,#6aa8ff);border-radius:4px;transition:width .6s cubic-bezier(.4,.2,.2,1);} 
+  .meter-heap span{background:linear-gradient(90deg,#20c997,#198754);} 
+  .meter span.bg-warning{background:linear-gradient(90deg,#ffc107,#ffda6a)!important;color:#000;} 
+  .meter span.bg-danger{background:linear-gradient(90deg,#dc3545,#ff6b6b)!important;} 
+  /* Tables */
+  .benchmark-table td,.benchmark-table th{white-space:nowrap;font-size:.74rem;} 
+  .benchmark-table td:nth-child(2){color:#198754;font-weight:600;} 
+  .benchmark-table td:nth-child(3){color:#b58100;} 
+  .benchmark-table td:nth-child(4){color:#c0312f;font-weight:600;} 
+  .best-practice li{margin-bottom:.15rem;}
+  .research-list li{margin-bottom:.4rem;}
+  .research-list strong{font-weight:600;}
+  /* Dark mode adjustments */
+  html.dark-mode .benchmark-table tbody tr td{background:rgba(255,255,255,.02);} 
+  html.dark-mode .benchmark-table thead th{background:rgba(255,255,255,.07);} 
+  /* Accessibility */
+  @media (prefers-reduced-motion:reduce){ .meter span{transition:none;} }
+</style>
+<%- include('partials/admin_footer') %>

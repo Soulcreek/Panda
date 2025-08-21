@@ -10,5 +10,9 @@ router.use(require('./podcasts'));
 router.use(require('./pages'));
 router.use(require('./pandasWay'));
 router.use(require('./staticPages'));
+// Public read API (rate limited)
+router.use(require('./apiPublic'));
+// Purview information page
+try { router.use(require('./purview')); } catch(_){ }
 
 module.exports = router;

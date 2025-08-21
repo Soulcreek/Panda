@@ -210,6 +210,12 @@ html.dark-mode input.form-control:focus, html.dark-mode textarea.form-control:fo
 html.dark-mode .border-secondary { border-color:#444 !important; }
 html.dark-mode .table { color:#e2e2e2; }
 html.dark-mode .table-striped > tbody > tr:nth-of-type(odd) { --bs-table-accent-bg: #1c1c1c; color:#e2e2e2; }
+html.dark-mode .table tbody tr { background-color:#181818; }
+html.dark-mode .table thead tr { background-color:#202020; }
+html.dark-mode .table-hover > tbody > tr:hover { --bs-table-accent-bg:#242424; color:#fff; }
+html.dark-mode .table td, html.dark-mode .table th { border-color:#2c2c2c; }
+html.dark-mode .table-bordered { border-color:#2c2c2c; }
+html.dark-mode .table .badge.bg-secondary { background:#555 !important; }
 html.dark-mode .blog-post-content img { box-shadow:0 2px 8px rgba(0,0,0,0.7); }
 html.dark-mode .pagination .page-link { background:#1e1e1e; color:#ddd; border-color:#333; }
 html.dark-mode .pagination .page-item.active .page-link { background:#0d6efd; border-color:#0d6efd; color:#fff; }
@@ -218,6 +224,15 @@ html.dark-mode .alert { background:#1e1e1e; color:#e2e2e2; border-color:#333; }
 html.dark-mode .badge.bg-secondary { background:#444 !important; }
 html.dark-mode .form-check-input { background:#222; border-color:#555; }
 html.dark-mode .form-check-input:checked { background-color:#0d6efd; border-color:#0d6efd; }
+/* Editors Nav Shell Dark Mode */
+html.dark-mode .editors-nav-shell { background:rgba(20,20,20,0.9)!important; border-bottom:1px solid #262626; }
+html.dark-mode .editors-nav-shell .nav-link { color:#c6c6c6; }
+html.dark-mode .editors-nav-shell .nav-link:hover { color:#fff; }
+html.dark-mode .editors-nav-shell .nav-link.active { color:#fff; font-weight:600; }
+html.dark-mode .editors-nav-shell .btn-outline-warning { color:#ffdd75; border-color:#7a661f; }
+html.dark-mode .editors-nav-shell .btn-outline-warning:hover { background:#ffdd75; color:#000; }
+html.dark-mode .editors-nav-shell .btn-outline-danger { color:#ff9fa1; border-color:#7a2b2d; }
+html.dark-mode .editors-nav-shell .btn-outline-danger:hover { background:#ff5c60; color:#000; }
 html.dark-mode .nav-tabs .nav-link { background:#1e1e1e; color:#ccc; border-color:#333; }
 html.dark-mode .nav-tabs .nav-link.active { background:#262626; color:#fff; }
 html.dark-mode .navbar-brand img { filter:brightness(1.1) contrast(1.05); }
@@ -226,4 +241,64 @@ html.dark-mode .dark-mode-alt-surface { background:#161616 !important; }
 html.dark-mode .card-blog { background:#1e1e1e; color:#ddd; }
 html.dark-mode .card-blog .card-title { color:#f5f5f5; }
 html.dark-mode .card-blog .card-text { color:#b5b5b5 !important; }
+
+/* --- Dark Mode: Panda's Way Alternative Designs (centralized overrides) --- */
+html.dark-mode .alt1-block {background:linear-gradient(135deg,#1a1f29,#232c39);border-color:#2f3a49;box-shadow:0 2rem 3.25rem -1.25rem rgba(0,0,0,.55);color:#d9e5f2;}
+html.dark-mode .alt1-block h2 {background:linear-gradient(90deg,#5393ff,#9f7bff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+html.dark-mode .alt1-block p, html.dark-mode .alt1-block li {color:#c5d2dd;}
+
+html.dark-mode .alt2-panel {background:linear-gradient(135deg,#0f172a,#1e2734);border-color:#2d3b4a;box-shadow:0 2.25rem 3.5rem -1.5rem rgba(0,0,0,.6);color:#dbe5ef;}
+html.dark-mode .alt2-panel.alt-dark {background:linear-gradient(135deg,#0d1523,#192532);border-color:#2a3643;}
+html.dark-mode .alt2-panel h2 {background:linear-gradient(90deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+html.dark-mode .alt2-panel .meta {color:#6b7b89;}
+html.dark-mode .alt2-panel .chips span {background:#3b82f620;color:#60a5fa;}
+html.dark-mode .alt2-tab {background:#1d2530;border-color:#303c49;color:#d4dde6;}
+html.dark-mode .alt2-tab.active {background:#2563eb;border-color:#2563eb;}
+
+html.dark-mode .alt3-block {background:linear-gradient(135deg,#1c2530,#1e2935);border:1px solid #2c3947;box-shadow:0 1.75rem 3rem -1.25rem rgba(0,0,0,.55);color:#d5dee7;}
+html.dark-mode .alt3-block h2 {background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent;}
+html.dark-mode .alt3-meta {color:#6a7a86;}
+html.dark-mode .alt3-chip {background:#6366f120;color:#8893ff;}
+html.dark-mode .alt3-card {background:#242f3b;border-color:#313d49;color:#d5dee7;}
+html.dark-mode .alt3-card.active {border-color:#6366f1;}
+
+html.dark-mode .alt4-bubble {background:linear-gradient(135deg,#1d2833,#253240);border:1px solid #314255;box-shadow:0 1.5rem 2.75rem -1.25rem rgba(0,0,0,.55);color:#d3dde6;}
+html.dark-mode .alt4-bubble h2 {background:linear-gradient(90deg,#ffbf66,#ffe0a8,#ffbf66);-webkit-background-clip:text;background-clip:text;color:transparent;}
+html.dark-mode .alt4-chip {background:#ffb34720;color:#ffc978;}
+html.dark-mode .alt4-card {background:#243140;border-color:#32465c;color:#d8e2eb;}
+html.dark-mode .alt4-card.active {border-color:#ffbf66;}
+
+html.dark-mode .alt5-bubble {background:linear-gradient(135deg,#1d1f2b,#272c3a);border:1px solid #303644;box-shadow:0 1.5rem 2.75rem -1.25rem rgba(0,0,0,.55);color:#d5ddec;}
+html.dark-mode .alt5-bubble h2 {background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent;}
+html.dark-mode .alt5-level-badge {background:linear-gradient(135deg,#202233,#2c3143);box-shadow:0 0 0 1px rgba(255,255,255,.06),0 4px 10px -3px rgba(0,0,0,.55);} 
+html.dark-mode #alt5Controls.glass-nav {background:rgba(40,45,60,.35);box-shadow:0 6px 28px -8px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08) inset;}
+html.dark-mode #alt5Controls .alt5-level-btn {background:rgba(255,255,255,.12);}
+html.dark-mode #alt5Controls .alt5-level-btn:hover {background:rgba(255,255,255,.22);}
+html.dark-mode #alt5Controls .alt5-level-btn.active {background:linear-gradient(135deg,#6366f1,#8b5cf6);}
+
+/* Chips generic fallback */
+html.dark-mode .chips span {background:rgba(99,102,241,.15);color:#8ba7ff;}
+
+/* Accordion / FAQ Dark Mode */
+html.dark-mode .accordion-item {background:#1e1e1e;border:1px solid #2a2a2a;}
+html.dark-mode .accordion-button {background:#1e1e1e;color:#e2e2e2;}
+html.dark-mode .accordion-button.collapsed {color:#d0d0d0;}
+html.dark-mode .accordion-button:not(.collapsed) {background:#262626;color:#fff;box-shadow:inset 0 -1px 0 #333;}
+html.dark-mode .accordion-button:focus {box-shadow:0 0 0 .25rem rgba(13,110,253,.25);}
+html.dark-mode .accordion-body {background:#1c1c1c;color:#c9c9c9;}
+
+/* Buttons consistency in Dark Mode */
+html.dark-mode .btn-primary {background:#0d6efd;border-color:#0d6efd;}
+html.dark-mode .btn-primary:hover {background:#1d7fff;border-color:#1d7fff;}
+html.dark-mode .btn-secondary {background:#444;border-color:#555;color:#e2e2e2;}
+html.dark-mode .btn-secondary:hover {background:#555;border-color:#666;color:#fff;}
+html.dark-mode .btn-light {background:#2a2a2a;border-color:#3a3a3a;color:#e6e6e6;}
+html.dark-mode .btn-light:hover {background:#343434;border-color:#444;}
+
+/* Headings readability inside alt panels */
+html.dark-mode .alt2-panel p.lead, html.dark-mode .alt3-block p.lead, html.dark-mode .alt4-bubble p.lead, html.dark-mode .alt5-bubble .lead {color:#c0cad4;}
+
+/* Generic border & subtle surface utilities */
+html.dark-mode .surface-muted {background:#1d1f26;border:1px solid #2a3038;}
+html.dark-mode .border-faint {border-color:#2a3038 !important;}
 

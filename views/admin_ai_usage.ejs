@@ -35,7 +35,7 @@
   </div>
   <div class="card shadow-sm mt-4">
     <div class="card-header"><strong>Historie (letzte 14 Tage)</strong></div>
-    <div class="table-responsive" style="max-height:420px; overflow:auto;">
+  <div class="table-responsive scroll-mh-420">
       <table class="table table-sm mb-0">
         <thead class="table-light"><tr><th>Datum</th><th>Endpoint</th><th class="text-end">Calls</th></tr></thead>
         <tbody>
@@ -53,16 +53,16 @@
       <strong>Detail Log (letzte 14 Tage – max 1000 Einträge)</strong>
       <span class="badge bg-secondary"><%= (log||[]).length %></span>
     </div>
-    <div class="table-responsive" style="max-height:480px; overflow:auto;">
+  <div class="table-responsive scroll-mh-480">
       <table class="table table-sm align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th style="width:150px;">Zeit</th>
-            <th style="width:110px;">Endpoint</th>
+            <th class="w-150">Zeit</th>
+            <th class="w-110">Endpoint</th>
             <th>Prompt (Auszug, 400 Zeichen)</th>
-            <th style="width:70px;" class="text-end">Zeichen</th>
-            <th style="width:70px;" class="text-end">Fehler</th>
-            <th style="width:60px;"></th>
+            <th class="w-70 text-end">Zeichen</th>
+            <th class="w-70 text-end">Fehler</th>
+            <th class="w-60"></th>
           </tr>
         </thead>
         <tbody>
@@ -70,7 +70,7 @@
             <tr data-id="<%= r.id %>">
               <td class="text-nowrap"><%= (r.created_at instanceof Date) ? r.created_at.toISOString().replace('T',' ').slice(0,19) : r.created_at %></td>
               <td><code><%= r.endpoint %></code></td>
-              <td style="max-width:600px; white-space:pre-wrap; font-family: var(--bs-font-monospace); font-size: .75rem;">
+              <td class="mw-600 ws-pre-wrap fs-075 font-mono">
                 <%= r.prompt_snippet %>
               </td>
               <td class="text-end"><%= r.response_chars || '' %></td>
@@ -102,10 +102,10 @@
       <div class="modal-body">
         <div class="small text-muted mb-2" id="aiLogMeta"></div>
         <h6>Prompt</h6>
-        <pre class="bg-light p-2 border rounded" style="max-height:240px; overflow:auto; font-size:.75rem;" id="aiLogPrompt"></pre>
+  <pre class="bg-light p-2 border rounded scroll-mh-240 fs-075" id="aiLogPrompt"></pre>
         <h6 class="mt-3">Response (Raw gekürzt)</h6>
-        <pre class="bg-light p-2 border rounded" style="max-height:240px; overflow:auto; font-size:.75rem;" id="aiLogResponse"></pre>
-        <div class="mt-2" id="aiLogErrorWrap" style="display:none;">
+  <pre class="bg-light p-2 border rounded scroll-mh-240 fs-075" id="aiLogResponse"></pre>
+  <div class="mt-2 hidden-init" id="aiLogErrorWrap">
           <div class="alert alert-danger py-1 mb-0 small" id="aiLogError"></div>
         </div>
       </div>

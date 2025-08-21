@@ -1,0 +1,130 @@
+name: CI & Deploy
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        run: npm ci || npm install
+      - name: Run tests
+        run: npm test
+      - name: Archive build (no build step, just source)
+        run: |
+          tar -czf artifact.tar.gz .
+      - name: Test SSH connectivity (key or password)
+        id: ssh_test
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          echo "Testing SSH method..."
+          if [ -n "$SSH_KEY" ]; then
+            echo "$SSH_KEY" > key.pem
+            chmod 600 key.pem
+            if ssh -i key.pem -o StrictHostKeyChecking=no -o BatchMode=yes $SSH_USER@$SSH_HOST 'echo ok'; then
+              echo "result=key" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "SSH key auth failed" >&2
+            fi
+          fi
+          if [ -n "$SSH_PASSWORD" ]; then
+            sudo apt-get update -y
+            sudo apt-get install -y sshpass
+            if sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o BatchMode=yes $SSH_USER@$SSH_HOST 'echo ok'; then
+              echo "result=password" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "SSH password auth failed" >&2
+            fi
+          fi
+          echo "result=none" >> $GITHUB_OUTPUT
+      - name: Deploy via rsync (SSH key)
+        if: steps.ssh_test.outputs.result == 'key'
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          WEB_ROOT: ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+        run: |
+          mkdir -p deploy_exclude
+          echo '**/.git*' >> deploy_exclude/rsync-excludes
+          echo '**/.github/**' >> deploy_exclude/rsync-excludes
+          echo 'node_modules/' >> deploy_exclude/rsync-excludes
+          echo 'tests/' >> deploy_exclude/rsync-excludes
+          echo 'tmp/' >> deploy_exclude/rsync-excludes
+          echo '*.tar.gz' >> deploy_exclude/rsync-excludes
+          echo 'README.md' >> deploy_exclude/rsync-excludes
+          echo 'readme.txt' >> deploy_exclude/rsync-excludes
+          echo 'NEXT_STEPS.md' >> deploy_exclude/rsync-excludes
+          rsync -az --delete --exclude-from=deploy_exclude/rsync-excludes -e "ssh -i key.pem -o StrictHostKeyChecking=no" ./ $SSH_USER@$SSH_HOST:$WEB_ROOT/
+      - name: Deploy via rsync (SSH password)
+        if: steps.ssh_test.outputs.result == 'password'
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          WEB_ROOT: ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+        run: |
+          mkdir -p deploy_exclude
+          echo '**/.git*' >> deploy_exclude/rsync-excludes
+          echo '**/.github/**' >> deploy_exclude/rsync-excludes
+          echo 'node_modules/' >> deploy_exclude/rsync-excludes
+          echo 'tests/' >> deploy_exclude/rsync-excludes
+          echo 'tmp/' >> deploy_exclude/rsync-excludes
+          echo '*.tar.gz' >> deploy_exclude/rsync-excludes
+          echo 'README.md' >> deploy_exclude/rsync-excludes
+          echo 'readme.txt' >> deploy_exclude/rsync-excludes
+          echo 'NEXT_STEPS.md' >> deploy_exclude/rsync-excludes
+          sudo apt-get update -y && sudo apt-get install -y sshpass rsync
+          sshpass -p "$SSH_PASSWORD" rsync -az --delete --exclude-from=deploy_exclude/rsync-excludes -e "ssh -o StrictHostKeyChecking=no" ./ $SSH_USER@$SSH_HOST:$WEB_ROOT/
+      - name: Install server deps & restart (SSH key)
+        if: steps.ssh_test.outputs.result == 'key' && secrets.WEB_ROOT != ''
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_KEY }}
+            script: |
+              cd ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }}
+              if [ -f package.json ]; then npm install --production --no-audit --no-fund; fi
+              if command -v pm2 >/dev/null 2>&1; then pm2 restart ${{ secrets.PM2_APP_NAME || 'panda' }} || pm2 start server.js --name ${{ secrets.PM2_APP_NAME || 'panda' }}; else echo 'pm2 not installed'; fi
+      - name: Install server deps & restart (SSH password)
+        if: steps.ssh_test.outputs.result == 'password' && secrets.WEB_ROOT != ''
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "cd ${{ secrets.WEB_ROOT || secrets.DEPLOY_WEB_ROOT || '.' }} && if [ -f package.json ]; then npm install --production --no-audit --no-fund; fi && if command -v pm2 >/dev/null 2>&1; then pm2 restart ${{ secrets.PM2_APP_NAME || 'panda' }} || pm2 start server.js --name ${{ secrets.PM2_APP_NAME || 'panda' }}; else echo 'pm2 not installed'; fi"
+      - name: Fallback Upload via FTP
+        if: steps.ssh_test.outputs.result == 'none'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_DIR || '/' }}
+          exclude: |
+            **/.git*
+            **/.github/**
+            node_modules/**
+            tests/**
+            tmp/**
+            *.tar.gz
+            README.md
+            readme.txt
+            NEXT_STEPS.md

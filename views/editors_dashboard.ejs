@@ -4,6 +4,9 @@
   <h1 class="h3 mb-4">Editors Dashboard</h1>
   <div class="row g-4 mb-4">
     <div class="col-md-3">
+      <div class="card shadow-sm h-100"><div class="card-body small d-flex flex-column"><div class="text-muted">Schnellzugriff</div><div class="mt-2 d-flex flex-wrap gap-2 justify-content-start"><a class="btn btn-sm btn-primary" href="/editors/posts/new">Neuer Beitrag</a><a class="btn btn-sm btn-outline-secondary" href="/editors/media">Medien</a></div></div></div>
+    </div>
+    <div class="col-md-3">
       <div class="card shadow-sm h-100"><div class="card-body small"><div class="text-muted">Beiträge</div><div class="display-6"><%= stats.posts %></div></div></div>
     </div>
     <div class="col-md-3">
@@ -12,8 +15,57 @@
     <div class="col-md-3">
       <div class="card shadow-sm h-100"><div class="card-body small"><div class="text-muted">Podcasts</div><div class="display-6"><%= stats.podcasts %></div></div></div>
     </div>
+  </div>
+  <div class="row g-4 mb-4">
     <div class="col-md-3">
-      <div class="card shadow-sm h-100"><div class="card-body small d-flex flex-column"><div class="text-muted">Schnellzugriff</div><div class="mt-2 d-flex flex-wrap gap-2 justify-content-start"><a class="btn btn-sm btn-primary" href="/editors/posts/new">Neuer Beitrag</a><a class="btn btn-sm btn-outline-secondary" href="/editors/media">Medien</a></div></div></div>
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+        <div class="text-muted">Advanced Pages</div>
+        <div class="mt-2 d-flex flex-column gap-2">
+          <a class="btn btn-sm btn-outline-primary" href="/editors/advanced-pages">Liste</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/editors/advanced-pages/generator">Generator</a>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+  <div class="text-muted">AI Nutzung (3 Tage)</div>
+  <div class="h4 mb-1"><%= aiUsage.used %>/<%= aiUsage.limit*3 %></div>
+  <div class="small text-muted mb-2"><%= aiUsage.percent %>% von 3T Limit</div>
+        <a class="btn btn-sm btn-outline-secondary mt-auto" href="/admin/ai-usage">Details</a>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+        <div class="text-muted">Tools</div>
+        <div class="mt-2 d-flex flex-column gap-2">
+          <a class="btn btn-sm btn-outline-primary" href="/admin/tools">Strukturiert</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/tools/raw">Raw</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/tools/tables">Tabellen</a>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+        <div class="text-muted">Prompt Tester</div>
+        <div class="flex-grow-1 small">Ad-hoc AI</div>
+        <a class="btn btn-sm btn-outline-secondary mt-2" href="/admin/tools/prompt-tester">Öffnen</a>
+      </div></div>
+    </div>
+  </div>
+  <div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+        <div class="text-muted">Panda's Way Varianten</div>
+        <div class="flex-grow-1 small">Design Demos</div>
+        <div class="mt-2 d-flex flex-wrap gap-2">
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way" target="_blank">Base</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way-alt1" target="_blank">Alt1</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way-alt2" target="_blank">Alt2</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way-alt3" target="_blank">Alt3</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way-alt4" target="_blank">Alt4</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/pandas-way-alt5" target="_blank">Alt5</a>
+        </div>
+      </div></div>
     </div>
   </div>
   <h2 class="h5">Letzte Beiträge</h2>

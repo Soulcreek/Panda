@@ -30,7 +30,7 @@
       <strong class="me-auto">Roh-Antwort</strong>
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('aiRawOut').textContent)">Copy</button>
     </div>
-    <pre id="aiRawOut" class="p-2 bg-light border" style="max-height:400px;overflow:auto;white-space:pre-wrap;"><%= result %></pre>
+  <pre id="aiRawOut" class="p-2 bg-light border h-400 of-auto ws-pre-wrap"><%= result %></pre>
   <% } %>
 </div>
 <%- include('partials/footer') %>

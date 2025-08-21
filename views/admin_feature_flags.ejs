@@ -1,0 +1,84 @@
+<%- include('partials/admin_header',{ title: title||'Feature Flags' }) %>
+<div class="container py-4">
+  <h1 class="h3 mb-4">Feature Flags (<%= siteKey %>)</h1>
+  <form id="flag-form" class="row g-3 mb-4" method="post" action="/admin/api/feature-flags" onsubmit="return submitFlag(event)">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-md-3">
+      <label class="form-label">Key</label>
+      <input name="flag_key" class="form-control" placeholder="z.B. new_editor_ui" required maxlength="100">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Aktiv?</label>
+      <select name="enabled" class="form-select"><option value="1">Ja</option><option value="0">Nein</option></select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Variante (optional)</label>
+      <input name="variant" class="form-control" placeholder="A/B oder beta" maxlength="64">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Beschreibung</label>
+      <input name="description" class="form-control" maxlength="255">
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary">Speichern / Aktualisieren</button>
+    </div>
+  </form>
+
+  <table class="table table-sm align-middle" id="flags-table">
+    <thead><tr><th>Key</th><th>Aktiv</th><th>Variante</th><th>Beschreibung</th><th>Zuletzt</th><th></th></tr></thead>
+    <tbody>
+    <% (flags||[]).forEach(f=>{ %>
+      <tr data-flag="<%= f.flag_key %>"><td><code><%= f.flag_key %></code></td><td><span class="badge <%= f.enabled? 'bg-success':'bg-secondary' %>"><%= f.enabled? 'Ja':'Nein' %></span></td><td><%= f.variant||'' %></td><td class="small"><%= f.description||'' %></td><td class="text-muted small"><%= f.updated_at.toISOString ? f.updated_at.toISOString().slice(0,19).replace('T',' ') : f.updated_at %></td><td><button class="btn btn-sm btn-outline-danger" onclick="deleteFlag('<%= f.flag_key %>')">Löschen</button></td></tr>
+    <% }) %>
+    </tbody>
+  </table>
+
+  <p class="text-muted small mb-4">Flags werden pro Site Key gespeichert. Cache TTL ~60s.</p>
+  <div class="card mb-4"><div class="card-body small">
+    <h5 class="card-title h6">Audit (letzte Änderungen)</h5>
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Zeit</th><th>Flag</th><th>Aktion</th><th>Aktiv</th><th>Variante</th><th>Beschreibung</th></tr></thead>
+      <tbody id="audit-body"><tr><td colspan="6" class="text-muted">Lade...</td></tr></tbody>
+    </table>
+  </div></div>
+  <script>
+  async function loadAudit(){
+    try { const r=await fetch('/admin/api/feature-flags/audit'); const j=await r.json(); if(!r.ok) return; const tb=document.getElementById('audit-body'); tb.innerHTML=(j.audit||[]).map(a=>`<tr><td>${(a.created_at||'').toString().replace('T',' ').slice(0,19)}</td><td><code>${a.flag_key}</code></td><td>${a.action}</td><td>${a.enabled? 'Ja':'Nein'}</td><td>${a.variant||''}</td><td class="small">${a.description||''}</td></tr>`).join('') || '<tr><td colspan="6" class="text-muted">Keine Einträge</td></tr>'; } catch(_){}
+  }
+  loadAudit();
+  setInterval(loadAudit, 20000);
+  </script>
+</div>
+<script>
+async function submitFlag(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await fetch('/admin/api/feature-flags',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
+  const j = await res.json();
+  if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return false; }
+  renderFlags(j.flags);
+  e.target.reset();
+  return false;
+}
+async function deleteFlag(key){
+  if(!confirm('Flag wirklich löschen? '+key)) return;
+  const fd = new FormData(); fd.append('flag_key', key); fd.append('_csrf', document.querySelector('input[name=_csrf]').value);
+  const res = await fetch('/admin/api/feature-flags/delete',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
+  const j = await res.json();
+  if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return; }
+  renderFlags(j.flags);
+}
+function renderFlags(flags){
+  const tb = document.querySelector('#flags-table tbody');
+  tb.innerHTML = (flags||[]).map(f=>`
+    <tr data-flag="${f.flag_key}">
+      <td><code>${f.flag_key}</code></td>
+      <td><span class="badge ${f.enabled? 'bg-success':'bg-secondary'}">${f.enabled? 'Ja':'Nein'}</span></td>
+      <td>${f.variant||''}</td>
+      <td class="small">${f.description||''}</td>
+      <td class="text-muted small">${(f.updated_at||'').toString().replace('T',' ').slice(0,19)}</td>
+      <td><button class="btn btn-sm btn-outline-danger" onclick="deleteFlag('${f.flag_key}')">Löschen</button></td>
+    </tr>`).join('');
+}
+</script>
+<%- include('partials/admin_footer') %>

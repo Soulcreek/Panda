@@ -43,6 +43,8 @@ const dbHealth = {
 
 try {
   pool = mysql.createPool(connectionConfig);
+  // Metrics (lazy require to avoid cycle if server requires db early)
+  let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
 
   // Wrap original query for latency tracking (non-invasive)
   const origQuery = pool.query.bind(pool);
@@ -61,11 +63,14 @@ try {
   dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
       dbHealth.lastError = null;
       dbHealth.lastCheckedAt = new Date();
-      return res;
+  // metrics histogram (seconds)
+  if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
+  return res;
     } catch(e){
       dbHealth.lastError = e.message;
       dbHealth.degraded = true;
       dbHealth.lastCheckedAt = new Date();
+  if(metrics){ metrics.inc('db_query_errors_total'); }
       throw e;
     }
   };

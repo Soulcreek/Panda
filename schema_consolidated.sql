@@ -23,19 +23,29 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires INT UNSIGNED NOT NULL,
   data TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
+-- Index für Session Expiry (idempotent via INFORMATION_SCHEMA)
+SET @idx_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='sessions' AND INDEX_NAME='idx_sessions_expires');
+SET @stmt := IF(@idx_exists=0, 'ALTER TABLE sessions ADD INDEX idx_sessions_expires (expires)', 'DO 0');
+PREPARE _s FROM @stmt; EXECUTE _s; DEALLOCATE PREPARE _s;
 
 -- MEDIA (Uploads / Bilder / Audio Referenzen)
 CREATE TABLE IF NOT EXISTS media (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  site_key VARCHAR(64) NOT NULL DEFAULT 'default',
   name VARCHAR(255) NOT NULL,
   path VARCHAR(500) NOT NULL,
   type VARCHAR(120),
   alt_text VARCHAR(500),
   description TEXT,
-  category VARCHAR(120),
+  seo_alt VARCHAR(500),
+  seo_description VARCHAR(500),
+  meta_keywords VARCHAR(500),
+  category_id INT NULL,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_media_path (path)
+  KEY idx_media_path (path),
+  KEY idx_media_site (site_key),
+  KEY idx_media_category_id (category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- POSTS (Blog Beiträge, zweisprachig)
@@ -205,3 +215,91 @@ ALTER TABLE posts ADD CONSTRAINT fk_posts_featured_media FOREIGN KEY (featured_i
 -- (5) ai_usage Rotation/Archivierung per Cron skripten.
 
 -- ENDE
+
+/* =========================
+  ANGEWANDTE MYSQL MIGRATIONEN (ehemals migrations/003-005)
+  Diese Sektion wurde aus dem entfernten migrations Ordner übernommen.
+  Nur ausführen, falls deine Instanz diese Änderungen noch nicht enthält.
+  ========================= */
+
+-- 003 Media Categories Normalisierung
+CREATE TABLE IF NOT EXISTS media_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  site_key VARCHAR(64) NOT NULL DEFAULT 'default',
+  slug VARCHAR(100) NOT NULL,
+  label VARCHAR(190) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_media_cat_site_slug (site_key, slug),
+  KEY idx_media_cat_site (site_key)
+) ENGINE=InnoDB;
+
+-- Backfill categories from legacy media.category column if it ever existed (idempotent)
+SET @legacy_col := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media' AND COLUMN_NAME='category');
+SET @stmt := IF(@legacy_col=1, 'INSERT IGNORE INTO media_categories (site_key, slug,label) SELECT COALESCE(site_key,\'default\'), LOWER(TRIM(category)) AS slug, category AS label FROM media WHERE category IS NOT NULL AND TRIM(category)<>\'\' GROUP BY COALESCE(site_key,\'default\'), LOWER(TRIM(category))', 'DO 0');
+PREPARE _mc FROM @stmt; EXECUTE _mc; DEALLOCATE PREPARE _mc;
+
+-- 004 media.category_id Foreign Key
+-- CATEGORY_ID Spalte + Index + FK idempotent anlegen (breite MySQL Kompatibilität)
+-- Ensure site_key column exists on media (for older DBs)
+SET @col_media_site := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media' AND COLUMN_NAME='site_key');
+SET @stmt := IF(@col_media_site=0, 'ALTER TABLE media ADD COLUMN site_key VARCHAR(64) NOT NULL DEFAULT \'default\' AFTER id, ADD INDEX idx_media_site (site_key)', 'DO 0');
+PREPARE _m1 FROM @stmt; EXECUTE _m1; DEALLOCATE PREPARE _m1;
+
+-- Ensure category_id column exists (if legacy schema still missing it)
+SET @col_catid := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media' AND COLUMN_NAME='category_id');
+SET @stmt := IF(@col_catid=0, 'ALTER TABLE media ADD COLUMN category_id INT NULL AFTER description, ADD INDEX idx_media_category_id (category_id)', 'DO 0');
+PREPARE _m2 FROM @stmt; EXECUTE _m2; DEALLOCATE PREPARE _m2;
+
+-- Optional FK (guarded)
+SET @fk_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='media' AND CONSTRAINT_NAME='fk_media_category');
+SET @stmt := IF(@fk_exists=0, 'ALTER TABLE media ADD CONSTRAINT fk_media_category FOREIGN KEY (category_id) REFERENCES media_categories(id) ON DELETE SET NULL', 'DO 0');
+PREPARE _m3 FROM @stmt; EXECUTE _m3; DEALLOCATE PREPARE _m3;
+
+-- Backfill category_id from legacy textual column if still present
+SET @legacy_col := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media' AND COLUMN_NAME='category');
+SET @stmt := IF(@legacy_col=1, 'UPDATE media m LEFT JOIN media_categories mc ON LOWER(TRIM(m.category)) = mc.slug AND mc.site_key=COALESCE(m.site_key,\'default\') SET m.category_id = mc.id WHERE m.category IS NOT NULL AND TRIM(m.category)<>\'\' AND m.category_id IS NULL', 'DO 0');
+PREPARE _m4 FROM @stmt; EXECUTE _m4; DEALLOCATE PREPARE _m4;
+
+-- 005 Podcast Slug + SEO Vorbereitung
+-- Podcast Slug Spalte + Unique Index idempotent
+SET @col_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='podcasts' AND COLUMN_NAME='slug');
+SET @stmt := IF(@col_exists=0, 'ALTER TABLE podcasts ADD COLUMN slug VARCHAR(255) NULL AFTER title', 'DO 0');
+PREPARE _s FROM @stmt; EXECUTE _s; DEALLOCATE PREPARE _s;
+
+SET @idx_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='podcasts' AND INDEX_NAME='uq_podcasts_slug');
+SET @stmt := IF(@idx_exists=0, 'ALTER TABLE podcasts ADD UNIQUE INDEX uq_podcasts_slug (slug)', 'DO 0');
+PREPARE _s FROM @stmt; EXECUTE _s; DEALLOCATE PREPARE _s;
+
+-- Backfill nur falls slug leer
+UPDATE podcasts SET slug = LOWER(REGEXP_REPLACE(title,'[^a-zA-Z0-9\\s-]','')) WHERE (slug IS NULL OR slug='');
+UPDATE podcasts SET slug = REGEXP_REPLACE(slug,'\\s+','-');
+UPDATE podcasts SET slug = REGEXP_REPLACE(slug,'-+','-');
+UPDATE podcasts SET slug = TRIM(BOTH '-' FROM slug);
+
+UPDATE podcasts p JOIN (
+  SELECT slug, COUNT(*) c FROM podcasts WHERE slug IS NOT NULL GROUP BY slug HAVING c>1
+) d ON p.slug=d.slug
+SET p.slug = CONCAT(p.slug,'-',p.id);
+
+-- (Optional später) Slug Not Null erzwingen:
+-- ALTER TABLE podcasts MODIFY slug VARCHAR(255) NOT NULL;
+
+-- 006 Media Category Cleanup (drop legacy media.category + prune orphan categories)
+SET @legacy_col := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media' AND COLUMN_NAME='category');
+SET @stmt := IF(@legacy_col=1, 'ALTER TABLE media DROP COLUMN category', 'DO 0');
+PREPARE _m5 FROM @stmt; EXECUTE _m5; DEALLOCATE PREPARE _m5;
+
+-- Remove orphaned categories (those without any media referencing them per site_key)
+DELETE mc FROM media_categories mc
+LEFT JOIN media m ON m.category_id = mc.id AND m.site_key = mc.site_key
+WHERE m.id IS NULL;
+
+/* HINWEIS: IF NOT EXISTS bei ADD COLUMN / ADD CONSTRAINT wird in älteren MySQL Versionen nicht
+  unterstützt. In solchen Fällen die Statements ohne IF NOT EXISTS ausführen und Fehler ignorieren,
+  falls Objekt bereits existiert.
+
+  EHEMALIGE MIGRATIONS (003-006) SIND ENTFALLEN UND HIER INTEGRIERT.
+*/
+

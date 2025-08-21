@@ -1,0 +1,62 @@
+<%- include('partials/header',{title:title}) %>
+<h1>Benutzerverwaltung</h1>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto">
+    <input type="text" name="q" value="<%= q||'' %>" placeholder="Suche Username" class="form-control form-control-sm" />
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-outline-secondary">Suche</button>
+    <a href="/admin/users" class="btn btn-sm btn-link">Reset</a>
+    <a class="btn btn-sm btn-primary" href="/admin/users/new">Neuer Benutzer</a>
+    <button type="button" class="btn btn-sm btn-outline-info" onclick="loadAudit()">Audit Log</button>
+  </div>
+</form>
+<table class="table table-sm table-striped align-middle">
+  <thead>
+    <tr>
+      <th>ID</th><th>Username</th><th>Rolle</th><th>Status</th><th>Erstellt</th><th>Aktion</th>
+    </tr>
+  </thead>
+  <tbody>
+  <% users.forEach(u=>{ %>
+    <tr>
+      <td><%= u.id %></td>
+      <td><a href="/admin/users/<%= u.id %>"><%= u.username %></a></td>
+      <td><span class="badge bg-<%= u.role==='admin'?'danger':(u.role==='editor'?'primary':'secondary') %>"><%= u.role %></span></td>
+      <td><%= u.is_deleted? 'gelöscht' : 'aktiv' %></td>
+      <td><%= u.created_at ? new Date(u.created_at).toLocaleString() : '' %></td>
+      <td>
+        <a class="btn btn-sm btn-outline-secondary" href="/admin/users/<%= u.id %>">Bearbeiten</a>
+        <% if(u.is_deleted){ %>
+          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline"><input type="hidden" name="action" value="restore" /><button class="btn btn-sm btn-outline-success" onclick="return confirm('Wiederherstellen?')">Restore</button></form>
+          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline"><input type="hidden" name="action" value="hard_delete" /><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Hard Delete? Dies ist endgültig!')">Hard</button></form>
+        <% } %>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+<nav>
+  <ul class="pagination pagination-sm">
+    <% for(let i=1;i<=totalPages;i++){ %>
+      <li class="page-item <%= i===page ? 'active':'' %>"><a class="page-link" href="?page=<%= i %><%= q?('&q='+encodeURIComponent(q)) : '' %>"><%= i %></a></li>
+    <% } %>
+  </ul>
+</nav>
+
+<div class="modal fade" id="auditModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">User Audit Log</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><div id="auditBody" class="small text-monospace">Lade…</div></div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button></div>
+    </div>
+  </div>
+</div>
+<script nonce="<%= cspNonce %>">
+async function loadAudit(){
+  try{ const r=await fetch('/admin/users/api/audit'); const j=await r.json(); const b=document.getElementById('auditBody'); if(!j.ok){ b.textContent='Fehler beim Laden'; } else { b.innerHTML = j.audit.map(a=>`<div>[${a.id}] ${a.created_at} actor=${a.actor_id} target=${a.target_id} action=${a.action} detail=${a.detail||''}</div>`).join(''); const m=new bootstrap.Modal(document.getElementById('auditModal')); m.show(); } }
+  catch(e){ alert('Audit Fehler'); }
+}
+</script>
+<%- include('partials/footer') %>

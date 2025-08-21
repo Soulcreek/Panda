@@ -1,6 +1,28 @@
 # NEXT_STEPS (Refactoring Sprint – August 2025)
 
-Aktueller Fokus: Stabilisierung & Test-Runde – neue Feature-Arbeit (Caching/Metrics) temporär auf Hold.
+Aktueller Fokus: Stabilisierung & Abschluss Media Cleanup / Dashboard Hardening – AI Caching & erweitertes Metrics weiter auf Hold.
+
+## PRIORISIERTE ABLAUFREIHENFOLGE (User 1→3→5→6→2→4 – Stand 2025-08-21)
+Neue umzusetzende Reihenfolge für offene Punkte über die Sektionen hinweg:
+
+1. Sektion 1 (Offene Punkte) – Resttests (`advancedPagesUtil` zusätzliche Kantenfälle, AI Fallback Parsing Tests)
+2. Sektion 3 (Roadmap) – Abschluss Multi-Tenant (Timeline jetzt implementiert → Validierung & Cleanup), Rollenmodell (viewer), Observability Feinschliff (/metrics, Percentiles)
+3. Sektion 5 (Qualität/Tests) – Ausweitung Testabdeckung (Snapshot, Sanitization, Auth Guards, Multi-Tenant Isolation, Feature Flags CRUD)
+4. Sektion 6 (Sicherheit) – CSP Nonce & Inline Script Reduktion, Cookie Flags Review, Consent Banner
+5. Sektion 2 (Kurzfristige Verbesserungen) – Podcast Slug NOT NULL + sitemap, AI Caching (nach Tests), restliche SEO Feinschliff (Media Altspalte & Orphan Cleanup ERLEDIGT)
+6. Sektion 4 (Technische Schulden) – Nav/EJS Partials Vereinheitlichung, Picker Refactor Rollout, i18n Lücken, Delegator-Stubs Entsorgung
+
+Taktik: Zuerst test & tenant correctness sichern (1+3), dann Qualität/Tests vertiefen (5), danach Security Hardening (6). Verbesserungen (2) und Schulden (4) folgen nachdem Stabilität + Sicherheit erhöht wurden.
+
+Quick KPI Definition für Abschluss jedes Blocks:
+- Block 1: Alle offenen Unit Tests grün, Abdeckung kritischer Parser >90% branches.
+- Block 3: Keine ungelabelten Tabellen ohne site_key, Rollen-Middleware aktiv, /metrics liefert Basis-Counter.
+- Block 5: Neue Testsuite deckt mind. 15 Kernpfade; Isolation Leak Test negativ.
+- Block 6: Report zeigt CSP ohne 'unsafe-inline' (Scripts), Inline Scripts migriert.
+- Block 2: Altspalten entfernt, sitemap enthält Podcasts, AI Cache hit-rate Metrik sichtbar.
+- Block 4: Doppelter Picker-Code eliminiert (>70% Reduktion betroffene Zeilen), zentrale nav Partial.
+
+---
 
 ## 1. Offene Punkte aus heutigem Refactor
 - [x] AI Key Umschaltung: Nutzung `ai_config.primary_key_choice` (paid|free) mit Fallback-Kette paid→free→(global). Implementiert in `aiConfig.resolveApiKey` & `aiHelpers`.
@@ -28,22 +50,26 @@ Aktueller Fokus: Stabilisierung & Test-Runde – neue Feature-Arbeit (Caching/Me
  - [x] Automatische globale Error Toasts für ungefangene API Fehler (`unhandledrejection` Listener)
  - [x] GET Retry Backoff (apiFetch: 2x Exponential für 5xx & Netzwerkfehler)
 - [x] Upload Validation: MIME + Dimensions + Max Size (8MB, 6000x6000) implementiert (`lib/uploadValidation.js`, angewendet in `routes/editors/media.js`).
-- [ ] Medien Kategorien Normalisierung – KERN UMGESETZT (Migration 003 + 004, FK + Backfill, dynamische UI, API Endpoints `/editors/api/media-categories`, Code nutzt `category_id`). OFFEN: Entfernung alte Textspalte (optional) & Orphan-Cleanup Script. (Teilstatus)
-- [ ] Podcast SEO Slug + Public Podcast Detail Seite SEO Meta – UMGESETZT (Migration 005, Slug Feld, SEO Meta, Canonical Redirect, RSS Anpassung). OFFEN: Slug `NOT NULL` Enforcement + sitemap update. (Teilstatus)
+- [x] Medien Kategorien Normalisierung – KERN UMGESETZT (Migration 003 + 004, FK + Backfill, dynamische UI, API Endpoints `/editors/api/media-categories`, Code nutzt `category_id`). NEU: Migration 006 hinzugefügt (Entfernung alte Textspalte + Orphan Cleanup). Deployment-Hinweis: Vor Ausführung prüfen, dass keine Alt-Version mehr auf `media.category` zugreift.
+- [x] Podcast SEO Slug + Public Podcast Detail Seite SEO Meta – UMGESETZT (Slug Feld, SEO Meta, Canonical Redirect, RSS Anpassung). NEU: `sitemap.xml` Endpoint integriert (Posts, Podcasts, Pages). OFFEN: Slug `NOT NULL` Enforcement (geplant nach Validierung produktiver Daten) & evtl. Priorisierung Feintuning.
 - [ ] AI Caching: Hash (model+endpoint+normalizedPrompt) -> Redis/In-Memory TTL. (ON HOLD – verschoben bis nach Stabilisierungstest)
 - [x] Performance: DB Connection Health Banner (> Threshold) – Wrapper + metrics (rollingAvg, slowQueries, totalQueries) in db.js, banners in editors_nav & admin_nav, polling + /admin/api/db-health.
 
 ## 3. Mittel- & Langfristige Roadmap (Ergänzend zur README)
-- [ ] Progressive Enhancement: Service Worker für Blog & Media Cache.
-- [ ] Public Read API: `/api/v1/posts`, `/api/v1/media` (authless read, sanitized) + Rate Limit.
-- [ ] Multi-Tenant Erweiterung (site_key Partition überall konsistent) – aktuell partiell (timeline_entries, timeline_levels).
-- [ ] Rollenmodell: editor, admin, viewer – differenzierte Gatekeeping Middleware.
-- [ ] Feature Flags (Switch in ai_config.prompts oder extra Tabelle) für Beta-Funktionen.
-- [ ] Observability: Request Timing Middleware + /admin/debug timings chart.
+- [x] Progressive Enhancement: Service Worker für Blog & Media Cache (Basis implementiert: sw.js, offline.html, network-first HTML, stale-while-revalidate API/Images – Erweiterungen: precache Thumbnails manifest, versioned purge TBD).
+- [x] Public Read API: `/api/v1/posts`, `/api/v1/media` (authless read, sanitized) + einfacher In-Memory Rate Limit (Konfig via `PUBLIC_API_RPM`). Folgeideen: ETag/If-None-Match, cursor pagination, conditional GET.
+- [x] Multi-Tenant Erweiterung: Kern abgeschlossen (site_key für posts, podcasts, media, advanced_pages, timeline_entries, timeline_levels + Slug Uniqueness). OFFEN: Validierungs-Skript für fehlende site_key Werte, Migrations-Doku (Consolidated Schema ersetzt Einzelschritte; Migrations-Stubs deprecated).
+- [x] Rollenmodell: Basis ergänzt (`viewer` vorgesehen, `requireRole([...])` Utility, role exposure in Templates). NOTE: `viewer` aktuell explizit wie public/anonymous behandelt (keine Enforcement / Sonderrechte) – UI-Anpassungen dadurch obsolet bis neue Anforderungen.
+- [x] Feature Flags: Implementiert (DB Tabelle, Cache, Admin UI, Audit). OFFEN: Variant Weighting / Bulk Toggle UI.
+- [x] Observability (Basis): Request Timing Middleware + Debug Page + /metrics Endpoint (Prometheus Plaintext) + P95/P99 + ai_calls_total + db_query_duration_seconds histogram + Labeled Route Request Counters + Memory Gauges (RSS/Heap). OFFEN: Per-Route Duration Histogram (begrenzte Kardinalität) & Error Rate Gauge.
 
 ## 4. Technische Schulden
 - [ ] Admin Doku Feinschliff & Auth Zentralisierung.
 	- DONE: Feingranulare Module (settings, tools, usage, legacyRedirects) + Delegator-Stubs für alte Dateien.
+	- DONE (Cleanup 2025-08-21): Entfernte ungenutzte Legacy Admin Edit/List Views (posts/podcasts/media/advanced_pages/timeline) & alte admin_* Route-Stubs; nur aktive Settings/Tools/AI Usage Views verbleiben.
+	- DONE (Editors Consolidation 2025-08-21): Ehemalige Admin Content-Funktionen ins Editors Dashboard integriert (Advanced Pages, Generator, AI Usage, Tools, Prompt Tester, Panda's Way Links).
+	- DONE (Minimal Reinstatement 2025-08-21): Schlankes Admin Dashboard (nur AI Nutzung, Generator Logs, Config/Tools Links) wiederhergestellt – keine Content KPIs mehr.
+	- DONE: contentMigrations Platzhalter entfernt.
 	- TODO: AI / content-migrations Platzhalter mit echter Logik füllen (falls benötigt) & zentrale Auth Middleware extrahieren.
 	- TODO: Entfernbare Delegator-Stubs nach Grace Period dokumentieren (Abbauplan).
 	- Konsistente Fehlerstruktur: Basis vorhanden; prüfen ob alle neuen Module ausschließlich Helpers nutzen.
@@ -57,16 +83,16 @@ Aktueller Fokus: Stabilisierung & Test-Runde – neue Feature-Arbeit (Caching/Me
 - [ ] Hardcoded Strings für Buttons (Internationalisierung noch unvollständig im Editors Bereich).
 
 ## 5. Qualität / Tests
-- [ ] Setup Jest + Supertest (Health, Redirect Middleware, AI endpoint with mocked fetch).
-	- Zusatz: Modular Admin Routing Basis-Tests (`adminModular.test.js`) hinzugefügt (blog-config, tools, legacy redirect).
+- [x] Setup Jest + Supertest (Grundgerüst aktiv; vorhandene Tests: `slug.test.js`, `aiConfig.test.js`, `advancedPagesUtil.test.js`, `adminAuth.test.js`, `adminModular.test.js`, `server.test.js`).
+	- Nächste Schritte: Parser Edge Cases (`aiParse.extractJson` Error Branches), Feature Flags CRUD, Multi-Tenant Isolation (cross-site access verhindern), Timeline Editor Permission.
 - [ ] Snapshot Tests für Advanced Pages Rendering (rendered_html Sanitizer).
 - [ ] Quill Content Sanitization Regression Test (script tag removal).
 
 ## 6. Sicherheit & Compliance
-- [ ] CSP Enhancement: Nonce pro Request + Inline Script Eliminierung.
+- [x] CSP Enhancement: Nonce pro Request + Inline Script Eliminierung (`header.ejs` inline JS ausgelagert, 'unsafe-inline' bei scripts entfernt).
 - [ ] Session Cookie Flags überprüfen (secure, sameSite=strict in prod).
 - [ ] Access Log anonymization (DSGVO-Hinweis) + Impressum Aktualisierung.
-- [ ] Opt-In Consent Banner (Tracking / optional AI Telemetrie anonymisiert).
+- [ ] Opt-In Consent Banner (Tracking / optionale AI Telemetrie anonymisiert).
 
 ## 7. Developer Experience
 - [ ] `npm run lint` + Standard ESLint Config.
@@ -74,7 +100,7 @@ Aktueller Fokus: Stabilisierung & Test-Runde – neue Feature-Arbeit (Caching/Me
 - [ ] Local .env.example erweitern (alle neuen Variablen, free/paid key Hinweis).
 
 ## 8. Monitoring & Metrics
-- [ ] Add /metrics (Prometheus) – Counters: http_requests_total, ai_calls_total, db_query_duration_bucket. (ON HOLD – nach Test-Runde zusammen mit AI Caching)
+- [x] Add /metrics (Prometheus) – Metriken: http_requests_total, http_request_duration_seconds (Buckets), ai_calls_total, ai_call_duration_seconds, db_query_duration_seconds, db_query_errors_total, memory_rss_bytes, memory_heap_used_bytes, memory_heap_total_bytes, http_route_requests_total_<METHOD>_<route>. OFFEN: Fehlerquote / Alert Schwellen & Optional: http_request_duration_seconds per normalized route.
 - [ ] Error Rate Alert (threshold-based) offline config.
 
 ## 9. Offene Fragen / Decisions Needed
@@ -94,10 +120,10 @@ Aktueller Fokus: Stabilisierung & Test-Runde – neue Feature-Arbeit (Caching/Me
 ## 11. Temporär auf Hold
 - AI Caching Layer (Design steht, Implementierung nach Stabilisierung)
 - /metrics Prometheus Endpoint
-- Media Categories Cleanup (Entfernung Altspalte + Orphan Prune)
+- Media Categories Cleanup (Entfernung Altspalte + Orphan Prune) – DONE (in konsolidiertes Schema integriert, Code refactored)
 - Podcast Slug `NOT NULL` + sitemap.xml Integration
 - Erweiterte Observability (Request Timing Middleware Charts)
 - Feature Flag Mechanismus Entscheidung
 
 ---
-Letzte Aktualisierung: 2025-08-21 (Hold-Update)
+Letzte Aktualisierung: 2025-08-21 (Sitemap, Memory Metrics, Last-Admin Schutz, Site-Key Audit)

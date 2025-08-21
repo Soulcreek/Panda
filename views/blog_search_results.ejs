@@ -15,7 +15,7 @@
                 <% posts.forEach(function(post) { %>
                     <div class="card mb-4" id="post-<%= post.id %>" data-aos="fade-up">
                         <% if (post.featured_image_path) { %>
-                            <img src="<%= post.featured_image_path %>" class="card-img-top" alt="<%= post.title %>" style="height: 200px; object-fit: cover;">
+                            <img src="<%= post.featured_image_path %>" class="card-img-top h-200 of-cover" alt="<%= post.title %>">
                         <% } %>
                         <div class="card-body">
                             <h2 class="card-title"><%= post.title %></h2>

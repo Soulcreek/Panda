@@ -1,0 +1,30 @@
+<%- include('partials/admin_head', { title: title || 'Timings' }) %>
+<div class="container mt-4">
+  <h1>Request Timings</h1>
+  <p class="text-muted">Top 50 langsamste (nach durchschnittlicher Antwortzeit). Aktualisiert alle 5s.</p>
+  <table class="table table-sm table-dark" id="timingsTable">
+    <thead><tr><th>Pfad</th><th>Count</th><th>Avg ms</th><th>Max ms</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <h3>Letzte 50 Requests</h3>
+  <table class="table table-sm table-dark" id="recentTable">
+    <thead><tr><th>Zeit</th><th>Methode</th><th>Status</th><th>Pfad</th><th>ms</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <a href="/admin" class="btn btn-secondary">Zurück</a>
+</div>
+<script>
+async function loadTimings(){
+  try {
+    const r = await fetch('/admin/api/timings');
+    if(!r.ok) return;
+    const data = await r.json();
+    const tb = document.querySelector('#timingsTable tbody');
+    tb.innerHTML = data.summary.map(r=>`<tr><td>${r.path}</td><td>${r.count}</td><td>${r.avg}</td><td>${r.max}</td></tr>`).join('');
+    const rb = document.querySelector('#recentTable tbody');
+    rb.innerHTML = data.recent.slice().reverse().map(x=>`<tr><td>${new Date(x.ts).toLocaleTimeString()}</td><td>${x.method}</td><td>${x.status}</td><td>${x.path}</td><td>${x.ms}</td></tr>`).join('');
+  } catch(e){}
+}
+loadTimings(); setInterval(loadTimings,5000);
+</script>
+<%- include('partials/admin_foot') %>

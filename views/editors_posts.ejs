@@ -1,17 +1,15 @@
 <%- include('partials/header') %>
 <%- include('partials/editors_nav') %>
 <div class="container my-5">
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-3">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex align-items-center flex-wrap gap-3">
       <h1 class="mb-0"><%= archived ? 'Archivierte Beiträge' : 'Beiträge verwalten' %></h1>
+      <a href="/editors/posts/new" class="btn btn-primary">Neuen Beitrag erstellen</a>
       <% if (!archived) { %>
         <a href="/editors/posts?archived=1" class="btn btn-sm btn-outline-secondary">Archiv anzeigen</a>
       <% } else { %>
         <a href="/editors/posts" class="btn btn-sm btn-outline-secondary">Zurück</a>
       <% } %>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-      <a href="/editors/posts/new" class="btn btn-primary">Neuen Beitrag erstellen</a>
     </div>
   </div>
   <div class="card"><div class="card-body">

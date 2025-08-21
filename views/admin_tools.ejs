@@ -3,6 +3,18 @@
 <div class="admin-container container my-5">
     <h2 class="mb-4">Werkzeuge &amp; Debug</h2>
     <p class="text-muted">Dateninspektion & Diagnose (<code><%= mode %></code>).</p>
+    <% if(debug){ %>
+        <div class="alert alert-info py-2 small mb-3">
+            <strong>Debug Modus aktiv.</strong>
+            <% if(errors && errors.length){ %>
+                <ul class="mb-0 small">
+                <% errors.forEach(e=>{ %><li><code><%= e %></code></li><% }); %>
+                </ul>
+            <% } else { %>
+                <span>Keine Fehler protokolliert.</span>
+            <% } %>
+        </div>
+    <% } %>
 
     <% if(mode==='structured'){ %>
         <h4 class="mt-4">Beiträge (letzte <%= posts.length %>)</h4>
@@ -39,19 +51,26 @@
             </table>
         </div>
     <% } else if(mode==='raw'){ %>
-        <ul class="nav nav-pills mb-3 flex-wrap" id="rawTabs">
-            <% tables.forEach(function(t,i){ %>
-                <li class="nav-item"><button class="nav-link <%= i===0? 'active':'' %>" data-bs-toggle="tab" data-bs-target="#raw-<%= t %>" type="button"><%= t %></button></li>
-            <% }); %>
-        </ul>
-        <div class="tab-content border rounded bg-light" id="rawTabContent" style="max-height:560px; overflow:auto;">
-            <% tables.forEach(function(t,i){ %>
-                <div class="tab-pane fade <%= i===0? 'show active':'' %> p-3" id="raw-<%= t %>">
-                    <h5 class="mb-3"><%= t %></h5>
-                    <pre class="small bg-dark text-light p-2 rounded" style="max-height:480px; overflow:auto;"><code><%- JSON.stringify(rawData[t]||[], null, 2) %></code></pre>
-                </div>
-            <% }); %>
-        </div>
+        <% if(!tables.length){ %>
+            <div class="alert alert-warning small">Keine Tabellen gefunden oder DB leer. (SHOW TABLES Ergebnis leer)</div>
+        <% } else { %>
+            <ul class="nav nav-pills mb-3 flex-wrap" id="rawTabs">
+                <% tables.forEach(function(t,i){ %>
+                    <li class="nav-item"><button class="nav-link <%= i===0? 'active':'' %>" data-bs-toggle="tab" data-bs-target="#raw-<%= t %>" type="button"><%= t %></button></li>
+                <% }); %>
+            </ul>
+            <div class="tab-content border rounded bg-light scroll-mh-560" id="rawTabContent">
+                <% tables.forEach(function(t,i){ const data = rawData[t]||[]; %>
+                    <div class="tab-pane fade <%= i===0? 'show active':'' %> p-3" id="raw-<%= t %>">
+                        <h5 class="mb-3"><%= t %> <small class="text-muted">(<%= data.length %> Zeilen)</small></h5>
+                        <% if(!data.length){ %>
+                            <div class="text-muted small fst-italic">Leer (0 Zeilen)</div>
+                        <% } %>
+                        <pre class="small bg-dark text-light p-2 rounded scroll-mh-480"><code><%- JSON.stringify(data, null, 2) %></code></pre>
+                    </div>
+                <% }); %>
+            </div>
+        <% } %>
     <% } %>
 </div>
 <%- include('partials/footer') %>

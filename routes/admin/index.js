@@ -9,6 +9,6 @@ try { router.use(require('./settings')); } catch(_){}
 try { router.use(require('./usage')); } catch(_){}
 try { router.use(require('./tools')); } catch(_){}
 try { router.use(require('./ai')); } catch(_){}
-try { router.use(require('./contentMigrations')); } catch(_){}
+try { router.use('/users', require('./users')); } catch(_){}
 
 module.exports = router;

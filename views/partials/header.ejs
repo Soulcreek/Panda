@@ -19,53 +19,9 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
     <!-- CSS für die Animationen -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/util.css"><!-- utilities -->
     <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><meta name="csrf-token" content="<%= csrfToken %>"><% } %>
-    <script>
-    // Hydrate user preferences from data attribute and ensure theme consistency (server already applied dark class if needed)
-    (function(){
-        try {
-            var attr = document.documentElement.getAttribute('data-user-prefs');
-            window.__USER_PREFS = attr ? JSON.parse(decodeURIComponent(attr)) : null;
-            // If server did not set class (because theme=system/local) decide now
-            if(!document.documentElement.classList.contains('dark-mode')){
-                var theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null;
-                if(!theme){ theme = localStorage.getItem('pp_theme'); }
-                if(!theme || theme==='system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
-                if(theme==='dark') document.documentElement.classList.add('dark-mode');
-            }
-        } catch(e){ /* silent */ }
-    })();
-    </script>
-    <script>
-    (function(){
-        var meta=document.querySelector('meta[name="csrf-token"]');
-        window.CSRF_TOKEN = meta? meta.getAttribute('content') : '';
-                // Fallback: alle Admin-POST-Formulare ohne _csrf Feld automatisch ergänzen (verhindert EBADCSRFTOKEN bei vergessenen Formularen)
-                document.addEventListener('DOMContentLoaded', function(){
-                    try {
-                        if(!window.CSRF_TOKEN) return;
-                        document.querySelectorAll('form[method="post" i]').forEach(function(f){
-                            if(f.querySelector('input[name="_csrf"]')) return;
-                            var input=document.createElement('input');
-                            input.type='hidden'; input.name='_csrf'; input.value=window.CSRF_TOKEN; f.appendChild(input);
-                        });
-                        // Patch fetch, damit JSON POSTs automatisch das Token mitsenden sofern kein Header gesetzt ist
-                        if(!window.__csrfFetchPatched){
-                            const _origFetch = window.fetch;
-                            window.fetch = function(url, opts){
-                                opts = opts || {}; opts.headers = opts.headers || {};
-                                const method = (opts.method||'GET').toUpperCase();
-                                if(window.CSRF_TOKEN && method !== 'GET' && method !== 'HEAD' && !('CSRF-Token' in opts.headers) && !('x-csrf-token' in Object.keys(opts.headers).reduce((a,k)=>{a[k.toLowerCase()]=opts.headers[k];return a;},{}))){
-                                    opts.headers['CSRF-Token'] = window.CSRF_TOKEN;
-                                }
-                                return _origFetch(url, opts);
-                            };
-                            window.__csrfFetchPatched = true;
-                        }
-                    } catch(e){ console.warn('CSRF Auto Inject Fehler', e); }
-                });
-    })();
-    </script>
+    <script nonce="<%= cspNonce %>" src="/js/inline/bootstrap_start.js"></script>
 </head>
 <body>
 
@@ -73,8 +29,8 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
-                <a class="navbar-brand" href="/" style="display:flex;align-items:center;gap:.5rem;">
-                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="/uploads/1755632270498-Logo_dark.png" alt="Purview Panda" height="48" class="d-inline-block align-text-top" style="height:48px;width:auto;" id="siteLogo">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="/uploads/1755632270498-Logo_dark.png" alt="Purview Panda" height="48" class="d-inline-block align-text-top" id="siteLogo">
                 </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -126,31 +82,6 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
         </div>
     </div>
 </nav>
-<script>
-// Tag Deep Link via URL hash: #tag:Security
-(function(){
-    const hash = decodeURIComponent(location.hash||'');
-    if(hash.startsWith('#tag:')){
-        const tag = hash.substring(5);
-        if(tag){
-            // Direkt zur Tag-Seite navigieren falls nicht schon dort
-            if(!location.pathname.startsWith('/blog/tag/')){
-                location.href = '/blog/tag/' + encodeURIComponent(tag);
-            }
-        }
-    }
-})();
-</script>
-<script>
-// Swap logo when dark-mode class toggles
-(function(){
-    function swap(){
-        var el=document.getElementById('siteLogo'); if(!el) return;
-        var dark=document.documentElement.classList.contains('dark-mode');
-        var ds=el.getAttribute('data-logo-dark'); var ls=el.getAttribute('data-logo-light');
-        el.src = dark && ds ? ds : (ls||el.src);
-    }
-    swap();
-    new MutationObserver(swap).observe(document.documentElement,{ attributes:true, attributeFilter:['class'] });
-})();
-</script>
+<script nonce="<%= cspNonce %>" src="/js/inline/deeplinks.js"></script>
+<script nonce="<%= cspNonce %>" src="/js/inline/logo_swap.js"></script>
+<script nonce="<%= cspNonce %>" src="/js/inline/sw_register.js"></script>

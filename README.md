@@ -70,7 +70,7 @@ schema_consolidated.sql# Neues konsolidiertes Schema & Content-Patches (MySQL)
 ## 5. Datenbank-Modelle (relevant)
 (Tabelle wird bei Bedarf erstellt wenn Route aufgerufen wird)
 - posts(id, title, content, title_en, content_en, whatsnew, tags, status, featured_image_id, published_at, ...)
-- media(id, name, path, type, category, alt_text, uploaded_at)
+- media(id, site_key, name, path, type, alt_text, description, seo_alt, seo_description, meta_keywords, category_id, uploaded_at)
 - ai_config(id=1, primary_key_choice, max_daily_calls, limits(JSON), prompts(JSON))
 - ai_usage / ai_call_log (Tracking)
 - advanced_pages(id, title, slug, layout_json, rendered_html, status, published_at)
@@ -136,7 +136,7 @@ Seeding ALT5: Erstaufruf erstellt Beispiel-Einträge mit Level-Verteilung (1–3
 - CSRF Schutz für alle POST außer explizite Upload-Ausnahmen
 - DOMPurify auf Server für Advanced Pages HTML (XSS Minimierung)
 - Upload Handling via multer (TODO: MIME Whitelist strenger + Rate Limits)
-- Basic CSP vorhanden (Verbesserungspotenzial: Nonces / Hashes)
+- CSP mit Nonce pro Request (script-src ohne 'unsafe-inline'); Inline Skripte ausgelagert nach `/js/inline/*`.
 
 ## 13. Konfiguration (.env)
 ```
@@ -187,8 +187,23 @@ npm start
 ```
 MySQL muss laufen; DB Zugang in `db.js` konfigurieren (oder .env Erweiterung hinzufügen falls refactored).
 
+Windows PowerShell Hinweis (Execution Policy): Falls `npm test` mit PSSecurityException fehlschlägt:
+1. PowerShell als Administrator öffnen
+2. `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+3. Terminal schließen & neu öffnen, erneut `npm test` ausführen
+
 ## 16. Tests / Linting
-Aktuell erste Test-Vorbereitung (Jest + Supertest). Bereits vorhanden: Health, Redirects, Admin Modular, Auth Redirect, Slug & AI Key Fallback.
+Aktuell erweiterte Tests (Jest + Supertest). Bereits vorhanden / geplant:
+- Health & Redirects (`server.test.js`)
+- Admin Auth Redirect (`adminAuth.test.js`)
+- Modular Admin Routen (`adminModular.test.js`)
+- Slug & AI Config Fallback (`slug.test.js`, `aiConfig.test.js`)
+- Advanced Pages Utils (`advancedPagesUtil.test.js`)
+- AI Parse Edge Cases (`aiParse.test.js`)
+- Feature Flags CRUD (`featureFlags.test.js`)
+- Multi-Tenant Slug Isolation (`multiTenantIsolation.test.js`)
+- Timeline Permissions Isolation (`timelinePermissions.test.js`)
+Geplant: Snapshot Rendering Advanced Pages, Sanitization Regression.
 
 ### Frontend API Layer (`apiFetch`)
 Alle neuen Fetch-Aufrufe laufen über `httpdocs/js/api_helper.js`:
@@ -224,8 +239,8 @@ apiFetch('/api/posts', { retry:{ retries:3, delayMs:250 }});
 
 ### Datenbank / Migrationen (neu)
 Der frühere SQLite-/Datei-Migrationsmechanismus wurde stillgelegt. Statt inkrementeller Dateien gibt es jetzt:
-`schema_consolidated.sql` – enthält CREATE TABLE IF NOT EXISTS + kommentierte Content-Patches (Panda's Way Levels).
-Alte Dateien sind unter `migrations_legacy/` archiviert. Der Ordner `migrations/` bleibt als Stub bestehen, wird aber nicht mehr ausgeführt.
+`schema_consolidated.sql` – enthält CREATE TABLE IF NOT EXISTS + integrierte ehemalige Migrationen 003–006 inkl. Media Category Cleanup (Drop legacy media.category, Orphan-Prune).
+Der Ordner `migrations/` enthält nur noch leere DEPRECATED Stubs (werden nicht ausgeführt).
 Vorgehen in neuer Umgebung:
 1. schema_consolidated.sql im MySQL Client ausführen (oder nur relevante Teile)
 2. App starten – dynamische ALTERs (Advanced Pages) laufen tolerant weiter
@@ -251,7 +266,8 @@ Langfristig:
 - Public Read API (REST/GraphQL) mit Token Auth
 - Service Worker: Offline Cache Blog & Media Manifest
 - AI Model Abstraktion (Adapter Layer für OpenAI / Anthropic)
-- Multi-Tenant (site_key Isolation) Erweiterung
+- Multi-Tenant (site_key Isolation) Erweiterung (Basis abgeschlossen)
+- Erweiterte Observability (Prometheus /metrics mit weiteren Gauges, Route Labels, Memory Metrics)
 
 ## 18. Changelog (Auswahl jüngste Änderungen)
 Neueste Schritte ganz oben:

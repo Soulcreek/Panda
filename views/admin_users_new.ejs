@@ -1,0 +1,24 @@
+<%- include('partials/header',{title:title}) %>
+<h1>Neuer Benutzer</h1>
+<% if(error){ %><div class="alert alert-danger"><%= error %></div><% } %>
+<form method="post">
+  <div class="mb-2">
+    <label class="form-label">Benutzername</label>
+    <input name="username" class="form-control" required>
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Passwort</label>
+    <input name="password" type="password" class="form-control" required>
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Rolle</label>
+    <select name="role" class="form-select">
+      <option value="editor">Editor</option>
+      <option value="admin">Admin</option>
+      <option value="viewer">Viewer (public)</option>
+    </select>
+  </div>
+  <button class="btn btn-primary">Anlegen</button>
+  <a href="/admin/users" class="btn btn-secondary">Abbrechen</a>
+</form>
+<%- include('partials/footer') %>

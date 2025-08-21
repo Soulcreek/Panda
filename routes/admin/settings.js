@@ -3,14 +3,25 @@ const pool = require('../../db');
 const { isAuth } = require('../../lib/auth');
 const router = express.Router();
 
-// Dashboard (reduced)
+// Dashboard (settings / usage focus only)
 router.get('/', isAuth, async (req,res)=>{
 	try {
-		const [[posts]] = await pool.query('SELECT COUNT(*) c FROM posts');
-		const [[media]] = await pool.query('SELECT COUNT(*) c FROM media');
-		const [[pods]] = await pool.query('SELECT COUNT(*) c FROM podcasts');
-		let aiCalls=0; try { const [r]=await pool.query('SELECT SUM(calls) s FROM ai_usage WHERE day=CURDATE()'); aiCalls = r[0].s || 0; } catch(_){ }
-		res.render('admin_dashboard', { title:'Settings Dashboard', postCount:posts.c, mediaCount:media.c, podcastCount:pods.c, aiCallsToday:aiCalls, latestPosts:[], advPageCount:0, templateCount:0, genLogCount:0 });
+		let aiCallsToday = 0; let aiLimit = 500;
+		try { const [r]=await pool.query('SELECT SUM(calls) s FROM ai_usage WHERE day=CURDATE()'); aiCallsToday = (r[0].s)||0; } catch(_){ }
+		try { const [r2]=await pool.query('SELECT max_daily_calls FROM ai_config WHERE id=1'); if(r2.length){ aiLimit = r2[0].max_daily_calls || aiLimit; } } catch(_){ }
+		const usagePercent = aiLimit? Math.round((aiCallsToday/aiLimit)*100) : 0;
+		let genLogCount = 0; 
+		try { const [[r3]] = await pool.query('SELECT COUNT(*) c FROM advanced_page_generation_logs WHERE created_at >= (NOW() - INTERVAL 3 DAY)'); genLogCount = r3.c; } catch(_){ }
+		let parseErrorCount = 0;
+		try { const [[e1]] = await pool.query('SELECT COUNT(*) c FROM ai_usage_log WHERE parse_error_flag=1 AND created_at >= (NOW() - INTERVAL 3 DAY)'); parseErrorCount = e1.c; } catch(_){ }
+		let mediaUploads3d = 0;
+		try { const [[m1]] = await pool.query('SELECT COUNT(*) c FROM media WHERE uploaded_at >= (NOW() - INTERVAL 3 DAY)'); mediaUploads3d = m1.c; } catch(_){ }
+		let postsPublishedToday = 0; let draftsCount = 0;
+		try { const [[pToday]] = await pool.query("SELECT COUNT(*) c FROM posts WHERE status='published' AND DATE(updated_at)=CURDATE()"); postsPublishedToday = pToday.c; } catch(_){ }
+		try { const [[pDrafts]] = await pool.query("SELECT COUNT(*) c FROM posts WHERE status!='published'"); draftsCount = pDrafts.c; } catch(_){ }
+		const { dbHealth } = require('../../db');
+		const aiUsageInfo = { used: aiCallsToday, limit: aiLimit, percent: usagePercent };
+		res.render('admin_dashboard', { title:'Admin Dashboard', aiCallsToday, aiLimit, usagePercent, genLogCount, postsPublishedToday, draftsCount, dbHealth, aiUsageInfo, parseErrorCount, mediaUploads3d });
 	} catch(e){ res.status(500).send('Dashboard Fehler'); }
 });
 
@@ -39,22 +50,29 @@ router.get('/blog-config', isAuth, async (req,res)=>{
 			media_categories:'Titelbild, Blog-Titelbild, Illustration, Diagramm'
 		};
 		let ai = { primary_key_choice: 'paid', max_daily_calls: 500, limits: { max_response_chars:10000, max_translate_chars:10000, max_sample_chars:8000 }, prompts: { ...defaultPrompts } };
+		let needPersist = false;
 		try {
 			const [rows] = await pool.query('SELECT * FROM ai_config WHERE id=1');
-			if(rows.length){
+			if(!rows.length){
+				// Direkt seeden
+				await pool.query('INSERT INTO ai_config (id, primary_key_choice, max_daily_calls, limits, prompts) VALUES (1,?,?,?,?)', [ai.primary_key_choice, ai.max_daily_calls, JSON.stringify(ai.limits), JSON.stringify(ai.prompts)]);
+			} else {
 				const r = rows[0];
 				ai.primary_key_choice = r.primary_key_choice || ai.primary_key_choice;
 				ai.max_daily_calls = r.max_daily_calls || ai.max_daily_calls;
-				if(r.limits){ if(typeof r.limits === 'string'){ try { ai.limits = JSON.parse(r.limits); } catch(_){ } } else if(typeof r.limits === 'object') ai.limits = r.limits; }
+				if(r.limits){ if(typeof r.limits === 'string'){ try { ai.limits = JSON.parse(r.limits); } catch(_){ needPersist = true; } } else if(typeof r.limits === 'object') ai.limits = r.limits; }
+				let loadedPrompts = {};
 				if(r.prompts){
-					let loadedPrompts = {};
-					if(typeof r.prompts === 'string'){ try { loadedPrompts = JSON.parse(r.prompts); } catch(_){ } }
+					if(typeof r.prompts === 'string'){ try { loadedPrompts = JSON.parse(r.prompts); } catch(_){ needPersist = true; } }
 					else if(typeof r.prompts === 'object') loadedPrompts = r.prompts;
-					ai.prompts = { ...defaultPrompts, ...loadedPrompts };
-				} else { ai.prompts = { ...defaultPrompts }; }
-				for(const k in defaultPrompts){ if(!(k in ai.prompts)) ai.prompts[k] = defaultPrompts[k]; }
+				}
+				ai.prompts = { ...defaultPrompts, ...loadedPrompts };
+				for(const k in defaultPrompts){ if(!(k in loadedPrompts)){ needPersist = true; } }
 			}
-		} catch(_){ }
+		} catch(e){ console.warn('Blog Config load warn', e.message); }
+		if(needPersist){
+			try { await pool.query('UPDATE ai_config SET prompts=?, limits=?, updated_at=CURRENT_TIMESTAMP WHERE id=1', [JSON.stringify(ai.prompts), JSON.stringify(ai.limits)]); } catch(e){ console.warn('Blog Config persist defaults warn', e.message); }
+		}
 		let settings = {};
 		try { const [rows]=await pool.query('SELECT `key`,`value` FROM blog_config'); settings = rows.reduce((a,r)=>{ a[r.key]=r.value; return a; },{}); } catch(_){ }
 		const saved = req.query.saved === '1';

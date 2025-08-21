@@ -1,0 +1,201 @@
+<%- include('partials/header',{ title:title||'Microsoft Purview Überblick' }) %>
+<div class="container my-5 purview-page">
+  <header class="mb-5 text-center">
+    <h1 class="display-5 fw-semibold mb-3">Microsoft Purview – Überblick & Leitfaden</h1>
+    <p class="lead text-muted">Zentrale Data-Governance & Compliance Plattform: Katalogisierung, Klassifizierung, Lineage & Richtliniensteuerung für hybride Datenlandschaften.</p>
+  </header>
+  <nav class="toc small mb-5 p-3 border rounded bg-light bg-gradient position-relative" aria-label="Inhaltsverzeichnis">
+    <strong class="d-block mb-2 text-uppercase">Inhalt</strong>
+    <ol class="mb-0" id="purviewToc"></ol>
+  <button class="btn btn-sm btn-outline-secondary position-absolute top-05 right-05" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">Top</button>
+  </nav>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">1. Was ist Microsoft Purview?</h2>
+    <p>Microsoft Purview ist eine einheitliche Data-Governance- und Compliance-Suite, die frühere Azure Purview (Data Governance) und Microsoft 365 Compliance Funktionen integriert. Ziel: <strong>Sichtbarkeit</strong> und <strong>Kontrolle</strong> über strukturierte, semistrukturierte und unstrukturierte Daten – On-Premises, Multi-Cloud (Azure, AWS, GCP) und SaaS.</p>
+    <ul class="small">
+      <li><strong>Datenkatalog</strong>: Automatische Erkennung (Scanning), Metadaten-Anreicherung, Business Glossary.</li>
+      <li><strong>Lineage</strong>: End‑to‑End Datenfluss – ETL-Pipelines, Warehouses, BI (z.B. Power BI).</li>
+      <li><strong>Klassifizierung & Sensitivity Labels</strong>: PII, Finanzdaten, DSGVO, eigene RegEx & ML-gestützte Klassifizierungen.</li>
+      <li><strong>Data Policy / Access Governance</strong>: Zentral definierte Richtlinien & rollenbasierte Zugriffsvorgaben.</li>
+      <li><strong>Unified Compliance</strong>: Verknüpft mit eDiscovery, Insider Risk, Audit & Records Management.</li>
+    </ul>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">2. Kern-Bausteine</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Data Map & Scans</h5>
+            <p class="small mb-2">Automatisiertes Crawling von Datenquellen: Azure Storage, SQL, Synapse, Snowflake, S3, On-Prem via Self-Hosted Integration Runtime.</p>
+            <ul class="small mb-0">
+              <li>Incremental Scans</li>
+              <li>Classification Rulesets</li>
+              <li>Ressourcenhierarchie</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+            .purview-page .toc{max-width:420px}
+            .purview-page .toc a{text-decoration:none}
+            @media (min-width:992px){ .purview-page .toc{position:sticky;top:70px;float:right;margin-left:2rem} }
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Data Catalog</h5>
+            <p class="small mb-2">Such- & Discovery‑UI für Fachanwender mit Technical + Business Metadaten.</p>
+            <ul class="small mb-0">
+              <li>Glossary & Stewardship</li>
+              <li>Custom Attributes</li>
+              <li>Data Owner Zuweisung</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Lineage & Impact</h5>
+            <p class="small mb-2">Visualisierung von Quellen → Transformationen → Konsumenten.</p>
+            <ul class="small mb-0">
+              <li>Autom. aus ADF, Synapse, Power BI</li>
+              <li>Manuelle Ergänzungen</li>
+              <li>Change Impact Analyse</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Sensitivity & Labels</h5>
+            <p class="small mb-2">Klassifizierung & Schutz (MIP Labels) für Data Loss Prevention & Compliance.</p>
+            <ul class="small mb-0">
+              <li>BUILT-IN + Custom Classifier</li>
+              <li>EDM (Exact Data Match)</li>
+              <li>Vererbung in Power BI</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Data Policies</h5>
+            <p class="small mb-2">Richtlinienbasierter Zugriff: Centrally Managed Policies → Enforced at Source.</p>
+            <ul class="small mb-0">
+              <li>Column-Level Security</li>
+              <li>Attribute-based Filter</li>
+              <li>Preview (eingeschränkt je Quelle)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Unified Compliance</h5>
+            <p class="small mb-2">Integration mit Microsoft 365 Compliance Center (Records, Audit, eDiscovery).</p>
+            <ul class="small mb-0">
+              <li>Audit Log Correlation</li>
+              <li>Information Protection</li>
+              <li>Insider Risk Signals</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">3. Typische Einführungs-Phasen</h2>
+    <ol class="small">
+      <li><strong>Scope & Datenquellen Auswahl</strong>: Priorisierte Quellsysteme & Compliance Treiber definieren.</li>
+      <li><strong>Foundational Setup</strong>: Data Map aktivieren, Integration Runtime deployen, Service Principals & RBAC.</li>
+      <li><strong>Scanning & Klassifizierung</strong>: Erste vollständige Scans, Klassifizierungs-Tuning (False Positives minimieren).</li>
+      <li><strong>Catalog Curation</strong>: Glossary Terms, Steward-Rollen, Tagging, Data Ownership etablieren.</li>
+      <li><strong>Lineage & Quality Integration</strong>: Pipeline-Quellen anbinden (ADF/Synapse), Data Quality Signals verknüpfen.</li>
+      <li><strong>Policy & Access Governance</strong>: Testen zentraler Data Policies & Sensitivity Label Enforcement.</li>
+      <li><strong>Rollout & Enablement</strong>: Schulungen, Self-Service Guidelines, KPI Tracking (Adoption, Query Success).</li>
+    </ol>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">4. Rollen & Verantwortlichkeiten</h2>
+    <table class="table table-sm small">
+      <thead><tr><th>Rolle</th><th>Fokus</th><th>Purview Berechtigungen (Beispiele)</th></tr></thead>
+      <tbody>
+        <tr><td>Data Owner</td><td>Business Accountability</td><td>Collection Admin, Approve Terms</td></tr>
+        <tr><td>Data Steward</td><td>Metadaten Pflege, Qualität</td><td>Data Curator, Term Contributor</td></tr>
+        <tr><td>Data Engineer</td><td>Pipelines, Lineage, Scans</td><td>Scan Contributor, Collection Admin (Teilbereiche)</td></tr>
+        <tr><td>Compliance Officer</td><td>Labels, Policies, Audit</td><td>Sensitivity Label Admin, Policy Author</td></tr>
+        <tr><td>Consumer / Analyst</td><td>Search & Discover</td><td>Reader (Collection / Asset-Level)</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">5. Integrationen & Ökosystem</h2>
+    <ul class="small">
+      <li><strong>Azure Data Factory / Synapse</strong>: Automatische Lineage hochgranular (Datasets, Activities).</li>
+      <li><strong>Power BI</strong>: Data Lineage + Sensitivity Label Propagation bis zum Report.</li>
+      <li><strong>SQL Server & MI</strong>: On-Prem Scans via Self-Hosted IR; Klassifizierung von Tabellen / Spalten.</li>
+      <li><strong>M365</strong>: Einheitliche Sensitivity Labels + DLP Regeln.</li>
+      <li><strong>3rd Party</strong>: REST / Apache Atlas API kompatibel für Custom Ingestion & Lineage Push.</li>
+    </ul>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">6. Häufige Stolpersteine</h2>
+    <ul class="small text-danger-emphasis">
+      <li>Zu breiter Start: Ohne priorisierten Scope entsteht Metadaten-Überlastung.</li>
+      <li>Fehlende Stewardship Prozesse → Ungepflegte oder veraltete Glossary Einträge.</li>
+      <li>Scans ohne RBAC Abstimmung → Berechtigungsfehler & unvollständige Coverage.</li>
+      <li>Keine KPI-Definition: Adoption & Datenqualität bleiben intransparent.</li>
+      <li>Unklare Ownership → Assets “verwaisen”.</li>
+    </ul>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">7. Erfolgsmessung (Beispiele KPI)</h2>
+    <div class="row g-3 small">
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Catalog Coverage</strong><br><span class="text-muted">% gescannter priorisierter Quellen</span></div></div>
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Classified Columns</strong><br><span class="text-muted">PII / Kritische Felder mit Label</span></div></div>
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Glossary Adoption</strong><br><span class="text-muted"># Terms mit Owner & Beschreibung</span></div></div>
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Search Success Rate</strong><br><span class="text-muted">(Treffer &gt; Interaktionsschwelle)</span></div></div>
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Policy Enforcement</strong><br><span class="text-muted">Anzahl aktiver Data Policies</span></div></div>
+      <div class="col-md-3"><div class="border rounded p-3 h-100"><strong>Lineage Completeness</strong><br><span class="text-muted">% kritischer Pipelines abgedeckt</span></div></div>
+    </div>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">8. Kosten- & Architekturhinweise</h2>
+    <ul class="small">
+      <li><strong>Abrechnung</strong>: Data Map Capacity Units (Scanning + Metadaten-Transaktionen) + eDiscovery/Audit je nach Nutzung.</li>
+      <li><strong>Region Awareness</strong>: Metadaten Residency vs. Quellregionen evaluieren (Datensouveränität).</li>
+      <li><strong>Tagging Strategie</strong>: Früh definieren (System, Fachdomäne, Kritikalität) → erleichtert Filter & Reporting.</li>
+      <li><strong>Automation</strong>: Atlas / REST API für CI/CD Integration (Deploy neuer Glossary Terms, Push custom Lineage).</li>
+    </ul>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">9. Best Practices (Kurzfassung)</h2>
+    <ul class="small">
+      <li><strong>Minimal Viable Scope</strong>: 2–3 Quellsysteme + 1 BI Konsument + definierte Steward-Rollen.</li>
+      <li><strong>Taxonomie Governance</strong>: Review-Zyklen für Glossary (monatlich) & automatisierte Quality Checks.</li>
+      <li><strong>Shift-Left Security</strong>: Labels schon in Development Pipelines erzwingen (Infra as Code).</li>
+      <li><strong>Feedback Loop</strong>: “Suggest Metadata Changes” Channel + SLA für Steward Reaktion.</li>
+      <li><strong>Adoption KPIs sichtbar machen</strong>: Dashboard für Business Stakeholder.</li>
+    </ul>
+  </section>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">10. Weiterführende Ressourcen</h2>
+    <ul class="small">
+      <li>Offizielle Docs: <a href="https://learn.microsoft.com/azure/purview/" rel="noopener" target="_blank">Azure / Microsoft Purview Dokumentation</a></li>
+      <li>API Referenz (Atlas kompatibel): <a href="https://learn.microsoft.com/azure/purview/reference-azure-purview-rest" target="_blank" rel="noopener">REST Reference</a></li>
+      <li>Data Governance Framework: DAMA-DMBOK Overview (extern)</li>
+      <li>Information Protection: Sensitivity Labels & DLP Patterns</li>
+      <li>Automation Beispiele: GitHub Suchbegriff “purview lineage api”</li>
+    </ul>
+  </section>
+  <footer class="mt-5 pt-4 border-top small text-muted">Hinweis: Diese Seite ist eine eigenständige Zusammenfassung und kein offizielles Microsoft Dokument.</footer>
+</div>
+<style>
+.purview-page h2{scroll-margin-top:80px}
+.purview-page .card{border:1px solid #e5e9ef;background:linear-gradient(145deg,#fff,#f7f9fc);} html.dark-mode .purview-page .card{background:linear-gradient(145deg,#1e1f23,#17191c);border-color:#2a2f36;}
+.purview-page .card-title{font-size:.95rem;letter-spacing:.5px;text-transform:uppercase;font-weight:600;color:#0d6efd;} html.dark-mode .purview-page .card-title{color:#4da3ff;}
+</style>
+<%- include('partials/footer') %>

@@ -15,6 +15,7 @@
             <a class="nav-link px-2" href="/admin">Dashboard</a>
             <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
             <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
+            <a class="nav-link px-2" href="/admin/feature-flags">Feature Flags</a>
                         <div class="nav-item dropdown">
                             <a class="nav-link px-2 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Tools</a>
                             <ul class="dropdown-menu shadow-sm">
@@ -31,24 +32,6 @@
         </nav>
     </div>
 </div>
-<style>
-.admin-nav-shell{backdrop-filter:blur(6px);} 
-.admin-nav-shell .nav-link{color:#444;}
-.admin-nav-shell .nav-link.active{font-weight:600;color:#0d6efd;}
-html.dark-mode .admin-nav-shell{background:#1c1c1c !important; border-color:#2a2a2a !important;}
-html.dark-mode .admin-nav-shell .nav-link{color:#ccc;}
-html.dark-mode .admin-nav-shell .nav-link.active{color:#4dabff;}
-</style>
-<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.admin-nav-shell .nav-link, .admin-nav-shell .dropdown-item').forEach(a=>{const h=a.getAttribute('href'); if(h && h===p) { a.classList.add('active'); const dd=a.closest('.dropdown'); if(dd){ dd.querySelector('.dropdown-toggle')?.classList.add('active'); } }});}catch(e){}})();</script>
-<script>
-(function(){
-    const banner = document.getElementById('db-health-banner-admin');
-    function updateBanner(d){ if(!banner) return; if(!d.degraded && (!d.lastPingMs || d.lastPingMs <= d.threshold)){ banner.className='d-none'; return; }
-        banner.className='alert py-1 px-2 mb-2 small d-flex align-items-center gap-2 '+(d.lastError?'alert-danger':'alert-warning');
-        banner.innerHTML='<strong>DB</strong> <span>'+(d.lastError?('Fehler: '+d.lastError):('Langsam ('+d.lastPingMs+'ms, Ø '+(d.rollingAvgMs||'?')+'ms)'))+'</span><span class="text-muted">slow: '+d.slowQueries+'/'+d.totalQueries+'</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="dbHealthRefreshBtnAdmin">Neu prüfen</button>';
-        banner.querySelector('#dbHealthRefreshBtnAdmin').addEventListener('click',()=>ping(true));
-    }
-    async function ping(force){ try { const r=await fetch('/admin/api/db-health'+(force?'?force=1':'')); const d=await r.json(); if(d) updateBanner(d);} catch(_){ } }
-    setInterval(ping,20000);
-})();
-</script>
+<link rel="stylesheet" href="/css/admin_nav_extra.css">
+<script nonce="<%= cspNonce %>" src="/js/inline/admin_nav_active.js"></script>
+<script nonce="<%= cspNonce %>" src="/js/inline/db_health_admin.js"></script>

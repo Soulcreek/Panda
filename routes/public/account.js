@@ -133,8 +133,12 @@ router.post('/login', rateLimitLogin, async (req, res) => {
     const user = rows[0];
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).render('login', { title: 'Login', error: 'Ungültige Zugangsdaten' });
-    req.session.userId = user.id;
-    req.session.isLoggedIn = true;
+    // Auto-Promotion: Falls keine Admins existieren, diesen Benutzer zum Admin machen
+    try {
+      const [[ac]] = await pool.query("SELECT COUNT(*) c FROM users WHERE role='admin'");
+      if(ac.c === 0){ await pool.query('UPDATE users SET role="admin" WHERE id=?',[user.id]); user.role='admin'; }
+    } catch(_){ }
+  req.session.userId = user.id; req.session.isLoggedIn = true; req.session.role = user.role || 'editor';
     let target = '/editors';
     if (redirectRaw && /^\/[a-zA-Z0-9/_-]+$/.test(redirectRaw)) target = redirectRaw;
     res.redirect(target);
@@ -151,7 +155,10 @@ router.post('/register', async (req, res) => {
   if (!username || !password) return res.status(400).render('register', { title: 'Registrieren', error: 'Alle Felder erforderlich' });
   try {
     const hash = await bcrypt.hash(password, 12);
-    await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hash]);
+  // First user becomes admin automatically
+  let role = 'editor';
+  try { const [[cnt]] = await pool.query('SELECT COUNT(*) c FROM users'); if(cnt.c === 0) role='admin'; } catch(_){ }
+  await pool.query('INSERT INTO users (username, password, role) VALUES (?,?,?)',[username, hash, role]);
     res.redirect('/login');
   } catch (err) {
     console.error('Register Fehler:', err);

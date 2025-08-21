@@ -1,22 +1,22 @@
 <%- include('partials/header') %>
 <div class="container">
-    <div class="login-container" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <div class="login-container login-box">
         <h2>Registrieren</h2>
         <p>Erstelle den ersten Administrator-Account.</p>
         <% if (error) { %>
-            <p style="color: red;"><%= error %></p>
+            <p class="text-danger"><%= error %></p>
         <% } %>
         <form action="/register" method="POST">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <div class="form-group" style="margin-bottom: 15px;">
+            <div class="form-group mb-15">
                 <label for="username">Benutzername</label>
-                <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <input type="text" id="username" name="username" required class="form-control">
             </div>
-            <div class="form-group" style="margin-bottom: 15px;">
+            <div class="form-group mb-15">
                 <label for="password">Passwort</label>
-                <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <input type="password" id="password" name="password" required class="form-control">
             </div>
-            <button type="submit" class="btn" style="width: 100%; padding: 10px; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer;">Registrieren</button>
+            <button type="submit" class="btn btn-primary w-100 p-10">Registrieren</button>
         </form>
     </div>
 </div>

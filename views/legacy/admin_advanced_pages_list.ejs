@@ -3,7 +3,7 @@
 <div class="container py-5">
   <h1 class="h4 mb-3">Archiv: Advanced Pages (Legacy Admin)</h1>
   <p class="text-muted small">Diese archivierte Vorlage stammt aus der alten /admin Implementierung und wird nicht mehr aktiv verwendet. Alle Funktionen wurden ins Editors Center (/editors/advanced-pages) migriert.</p>
-  <pre class="small bg-light p-3 rounded" style="max-height:50vh;overflow:auto;white-space:pre-wrap"><%= (typeof pagesJson!=='undefined') ? pagesJson : 'Struktur nicht geladen (Archivansicht).' %></pre>
+  <pre class="small bg-light p-3 rounded scroll-mh-50vh ws-pre-wrap"><%= (typeof pagesJson!=='undefined') ? pagesJson : 'Struktur nicht geladen (Archivansicht).' %></pre>
   <a href="/editors/advanced-pages" class="btn btn-primary mt-3">Zum Editors Center</a>
 </div>
 <%- include('../partials/footer') %>

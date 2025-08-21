@@ -1,7 +1,7 @@
-<div class="admin-nav bg-white border-bottom mb-4 editors-nav-shell">
+<div class="admin-nav border-bottom mb-4 editors-nav-shell">
   <div class="container">
     <% if (typeof dbHealth !== 'undefined' && dbHealth && (dbHealth.degraded || (dbHealth.lastPingMs && dbHealth.lastPingMs > dbHealth.slowThresholdMs))) { %>
-      <div id="db-health-banner" class="alert py-1 px-2 mb-2 <%= dbHealth.lastError ? 'alert-danger' : 'alert-warning' %> small d-flex align-items-center gap-2" role="alert" style="animation:fadeSlide .4s ease;">
+  <div id="db-health-banner" class="alert py-1 px-2 mb-2 <%= dbHealth.lastError ? 'alert-danger' : 'alert-warning' %> small d-flex align-items-center gap-2 fade-slide" role="alert">
         <strong>DB</strong>
         <span><%= dbHealth.lastError ? ('Fehler: '+dbHealth.lastError) : ('Langsam ('+dbHealth.lastPingMs+'ms, Ø '+(dbHealth.rollingAvgMs||'?')+'ms)') %></span>
         <span class="text-muted">slow: <%= dbHealth.slowQueries %>/<%= dbHealth.totalQueries %></span>
@@ -22,27 +22,6 @@
     </nav>
   </div>
 </div>
-<style>.editors-nav-shell{backdrop-filter:blur(6px);} .editors-nav-shell .nav-link{color:#444;} .editors-nav-shell .nav-link.active{font-weight:600;color:#0d6efd;}</style>
-<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.editors-nav-shell .nav-link').forEach(a=>{if(a.getAttribute('href')===p) a.classList.add('active');});}catch(e){}})();</script>
-<script>
-// DB Health Polling
-(function(){
-  const banner = document.getElementById('db-health-banner');
-  const refreshBtn = document.getElementById('dbHealthRefreshBtn');
-  function updateBanner(data){
-    if(!banner) return;
-    if(!data.degraded && (!data.lastPingMs || data.lastPingMs <= data.threshold)){
-      banner.className='d-none';
-      return;
-    }
-    banner.className='alert py-1 px-2 mb-2 small d-flex align-items-center gap-2 '+(data.lastError?'alert-danger':'alert-warning');
-    banner.innerHTML='<strong>DB</strong> <span>'+ (data.lastError?('Fehler: '+data.lastError):('Langsam ('+data.lastPingMs+'ms)')) +'</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="dbHealthRefreshBtn">Neu prüfen</button>';
-    banner.querySelector('#dbHealthRefreshBtn').addEventListener('click',()=>ping(true));
-  }
-  async function ping(force){
-    try { const r = await fetch('/admin/api/db-health'+(force?'?force=1':'') ,{headers:{'Accept':'application/json'}}); const d= await r.json(); if(d){ updateBanner(d); } } catch(_){ }
-  }
-  if(refreshBtn){ refreshBtn.addEventListener('click',()=>ping(true)); }
-  setInterval(ping, 20000); // every 20s
-})();
-</script>
+<link rel="stylesheet" href="/css/editors_nav_extra.css">
+<script nonce="<%= cspNonce %>" src="/js/inline/editors_nav_active.js"></script>
+<script nonce="<%= cspNonce %>" src="/js/inline/db_health_editors.js"></script>

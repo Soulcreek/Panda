@@ -18,4 +18,15 @@ describe('aiParse', ()=>{
     const r = extractJson(raw);
     expect(r.json).toEqual({x:2});
   });
+  test('returns error for empty', ()=>{
+    const r = extractJson('');
+    expect(r.json).toBeNull();
+    expect(r.error).toBeTruthy();
+  });
+  test('fails shape type mismatch', ()=>{
+    const raw = '{"a":"str"}';
+    const r = parseWithShape(raw, { a:'number'});
+    expect(r.shapeOk).toBe(false);
+    expect(r.shapeErrors).toContain('type_a');
+  });
 });

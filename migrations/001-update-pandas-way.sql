@@ -1,2 +1,0 @@
--- DEPRECATED: Original Migration archiviert unter migrations_legacy/001-update-pandas-way.sql
--- Nutze statt dessen schema_consolidated.sql

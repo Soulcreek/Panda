@@ -5,7 +5,7 @@
   <p class="text-muted small">Generator wurde migriert. Diese Ansicht dient nur der Historie.</p>
   <details class="mb-3">
     <summary class="small">Letzte bekannte Generator Logs (falls übergeben)</summary>
-    <pre class="small bg-light p-3 rounded" style="max-height:45vh;overflow:auto;white-space:pre-wrap"><%= (genLogs && genLogs.length) ? JSON.stringify(genLogs,null,2) : '(Keine Logs übergeben)' %></pre>
+  <pre class="small bg-light p-3 rounded scroll-mh-45vh ws-pre-wrap"><%= (genLogs && genLogs.length) ? JSON.stringify(genLogs,null,2) : '(Keine Logs übergeben)' %></pre>
   </details>
   <a href="/editors/advanced-pages/generator" class="btn btn-primary">Neuen Generator öffnen</a>
 </div>
