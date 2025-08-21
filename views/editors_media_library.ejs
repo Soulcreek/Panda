@@ -9,7 +9,7 @@
       <div class="row g-3">
         <div class="col-md-6"><label class="form-label">Datei(en)</label><input type="file" id="mediaFiles" name="mediaFiles" class="form-control" multiple required accept="image/*,audio/*"></div>
         <div class="col-md-3"><label class="form-label">Neuer Basisname</label><input type="text" name="base_name" class="form-control" placeholder="z.B. hero"></div>
-        <div class="col-md-3"><label class="form-label">Kategorie</label><select class="form-select" name="category" id="mediaCategory"><option value="">(optional)</option><option>Icon</option><option>Banner</option><option>Titelbild</option><option>Illustration</option><option>Logo</option><option>Feature</option><option>Audio</option><option>Sonstiges</option></select></div>
+  <div class="col-md-3"><label class="form-label">Kategorie</label><select class="form-select" name="category" id="mediaCategory"><option value="">(optional)</option><% (mediaCategories||[]).forEach(c=>{ %><option value="<%= c.slug %>"><%= c.label %></option><% }) %></select><div class="mt-1 d-flex gap-1"><input type="text" class="form-control form-control-sm" id="newCategoryLabel" placeholder="Neue Kategorie"><button type="button" class="btn btn-sm btn-outline-secondary" id="addCategoryBtn">+</button></div><small class="text-muted" id="catStatus"></small></div>
         <div class="col-md-3"><div class="d-flex justify-content-between align-items-center mb-1"><label class="form-label mb-0">SEO / ALT</label><button type="button" id="generate-alt-text-btn" class="btn btn-sm btn-outline-secondary" disabled data-state="idle"><span class="spinner-border spinner-border-sm d-none"></span><span class="label-idle">Auto</span><span class="label-working d-none">Generiere...</span><span class="label-done d-none">Fertig</span></button></div><input type="text" class="form-control" id="altText" name="alt_text" placeholder="Alternativtext"><small id="altGenHint" class="text-muted d-block mt-1">Nur bei genau 1 Bild aktiv.</small></div>
         <div class="col-12"><label class="form-label">Beschreibung</label><textarea class="form-control" name="description" id="mediaDescription" rows="2" placeholder="Kurzbeschreibung"></textarea></div>
         <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Hochladen</button><button type="reset" class="btn btn-outline-secondary">Zurücksetzen</button></div>
@@ -17,12 +17,12 @@
     </form>
   </div></div>
   <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
-    <div class="btn-group btn-group-sm" id="media-category-filters"><button class="btn btn-outline-secondary active" data-cat="all">Alle</button><button class="btn btn-outline-secondary" data-cat="Icon">Icon</button><button class="btn btn-outline-secondary" data-cat="Banner">Banner</button><button class="btn btn-outline-secondary" data-cat="Illustration">Illustration</button><button class="btn btn-outline-secondary" data-cat="Logo">Logo</button><button class="btn btn-outline-secondary" data-cat="Feature">Feature</button><button class="btn btn-outline-secondary" data-cat="Audio">Audio</button><button class="btn btn-outline-secondary" data-cat="Sonstiges">Sonstiges</button></div>
+  <div class="btn-group btn-group-sm" id="media-category-filters"><button class="btn btn-outline-secondary active" data-cat="all">Alle</button><% (mediaCategories||[]).forEach(c=>{ %><button class="btn btn-outline-secondary" data-cat="<%= c.slug %>"><%= c.label %></button><% }) %></div>
     <div class="btn-group btn-group-sm ms-auto" id="media-type-filter"><button class="btn btn-outline-primary active" data-type="all">Alle Typen</button><button class="btn btn-outline-primary" data-type="image">Bilder</button><button class="btn btn-outline-primary" data-type="audio">Audio</button></div>
   </div>
   <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3" id="media-grid">
     <% if (files && files.length) { files.forEach(file=>{ %>
-      <div class="col media-grid-item" data-category="<%= file.category || '' %>">
+  <div class="col media-grid-item" data-category="<%= file.category || '' %>">
         <div class="card h-100">
           <a href="/editors/media/edit/<%= file.id %>" class="text-decoration-none text-dark">
             <% if (file.type && file.type.startsWith('image/')) { %>
@@ -39,7 +39,7 @@
             <div class="card-body p-2">
               <p class="card-text small text-truncate mb-1"><%= file.name %></p>
               <div class="d-flex justify-content-between align-items-center">
-                <% if (file.category) { %><span class="badge bg-secondary small"><%= file.category %></span><% } else { %><span></span><% } %>
+                <% if (file.category_label || file.category) { %><span class="badge bg-secondary small"><%= file.category_label || file.category %></span><% } else { %><span></span><% } %>
                 <button type="button" class="btn btn-sm btn-outline-secondary copy-media-link-btn" data-link="/uploads/<%= file.name %>">Link</button>
               </div>
             </div>
@@ -52,4 +52,23 @@
   </div>
   <div class="mt-4"><a class="btn btn-sm btn-outline-secondary" href="/admin">Zum Settings Center</a></div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const btn=document.getElementById('addCategoryBtn');
+  const input=document.getElementById('newCategoryLabel');
+  const select=document.getElementById('mediaCategory');
+  const status=document.getElementById('catStatus');
+  if(btn){ btn.addEventListener('click', async ()=>{
+    const label=(input.value||'').trim(); if(!label) return; status.textContent='Speichere...';
+    try{ const r= await fetch('/editors/api/media-categories',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':(window.csrfToken||document.querySelector("input[name=_csrf]")?.value)},body:JSON.stringify({label})});
+      const data= await r.json(); if(!r.ok){ status.textContent=data.error||'Fehler'; return; }
+      // Rebuild select & filter buttons
+      if(data.categories){ select.innerHTML='<option value="">(optional)</option>'+data.categories.map(c=>`<option value="${c.slug}">${c.label}</option>`).join('');
+        const filterGrp=document.getElementById('media-category-filters'); if(filterGrp){ const active = filterGrp.querySelector('button.active')?.dataset.cat||'all'; filterGrp.innerHTML='<button class="btn btn-outline-secondary'+(active==='all'?' active':'')+'" data-cat="all">Alle</button>'+data.categories.map(c=>`<button class="btn btn-outline-secondary${active===c.slug?' active':''}" data-cat="${c.slug}">${c.label}</button>`).join(''); }
+      }
+      status.textContent='Kategorie hinzugefügt'; input.value='';
+    } catch(e){ status.textContent='Netzwerkfehler'; }
+  }); }
+});
+</script>
 <%- include('partials/footer') %>

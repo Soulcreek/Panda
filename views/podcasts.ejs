@@ -23,14 +23,14 @@
             <% if (podcasts && podcasts.length > 0) { %>
                 <% podcasts.forEach(function(podcast) { %>
                     <div class="podcast-item mb-5" data-aos="fade-up" id="episode-<%= podcast.id %>">
-                        <h3 class="h4"><a href="/podcasts/<%= podcast.id %>"><%= podcast.title %></a></h3>
+                        <h3 class="h4"><a href="/podcasts/<%= podcast.slug || podcast.id %>"><%= podcast.title %></a></h3>
                         <p class="text-muted mb-2"><%= podcast.description %></p>
                         <div class="ratio ratio-16x9 bg-light rounded d-flex align-items-center justify-content-center position-relative mb-2 lazy-audio" data-audio="<%= podcast.audio_url %>">
                             <button class="btn btn-primary play-lazy" aria-label="Play Episode"><i class="bi bi-play-fill"></i> Abspielen</button>
                         </div>
                         <div class="d-flex flex-wrap gap-3 small align-items-center">
                             <a href="<%= podcast.audio_url %>" download class="text-decoration-none"><i class="bi bi-download"></i> Download</a>
-                            <a href="/podcasts/<%= podcast.id %>#transkript" class="text-decoration-none"><i class="bi bi-text-paragraph"></i> Transkript (bald)</a>
+                            <a href="/podcasts/<%= podcast.slug || podcast.id %>#transkript" class="text-decoration-none"><i class="bi bi-text-paragraph"></i> Transkript (bald)</a>
                         </div>
                     </div>
                 <% }); %>

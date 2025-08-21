@@ -5,20 +5,27 @@ const MySQLStore = require('express-mysql-session')(session);
 const csurf = require('csurf');
 const path = require('path');
 const pool = require('./db'); // Stellt sicher, dass db.js den Pool exportiert
+const { dbHealth } = require('./db');
 
+// Modular public routes (aggregated index)
 const publicRoutes = require('./routes/public');
 let adminRoutes;
-// Prefer the new modular admin; fall back to temporary clean router only if it fails.
-try { adminRoutes = require('./routes/admin'); }
+// Prefer new modular admin (routes/admin/index.js). Fallback sequence: legacy aggregated admin.js.
+try { adminRoutes = require('./routes/admin/index.js'); }
 catch(e){
-    console.warn('[server] Falling back to admin_clean router:', e.message);
-    try { adminRoutes = require('./routes/admin_clean'); }
-    catch(e2){ console.error('[server] No admin router available', e2); adminRoutes = express.Router(); }
+    console.warn('[server] modular admin router failed:', e.message);
+    try { adminRoutes = require('./routes/admin.js'); }
+    catch(e1){
+    console.warn('[server] legacy admin.js load failed:', e1.message);
+    adminRoutes = express.Router();
+    }
 }
 
 const app = express();
 // Internationalization (lightweight JSON-based)
 const i18n = require('./i18n');
+// Error helpers early so routes can use res.apiError
+const { ApiError, buildError, attachResponseHelpers } = require('./lib/errors');
 
 // Vertrauen in Proxy (Netcup Load Balancer) für korrekte req.ip & secure Cookies
 app.set('trust proxy', 1);
@@ -37,6 +44,7 @@ app.use((req,res,next)=>{ if(typeof res.locals.locale==='undefined'){ res.locals
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'httpdocs')));
+app.use(attachResponseHelpers);
 
 // EJS als Template-Engine einrichten
 app.set('view engine', 'ejs');
@@ -67,12 +75,7 @@ const csrfProtection = csurf();
 const csrfSkipExact = new Set([
     '/admin/upload',
     '/editors/upload',
-    '/editors/api/upload-inline-image',
-    // AI JSON endpoints (Editor-geschützt) – weniger Risiko, erleichtert Fetch Debugging
-    '/editors/generate-whats-new',
-    '/editors/generate-sample',
-    '/editors/posts/generate-sample',
-    '/editors/api/translate'
+    '/editors/api/upload-inline-image'
 ]);
 const csrfSkipStartsWith = [
     // media API (reine GETs / einige POSTs für Upload bereits einzeln oben)
@@ -80,11 +83,17 @@ const csrfSkipStartsWith = [
 const csrfSkipRegex = [
     /^\/editors\/podcasts\/\d+\/ai-metadata$/
 ];
+// Enhanced CSRF: allow token via header CSRF-Token for JSON POST if body already read
 app.use((req, res, next) => {
     if (req.method === 'POST') {
         const p = req.path;
         if (csrfSkipExact.has(p) || csrfSkipStartsWith.some(pre=> p.startsWith(pre)) || csrfSkipRegex.some(r=> r.test(p))) {
             return next();
+        }
+        // For fetch JSON requests we accept header 'CSRF-Token' mapping to body _csrf to satisfy csurf
+        if(!req.body || !req.body._csrf){
+            const hdr = req.get('CSRF-Token') || req.get('x-csrf-token');
+            if(hdr){ req.body = req.body || {}; req.body._csrf = hdr; }
         }
     }
     return csrfProtection(req, res, next);
@@ -118,6 +127,10 @@ app.use((req, res, next) => {
 
     // Aktueller Pfad
     res.locals.currentPath = req.path || '';
+    // DB Health snapshot (only for editor/admin pages to minimize overhead)
+    if(req.path.startsWith('/editors') || req.path.startsWith('/admin')){
+    res.locals.dbHealth = { degraded: dbHealth.degraded, lastPingMs: dbHealth.lastPingMs, lastError: dbHealth.lastError, slowThresholdMs: dbHealth.slowThresholdMs, rollingAvgMs: dbHealth.rollingAvgMs, slowQueries: dbHealth.slowQueries, totalQueries: dbHealth.totalQueries };
+    }
     next();
 });
 
@@ -144,27 +157,7 @@ catch(e){
     catch(e2){ console.warn('[server] no editors router available', e2.message); }
 }
 
-// Legacy content route redirects (/admin -> /editors) for migrated areas.
-// Keep BEFORE settings-specific /admin pages so only content modules redirect.
-app.use((req,res,next)=>{
-    // Allow core settings pages to continue: /admin$, /admin/blog-config, /admin/ai-usage, /admin/tools, /admin/api_keys
-    const allowList = [/^\/admin\/?$/, /^\/admin\/blog-config$/, /^\/admin\/ai-usage$/, /^\/admin\/tools$/, /^\/admin\/api_keys$/];
-    if(allowList.some(r=> r.test(req.path))) return next();
-    const redirectRules = [
-        { label:'posts', from:/^\/admin\/(posts)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(posts)/,'/editors/$1') },
-        { label:'media', from:/^\/admin\/(media)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(media)/,'/editors/$1') },
-        { label:'podcasts', from:/^\/admin\/(podcasts)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(podcasts)/,'/editors/$1') },
-        { label:'advanced-pages', from:/^\/admin\/(advanced-pages)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(advanced-pages)/,'/editors/$1') },
-        { label:'timeline-editor', from:/^\/admin\/(timeline-editor)(\/.*)?$/, to:(p)=> p.replace(/^\/admin\/(timeline-editor)/,'/editors/$1') }
-    ];
-    for(const rule of redirectRules){
-        if(rule.from.test(req.path)){
-            const target = rule.to(req.path);
-            return res.redirect(301, target);
-        }
-    }
-    return next();
-});
+// NOTE: Legacy /admin content redirects now handled inside modular admin/legacyRedirects router.
 
 // Lightweight health check (no DB to avoid slow fail cascading; add ?deep=1 for a quick DB ping)
 app.get('/health', async (req,res)=>{
@@ -173,6 +166,15 @@ app.get('/health', async (req,res)=>{
         catch(e){ return res.status(500).json({ status:'degraded', db:false, error:e.message }); }
     }
     return res.json({ status:'ok', mode:process.env.NODE_ENV||'dev' });
+});
+
+// DB health API (lightweight)
+app.get('/admin/api/db-health', async (req,res)=>{
+    try {
+        // perform quick ping in background to refresh metrics
+        pool.query('SELECT 1').catch(()=>{});
+        res.json({ ok:true, degraded: dbHealth.degraded, lastPingMs: dbHealth.lastPingMs, lastError: dbHealth.lastError, threshold: dbHealth.slowThresholdMs, rollingAvgMs: dbHealth.rollingAvgMs, slowQueries: dbHealth.slowQueries, totalQueries: dbHealth.totalQueries });
+    } catch(e){ res.status(500).json({ ok:false, error:e.message }); }
 });
 
 // AI Usage Info Badge (lightweight; errors ignored)
@@ -210,6 +212,14 @@ app.use((err, req, res, next) => {
 app.use((err, req, res, next) => {
     console.error(err.stack || err);
     if (res.headersSent) return next(err);
+    const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json')) || req.path.startsWith('/editors/') || req.path.startsWith('/admin/api') || req.path.startsWith('/health');
+    if (wantsJson) {
+        const status = (err instanceof ApiError && err.status) ? err.status : 500;
+        if (err instanceof ApiError) {
+            return res.status(status).json(buildError({ error: err.error, code: err.code, detail: (process.env.NODE_ENV==='production') ? undefined : err.detail, hint: err.hint, meta: err.meta }));
+        }
+        return res.status(status).json(buildError({ error: 'Server Fehler', code: err.code || 'SERVER_ERROR', detail: (process.env.NODE_ENV==='production') ? undefined : (err.message||'') }));
+    }
     res.status(500).render('partials/error_500', { title: 'Fehler', error: err });
 });
 

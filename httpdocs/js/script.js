@@ -37,8 +37,7 @@ async function openMediaLibraryModal(options) {
     mediaLibraryModal.show();
 
     try {
-        const response = await fetch(apiUrl);
-    const mediaItems = await response.json();
+    const mediaItems = await apiFetch(apiUrl);
         
         grid.innerHTML = '';
         if (mediaItems.length === 0) {
@@ -159,11 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modalImage.style.display = 'none';
 
             try {
-                const response = await fetch(`/api/blog/${postId}`);
-                const ct = response.headers.get('content-type')||'';
-                if (!response.ok) throw new Error('HTTP '+response.status);
-                if (!ct.includes('application/json')) throw new Error('Kein JSON ('+ct+')');
-                const post = await response.json();
+                const post = await apiFetch(`/api/blog/${postId}`);
                 if(!post || !post.content){ console.warn('Leerer Post API Response', post); }
                 modalTitle.textContent = post.title;
                 modalContent.innerHTML = `<div class="blog-post-content">${post.content}</div>`;
@@ -195,11 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.disabled = true;
             spinner.classList.remove('d-none');
             try {
-                const response = await fetch('/admin/generate-whats-new', { method: 'POST', headers:{'CSRF-Token': (window.CSRF_TOKEN||'')} });
-                const ct = response.headers.get('content-type')||'';
-                if(!ct.includes('application/json')) throw new Error('Server lieferte kein JSON (Session abgelaufen?)');
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.details || data.error || 'Fehler');
+                const data = await apiFetch('/admin/generate-whats-new', { method:'POST', headers:{'CSRF-Token': (window.CSRF_TOKEN||'')} });
                 document.getElementById('title_de').value = data.title_de;
                 const elDe=document.getElementById('content_de'); if(elDe) elDe.value = data.content_de;
                 document.getElementById('title_en').value = data.title_en;
@@ -291,11 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const filename = mediaFilesInput.files[0].name;
                 setState('working'); this.disabled = true;
                 try {
-                    const resp = await fetch('/admin/generate-alt-text', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': (window.CSRF_TOKEN||'')}, body: JSON.stringify({ filename }) });
-                    const ct = resp.headers.get('content-type')||'';
-                    if(!ct.includes('application/json')) throw new Error('Kein JSON (eingeloggt?)');
-                    const data = await resp.json();
-                    if (!resp.ok) throw new Error(data.error || 'Fehler');
+                    const data = await apiFetch('/admin/generate-alt-text', { json:{ filename }, csrf:true });
                     if (altTextInput && !altTextInput.value) altTextInput.value = data.alt;
                     if (descInput && !descInput.value) descInput.value = data.description;
                     setState('done');
@@ -359,20 +346,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (target.classList.contains('toggle-visibility-btn')) {
             const postId = target.dataset.id;
-            const response = await fetch(`/admin/post/toggle-visibility/${postId}`, { method: 'POST' });
-            if (response.ok) window.location.reload();
+            const resp = await apiFetch(`/admin/post/toggle-visibility/${postId}`, { method:'POST', csrf:true });
+            if (resp && resp.ok !== false) window.location.reload();
         }
         if (target.classList.contains('delete-post-btn')) {
             if (confirm('Sind Sie sicher, dass Sie diesen Beitrag löschen möchten? Er wird nur archiviert.')) {
                 const postId = target.dataset.id;
-                const response = await fetch(`/admin/post/delete/${postId}`, { method: 'POST' });
-                if (response.ok) document.getElementById(`post-card-${postId}`).remove();
+                const resp = await apiFetch(`/admin/post/delete/${postId}`, { method:'POST', csrf:true });
+                if (resp && resp.ok !== false) document.getElementById(`post-card-${postId}`).remove();
             }
         }
         if (target.classList.contains('toggle-featured-btn')) {
             const postId = target.dataset.id;
-            const response = await fetch(`/admin/post/toggle-featured/${postId}`, { method: 'POST' });
-            if (response.ok) window.location.reload();
+            const resp = await apiFetch(`/admin/post/toggle-featured/${postId}`, { method:'POST', csrf:true });
+            if (resp && resp.ok !== false) window.location.reload();
         }
         if (target.classList.contains('media-filter-btn')) {
             const category = target.dataset.category;
@@ -394,13 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const translate = async (text) => {
                 if (!text || text.trim() === '') return '';
-                const response = await fetch('/admin/translate-content', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.details || 'Translation failed');
+                const data = await apiFetch('/admin/translate-content', { json:{ text }, csrf:true });
                 return data.translation;
             };
 
@@ -503,8 +484,9 @@ async function doPrefSync(){
         const theme = localStorage.getItem('pp_theme') || 'system';
         const lvl = localStorage.getItem('pandasWayLevel') || localStorage.getItem('pandasWayLevelAlt5') || '1';
         // Heuristik: user logged in? server injected flag via data attr on body maybe future; fallback: attempt and ignore 401
-        const resp = await fetch('/api/user/preferences', { method:'POST', headers:{'Content-Type':'application/json','CSRF-Token': (window.CSRF_TOKEN||'')}, body: JSON.stringify({ theme, pandas_way_level: lvl }) });
-        if(!resp.ok && resp.status!==401){ console.warn('Pref Sync Fehler', resp.status); }
+        try {
+            await apiFetch('/api/user/preferences', { method:'POST', json:{ theme, pandas_way_level: lvl }, csrf:true });
+        } catch(e){ if(!(e && e.message && e.message.includes('401'))) console.warn('Pref Sync Fehler', e.message); }
     } catch(e){ console.warn('Pref Sync Exception', e); }
 }
 document.addEventListener('DOMContentLoaded', ()=>{

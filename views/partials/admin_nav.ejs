@@ -1,11 +1,28 @@
 <!-- views/partials/admin_nav.ejs redesigned to mirror editors nav -->
 <div class="admin-nav bg-white border-bottom mb-4 admin-nav-shell">
-    <div class="container">
-        <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2">
+        <div class="container">
+                <% if (typeof dbHealth !== 'undefined' && dbHealth && (dbHealth.degraded || (dbHealth.lastPingMs && dbHealth.lastPingMs > dbHealth.slowThresholdMs))) { %>
+                    <div id="db-health-banner-admin" class="alert py-1 px-2 mb-2 <%= dbHealth.lastError ? 'alert-danger' : 'alert-warning' %> small d-flex align-items-center gap-2" role="alert">
+                        <strong>DB</strong>
+                        <span><%= dbHealth.lastError ? ('Fehler: '+dbHealth.lastError) : ('Langsam ('+dbHealth.lastPingMs+'ms, Ø '+(dbHealth.rollingAvgMs||'?')+'ms)') %></span>
+                        <span class="text-muted">slow: <%= dbHealth.slowQueries %>/<%= dbHealth.totalQueries %></span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="dbHealthRefreshBtnAdmin">Neu prüfen</button>
+                    </div>
+                <% } else { %>
+                    <div id="db-health-banner-admin" class="d-none"></div>
+                <% } %>
+                <nav class="d-flex flex-wrap align-items-stretch gap-3 py-2">
             <a class="nav-link px-2" href="/admin">Dashboard</a>
             <a class="nav-link px-2" href="/admin/blog-config">Blog Config</a>
             <a class="nav-link px-2" href="/admin/ai-usage">AI Usage</a>
-            <a class="nav-link px-2" href="/admin/tools">Tools</a>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link px-2 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Tools</a>
+                            <ul class="dropdown-menu shadow-sm">
+                                <li><a class="dropdown-item" href="/admin/tools">Strukturierte Ansicht</a></li>
+                                <li><a class="dropdown-item" href="/admin/tools/raw">Rohdaten-Ansicht</a></li>
+                                <li><a class="dropdown-item" href="/admin/tools/tables">Tabellen-Ansicht</a></li>
+                            </ul>
+                        </div>
             <% if (typeof aiUsageInfo !== 'undefined' && aiUsageInfo) { %>
                 <span class="nav-link disabled small text-muted px-2">AI: <%= aiUsageInfo.used %>/<%= aiUsageInfo.limit %> (<%= aiUsageInfo.percent %>%)</span>
             <% } %>
@@ -22,4 +39,16 @@ html.dark-mode .admin-nav-shell{background:#1c1c1c !important; border-color:#2a2
 html.dark-mode .admin-nav-shell .nav-link{color:#ccc;}
 html.dark-mode .admin-nav-shell .nav-link.active{color:#4dabff;}
 </style>
-<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.admin-nav-shell .nav-link').forEach(a=>{if(a.getAttribute('href')===p) a.classList.add('active');});}catch(e){}})();</script>
+<script>(()=>{try{const p=window.location.pathname;document.querySelectorAll('.admin-nav-shell .nav-link, .admin-nav-shell .dropdown-item').forEach(a=>{const h=a.getAttribute('href'); if(h && h===p) { a.classList.add('active'); const dd=a.closest('.dropdown'); if(dd){ dd.querySelector('.dropdown-toggle')?.classList.add('active'); } }});}catch(e){}})();</script>
+<script>
+(function(){
+    const banner = document.getElementById('db-health-banner-admin');
+    function updateBanner(d){ if(!banner) return; if(!d.degraded && (!d.lastPingMs || d.lastPingMs <= d.threshold)){ banner.className='d-none'; return; }
+        banner.className='alert py-1 px-2 mb-2 small d-flex align-items-center gap-2 '+(d.lastError?'alert-danger':'alert-warning');
+        banner.innerHTML='<strong>DB</strong> <span>'+(d.lastError?('Fehler: '+d.lastError):('Langsam ('+d.lastPingMs+'ms, Ø '+(d.rollingAvgMs||'?')+'ms)'))+'</span><span class="text-muted">slow: '+d.slowQueries+'/'+d.totalQueries+'</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="dbHealthRefreshBtnAdmin">Neu prüfen</button>';
+        banner.querySelector('#dbHealthRefreshBtnAdmin').addEventListener('click',()=>ping(true));
+    }
+    async function ping(force){ try { const r=await fetch('/admin/api/db-health'+(force?'?force=1':'')); const d=await r.json(); if(d) updateBanner(d);} catch(_){ } }
+    setInterval(ping,20000);
+})();
+</script>

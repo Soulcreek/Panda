@@ -85,9 +85,9 @@ Zweistufige Prompt-Kaskade (Research / Optimierung → finaler strukturierter JS
 - POST /editors/api/translate – Übersetzt DE Titel + HTML Body nach EN (JSON Response {title, content}).
 - POST /editors/podcasts/:id/ai-metadata – Ergänzt SEO Felder für Podcasts.
 
-Konfiguration (& Limits / Prompts) via /admin/blog-config:
-- primary_key_choice (paid|free) – LOGIK FÜR KEY-SELEKTION: TODO (derzeit nur GEMINI_API_KEY genutzt; Umschaltung vorbereitet)
-- max_daily_calls (Rate Gate – TODO: Enforcement Endpoint-seitig aktivieren)
+ Konfiguration (& Limits / Prompts) via /admin/blog-config:
+ - primary_key_choice (paid|free) – dynamische Key-Selektion aktiv (GEMINI_API_KEY_PAID / GEMINI_API_KEY_FREE Fallback-Kette)
+ - max_daily_calls – Enforcement aktiv (HTTP 429 bei Überschreitung, Response {error, detail, reset_hours})
 - limits.max_response_chars / max_translate_chars / max_sample_chars (Client & Server Soft-Cut)
 - prompts (whats_new_research, translate, blog_sample, media_alt_text, seo_title_prefix, blog_tags, media_categories)
 
@@ -101,7 +101,7 @@ Resilienz / Parsing:
 - Safety Settings aktualisiert auf aktuelle Gemini Kategorien (BLOCK_NONE für frühe Entwicklungsphase; TODO Hardening Feintuning).
 - CSRF: KI Endpunkte im Skip-Set, da sie nur intern aufgerufen werden (TODO: Token Validation re-härten sobald stabil).
 
-Noch offen (siehe NEXT_STEPS.md): Key Umschaltung paid/free, Fehlerbudget / Rate Limit Response, Retry/Backoff Policy, Response Caching.
+ Noch offen (siehe NEXT_STEPS.md): Feinere Rate Limits (per Endpoint), Retry/Backoff Policy, Response Caching.
 
 ## 7. Advanced Pages Builder
 - Blöcke: html, text, image, background
@@ -188,7 +188,39 @@ npm start
 MySQL muss laufen; DB Zugang in `db.js` konfigurieren (oder .env Erweiterung hinzufügen falls refactored).
 
 ## 16. Tests / Linting
-Aktuell erste Test-Vorbereitung (Jest + Supertest) – Abhängigkeiten noch nicht installiert (ExecutionPolicy Workaround nötig). Ziel: Health, Redirects, Advanced Pages Utils.
+Aktuell erste Test-Vorbereitung (Jest + Supertest). Bereits vorhanden: Health, Redirects, Admin Modular, Auth Redirect, Slug & AI Key Fallback.
+
+### Frontend API Layer (`apiFetch`)
+Alle neuen Fetch-Aufrufe laufen über `httpdocs/js/api_helper.js`:
+```
+apiFetch(url, {
+	method: 'POST' | 'GET' | 'PUT' | ...,
+	json: { ...payloadObject }, // setzt automatisch Content-Type & serialisiert
+	csrf: true,                  // fügt CSRF-Token Header hinzu falls vorhanden
+	headers: { ... }             // zusätzliche Header
+}) -> Promise(JSON|{raw})
+```
+Fehlerfall: wirft Error mit `error.status` & optional `error.payload` (vereinheitlichtes `{error, detail, code, hint}` Schema). Globale Helpers:
+```
+apiFormatError(err) // Menschlich lesbarer String
+apiShowError(msg)   // Toast (Bootstrap) oder alert Fallback
+```
+
+Empfohlenes Muster bei UI Aktionen:
+```
+try { const data = await apiFetch('/editors/posts/123', { method:'DELETE', csrf:true }); }
+catch(e){ apiShowError(apiFormatError(e)); }
+```
+
+Retry / Backoff ist bewusst (noch) nicht automatisch aktiviert (verhindert doppelte Mutationen). Geplant: leichte Retry Policy nur für idempotente GETs (Netzwerkfehler / 5xx) mit Exponential Backoff (max 2 Versuche).
+
+Unhandled Rejections: Automatisch abgefangen – jede nicht abgefangene API Error Promise zeigt einen Toast (siehe Implementierung in `api_helper.js`).
+
+Optionale Retry-Konfiguration (nur GET, Default 2 Versuche, Exponential Backoff):
+```
+// Überschreibt Standard (2 Retries):
+apiFetch('/api/posts', { retry:{ retries:3, delayMs:250 }});
+```
 
 ### Datenbank / Migrationen (neu)
 Der frühere SQLite-/Datei-Migrationsmechanismus wurde stillgelegt. Statt inkrementeller Dateien gibt es jetzt:
@@ -227,6 +259,7 @@ Neueste Schritte ganz oben:
 - KI Logging erweitert: ai_usage_log jetzt mit response_raw + Modal Detailansicht
 - AI Editor Feedback Panel (Status, Parse-Warnung, Raw Snippet)
 - Slug-Generierung bei Posts: ensureUniqueSlug + Auto-Migration fehlender Spalten (ensurePostsColumns)
+ - Slug-Override Feld & manuelle Generierung + Revisionssystem (post_revisions) mit Wiederherstellen im Editor
 - Blog Config: Defaults gemerged, Prompts persistenter Merge statt Überschreiben
 - Einheitliche 301 Redirect Middleware für migrierte Content-Pfade `/admin/*` → `/editors/*` (Posts, Media, Podcasts, Advanced Pages, Timeline)
 - Legacy Admin-Content-Views durch schlanke Hinweis-Stubs ersetzt; Originale unter `views/legacy/` archiviert

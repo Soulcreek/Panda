@@ -28,9 +28,47 @@ if (process.env.DB_SOCKET_PATH) {
 }
 
 let pool;
+// Lightweight health metrics
+const dbHealth = {
+  lastPingMs: null,
+  degraded: false,
+  lastError: null,
+  lastCheckedAt: null,
+  slowThresholdMs: parseInt(process.env.DB_SLOW_THRESHOLD_MS||'250',10), // default 250ms
+  rollingAvgMs: null,
+  totalQueries: 0,
+  slowQueries: 0,
+  window: [] // recent durations (max 50)
+};
 
 try {
   pool = mysql.createPool(connectionConfig);
+
+  // Wrap original query for latency tracking (non-invasive)
+  const origQuery = pool.query.bind(pool);
+  pool.query = async function wrappedQuery(sql, params){
+    const start = Date.now();
+    try {
+      const res = await origQuery(sql, params);
+      const dur = Date.now() - start;
+  if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
+  dbHealth.totalQueries++;
+  dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
+  const sum = dbHealth.window.reduce((a,b)=>a+b,0);
+  dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
+  if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
+  // degraded if current or rolling average exceeds threshold OR last error existed
+  dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
+      dbHealth.lastError = null;
+      dbHealth.lastCheckedAt = new Date();
+      return res;
+    } catch(e){
+      dbHealth.lastError = e.message;
+      dbHealth.degraded = true;
+      dbHealth.lastCheckedAt = new Date();
+      throw e;
+    }
+  };
 
   // Testet die Verbindung sofort beim Start
   pool.getConnection()
@@ -52,3 +90,4 @@ try {
 }
 
 module.exports = pool;
+module.exports.dbHealth = dbHealth;

@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container py-4">
+  <h1 class="h4 mb-3">AI Prompt Tester</h1>
+  <form method="POST" action="/admin/tools/prompt-tester" class="mb-4">
+    <div class="mb-3">
+      <label class="form-label">Prompt</label>
+      <textarea name="prompt" class="form-control" rows="6" required><%= typeof result==='undefined' && !error ? '' : (prompt||'') %></textarea>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <label class="form-label">Modell</label>
+        <select name="model" class="form-select form-select-sm">
+          <option value="fast">Schnell (kostengünstig)</option>
+          <option value="heavy">Qualität (langsamer)</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Temperature</label>
+        <input type="number" name="temperature" min="0" max="1" step="0.05" value="0.7" class="form-control form-control-sm" />
+      </div>
+    </div>
+    <button class="btn btn-primary">Absenden</button>
+  </form>
+  <% if (error) { %>
+    <div class="alert alert-danger">Fehler: <%= error %></div>
+  <% } %>
+  <% if (result) { %>
+    <div class="mb-2 d-flex align-items-center gap-2">
+      <strong class="me-auto">Roh-Antwort</strong>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('aiRawOut').textContent)">Copy</button>
+    </div>
+    <pre id="aiRawOut" class="p-2 bg-light border" style="max-height:400px;overflow:auto;white-space:pre-wrap;"><%= result %></pre>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

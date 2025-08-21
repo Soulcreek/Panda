@@ -4,7 +4,8 @@
   <h1><%= podcast ? 'Podcast bearbeiten' : 'Neuen Podcast erstellen' %></h1>
   <form action="<%= podcast ? '/editors/podcasts/edit/' + podcast.id : '/editors/podcasts/new' %>" method="POST" id="podcastForm">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <div class="mb-3"><label class="form-label">Titel</label><input class="form-control" name="title" id="title" value="<%= podcast?podcast.title:'' %>" required></div>
+  <div class="mb-3"><label class="form-label">Titel</label><input class="form-control" name="title" id="title" value="<%= podcast?podcast.title:'' %>" required></div>
+  <div class="mb-3"><label class="form-label">Slug (optional)</label><input class="form-control" name="slug" id="slug" value="<%= podcast?(podcast.slug||''):'' %>" placeholder="auto-aus-titel"></div>
     <div class="mb-3"><label class="form-label d-flex justify-content-between align-items-center">Beschreibung <button type="button" id="btnAiMeta" class="btn btn-sm btn-outline-primary" <%= podcast ? '' : 'disabled' %>>AI Meta</button></label><textarea class="form-control" name="description" id="description" rows="5"><%= podcast?podcast.description:'' %></textarea><div class="form-text">AI Meta generiert SEO Felder (nur nach Speichern verfügbar).</div></div>
     <div class="mb-3"><label class="form-label d-flex justify-content-between align-items-center">Audio-Datei <button type="button" id="select-audio-btn" class="btn btn-sm btn-outline-secondary">Aus Medienbibliothek</button></label><input class="form-control" name="audio_url" id="audio_url" value="<%= podcast?podcast.audio_url:'' %>" placeholder="/audio/datei.mp3" required></div>
     <div class="mb-3"><label class="form-label">Tags (Komma)</label><input class="form-control" name="tags" value="<%= podcast?(podcast.tags||''):'' %>"></div>

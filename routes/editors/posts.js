@@ -34,6 +34,25 @@ async function ensurePostsColumns(){
   postsColumnsChecked = true;
 }
 
+// Revisions-Tabelle sicherstellen
+let revisionsTableChecked = false;
+async function ensureRevisionsTable(){
+  if(revisionsTableChecked) return;
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS post_revisions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      post_id INT NOT NULL,
+      slug VARCHAR(255) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      content MEDIUMTEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_post_rev_post (post_id),
+      CONSTRAINT fk_post_rev_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  } catch(e){ console.warn('[POSTS] Revisions Tabelle Fehler', e.code); }
+  revisionsTableChecked = true;
+}
+
 router.get('/posts', isEditor, async (req,res)=>{
   try { const [posts] = await pool.query('SELECT * FROM posts WHERE COALESCE(is_deleted,0)=0 ORDER BY updated_at DESC'); res.render('editors_posts',{ title:'Beiträge', posts, archived:false }); }
   catch(e){ res.status(500).send('Posts Fehler'); }
@@ -47,14 +66,20 @@ router.get('/posts/new', isEditor, async (req,res)=>{
   catch(e){ res.status(500).send('Editor Fehler'); }
 });
 router.post('/posts/new', isEditor, async (req,res)=>{
-  const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords }=req.body;
+  const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords, slug_manual }=req.body;
   if(!title){ return res.status(400).send('Titel fehlt'); }
   await ensurePostsColumns();
+  await ensureRevisionsTable();
   function baseSlug(str){ return (str||'').toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,190) || 'post'; }
   async function ensureUniqueSlug(base){ let slug=base; let i=2; while(true){ const [rows]=await pool.query('SELECT id FROM posts WHERE slug=? LIMIT 1',[slug]); if(!rows.length) return slug; slug = base + '-' + i++; } }
   const wn = sanitizeWhatsNew(whatsnew);
   try {
-    const slug = await ensureUniqueSlug(baseSlug(title));
+    let slug;
+    if(slug_manual && slug_manual.trim()){
+      slug = await ensureUniqueSlug(baseSlug(slug_manual));
+    } else {
+      slug = await ensureUniqueSlug(baseSlug(title));
+    }
     const pub = published_at ? published_at.replace('T',' ') : null;
     await pool.query('INSERT INTO posts (title,slug,content,author_id,status,title_en,content_en,whatsnew,featured_image_id,published_at,tags,seo_title,seo_description,meta_keywords) VALUES (?,?,?,?, ?,?,?, ?,?,?, ?,?,?,?)',[title, slug, content||'', req.session.userId, status||'draft', title_en, content_en, wn, featured_image_id||null, pub, tags||null, seo_title||null, seo_description||null, meta_keywords||null]);
     res.redirect('/editors/posts');
@@ -70,19 +95,24 @@ router.get('/posts/edit/:id', isEditor, async (req,res)=>{
   catch(e){ res.status(500).send('Editor Fehler'); }
 });
 router.post('/posts/edit/:id', isEditor, async (req,res)=>{
-  const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords }=req.body;
+  const { title, content, status, title_en, content_en, whatsnew, featured_image_id, published_at, tags, seo_title, seo_description, meta_keywords, slug_manual }=req.body;
   if(!title){ return res.status(400).send('Titel fehlt'); }
   await ensurePostsColumns();
+  await ensureRevisionsTable();
   function baseSlug(str){ return (str||'').toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,190) || 'post'; }
   async function ensureUniqueSlug(base, excludeId){ let slug=base; let i=2; while(true){ const [rows]=await pool.query('SELECT id FROM posts WHERE slug=? AND id<>? LIMIT 1',[slug, excludeId]); if(!rows.length) return slug; slug = base + '-' + i++; } }
   const wn = sanitizeWhatsNew(whatsnew);
   try {
     // Hole aktuelle Post um festzustellen ob Titel sich geändert hat und alter Slug behalten werden kann
-    const [currentRows]=await pool.query('SELECT slug FROM posts WHERE id=?',[req.params.id]);
+    const [currentRows]=await pool.query('SELECT slug,title,content FROM posts WHERE id=?',[req.params.id]);
     if(!currentRows.length) return res.status(404).send('Nicht gefunden');
+    // Revision speichern (vor Änderung)
+    try { await pool.query('INSERT INTO post_revisions (post_id, slug, title, content) VALUES (?,?,?,?)',[req.params.id, currentRows[0].slug, currentRows[0].title, currentRows[0].content||'']); } catch(re){ console.warn('[POSTS] Revision Insert Fehler', re.code); }
     let slug = currentRows[0].slug;
     const newBase = baseSlug(title);
-    if(!slug.startsWith(newBase)){ // Titel signifikant geändert -> neuen slug generieren (einfach Heuristik)
+    if(slug_manual && slug_manual.trim()){
+      slug = await ensureUniqueSlug(baseSlug(slug_manual), req.params.id);
+    } else if(!slug.startsWith(newBase)){ // Titel signifikant geändert -> neuen slug generieren (Heuristik)
       slug = await ensureUniqueSlug(newBase, req.params.id);
     }
     const pub = published_at ? published_at.replace('T',' ') : null;
@@ -93,6 +123,29 @@ router.post('/posts/edit/:id', isEditor, async (req,res)=>{
     if(e.code==='ER_DUP_ENTRY') return res.status(400).send('Slug bereits vorhanden');
     res.status(500).send('Update fehlgeschlagen ('+(e.code||'DB-Error')+')');
   }
+});
+
+// Revisionsliste (JSON)
+router.get('/posts/:id/revisions', isEditor, async (req,res)=>{
+  await ensureRevisionsTable();
+  try {
+    const [rows]=await pool.query('SELECT id, slug, title, created_at FROM post_revisions WHERE post_id=? ORDER BY id DESC LIMIT 100',[req.params.id]);
+    res.json({ revisions: rows });
+  } catch(e){ res.apiError(500,{ error:'Revisions Fehler', code:'REV_FETCH', detail:e.message }); }
+});
+
+// Revision wiederherstellen
+router.post('/posts/:id/revisions/:revId/restore', isEditor, async (req,res)=>{
+  await ensureRevisionsTable();
+  try {
+    const [revRows]=await pool.query('SELECT * FROM post_revisions WHERE id=? AND post_id=? LIMIT 1',[req.params.revId, req.params.id]);
+  if(!revRows.length) return res.apiError(404,{ error:'Revision nicht gefunden', code:'REV_NOT_FOUND' });
+    const rev=revRows[0];
+    // Speichere aktuellen Stand ebenfalls als Revision (Chain)
+    try { const [cur]=await pool.query('SELECT slug,title,content FROM posts WHERE id=?',[req.params.id]); if(cur.length){ await pool.query('INSERT INTO post_revisions (post_id, slug, title, content) VALUES (?,?,?,?)',[req.params.id, cur[0].slug, cur[0].title, cur[0].content||'']); } } catch(_){ }
+    await pool.query('UPDATE posts SET title=?, slug=?, content=? WHERE id=?',[rev.title, rev.slug, rev.content, req.params.id]);
+    res.json({ ok:true });
+  } catch(e){ res.apiError(500,{ error:'Restore Fehler', code:'REV_RESTORE', detail:e.message }); }
 });
 
 module.exports = router;

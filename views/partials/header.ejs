@@ -116,7 +116,12 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                             <li><a class="dropdown-item" href="?lang=de">DE</a></li>
                             <li><a class="dropdown-item" href="?lang=en">EN</a></li>
                         </ul>
-                                </li>
+                    </li>
+                    <% if (!isEditor && !isAdmin) { %>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-sm btn-outline-success" href="/login"><i class="bi bi-box-arrow-in-right"></i> <%= t('nav.login') || 'Login' %></a>
+                    </li>
+                    <% } %>
             </ul>
         </div>
     </div>
