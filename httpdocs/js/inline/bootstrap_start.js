@@ -3,14 +3,15 @@
   try {
     var attr = document.documentElement.getAttribute('data-user-prefs');
     window.__USER_PREFS = attr ? JSON.parse(decodeURIComponent(attr)) : null;
-    if(!document.documentElement.classList.contains('dark-mode')){
-      // Theme precedence: localStorage (user explicit) > server-provided userPrefs > system
-      var theme = null;
-      try { var ls = localStorage.getItem('pp_theme'); if(ls && ls!=='system') theme = ls; } catch(e){ /* ignore */ }
-      if(!theme){ theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null; }
-      if(!theme || theme==='system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
-      if(theme==='dark') document.documentElement.classList.add('dark-mode');
-    }
+    // Theme precedence: localStorage (explicit) > server userPrefs > system
+    var theme = null;
+    try { var ls = localStorage.getItem('pp_theme'); if(ls && ls!=='system') theme = ls; } catch(e){ /* ignore */ }
+    if(!theme){ theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null; }
+    if(!theme || theme==='system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    // Always enforce computed theme (do not early-return if class present)
+    var has = document.documentElement.classList.contains('dark-mode');
+    if(theme==='dark' && !has) document.documentElement.classList.add('dark-mode');
+    if(theme!=='dark' && has) document.documentElement.classList.remove('dark-mode');
   } catch(e){}
 })();
 (function(){

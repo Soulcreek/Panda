@@ -60,7 +60,7 @@
                       <button class="btn btn-sm <%= r.is_active? 'btn-outline-success':'btn-outline-secondary' %>"><i class="bi <%= r.is_active? 'bi-eye':'bi-eye-slash' %>"></i></button>
                     </form>
                     <button type="button" class="btn btn-sm btn-outline-primary edit-entry-btn" data-id="<%= r.id %>" data-title="<%- r.title %>" data-phase="<%- r.phase||'' %>" data-active="<%= r.is_active %>"> <i class="bi bi-pencil-square"></i></button>
-                    <form method="post" action="/admin/timeline-editor/delete/<%= r.id %>" onsubmit="return confirm('Eintrag ausblenden (soft delete)?');" class="m-0" title="Soft Delete (ausblenden)">
+                    <form method="post" action="/admin/timeline-editor/delete/<%= r.id %>" class="m-0 js-soft-delete" title="Soft Delete (ausblenden)">
                       <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><input type="hidden" name="_csrf" value="<%= csrfToken %>"><% } %>
                       <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                     </form>
@@ -193,7 +193,7 @@
 </div>
 <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   let quill, quillEdit, quillLevelMeta;
   // Level Meta Seed aus versteckter Textarea (vermeidet EJS im JS Parser)
@@ -329,6 +329,13 @@
   });
   const editForm=document.getElementById('editTimelineForm');
   editForm.addEventListener('submit', ()=>{ if(quillEdit){ document.getElementById('editContentHtml').value = quillEdit.root.innerHTML; } });
+  // Replace inline confirm for soft delete
+  document.querySelectorAll('form.js-soft-delete').forEach(f=>{
+    f.addEventListener('submit', (e)=>{
+      const ok = window.confirm('Eintrag ausblenden (soft delete)?');
+      if(!ok){ e.preventDefault(); }
+    });
+  });
 })();
 </script>
 <%- include('partials/footer') %>

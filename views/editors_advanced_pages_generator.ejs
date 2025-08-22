@@ -1,4 +1,5 @@
 <%- include('partials/header') %>
+<style nonce="<%= cspNonce %>">.h-60vh{ max-height:60vh; overflow:auto; }</style>
 <%- include('partials/editors_nav') %>
 <div class="container my-5">
   <h1 class="h3 mb-4">Page Generator</h1>
@@ -85,7 +86,7 @@
     </div>
   </div>
 </div>
-<script>(function(){
+<script nonce="<%= cspNonce %>">(function(){
   const form=document.getElementById('apGenForm');
   const btn=document.getElementById('apGenPreviewBtn');
   const box=document.getElementById('apGenPreview');
@@ -99,7 +100,7 @@
     pre.textContent = JSON.stringify(view, null, 2);
     box.classList.remove('d-none');
   });
-  const modalHtml = `<div class=\"modal fade\" id=\"genDiagModal\" tabindex=\"-1\"><div class=\"modal-dialog modal-lg modal-dialog-scrollable\"><div class=\"modal-content\"><div class=\"modal-header\"><h5 class=\"modal-title\">Generator Details</h5><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\"></button></div><div class=\"modal-body\"><pre class=\"small mb-0\" style=\"max-height:60vh;overflow:auto\" id=\"genDiagPre\">Lade…</pre></div><div class=\"modal-footer\"><button type=\"button\" class=\"btn btn-secondary\" data-bs-dismiss=\"modal\">Schließen</button></div></div></div></div>`;
+  const modalHtml = `<div class=\"modal fade\" id=\"genDiagModal\" tabindex=\"-1\"><div class=\"modal-dialog modal-lg modal-dialog-scrollable\"><div class=\"modal-content\"><div class=\"modal-header\"><h5 class=\"modal-title\">Generator Details</h5><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\"></button></div><div class=\"modal-body\"><pre class=\"small mb-0 h-60vh\" id=\"genDiagPre\">Lade…</pre></div><div class=\"modal-footer\"><button type=\"button\" class=\"btn btn-secondary\" data-bs-dismiss=\"modal\">Schließen</button></div></div></div></div>`;
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   const diagPre = document.getElementById('genDiagPre');
   let diagModal;

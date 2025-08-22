@@ -29,11 +29,11 @@
             <div class="btn-group btn-group-sm">
               <a href="/editors/posts/edit/<%= post.id %>" class="btn btn-outline-secondary">Edit</a>
               <% if(post.status==='published'){ %>
-                <form action="/editors/posts/<%= post.id %>/draft" method="POST" onsubmit="return confirm('Als Entwurf setzen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-secondary">Unpublish</button></form>
+                <form action="/editors/posts/<%= post.id %>/draft" method="POST" class="js-unpublish"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-secondary">Unpublish</button></form>
               <% } else { %>
                 <form action="/editors/posts/<%= post.id %>/publish" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-success">Publish</button></form>
               <% } %>
-              <form action="/editors/posts/<%= post.id %>/hide" method="POST" onsubmit="return confirm('Archivieren?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-warning">Archiv</button></form>
+              <form action="/editors/posts/<%= post.id %>/hide" method="POST" class="js-archive"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-warning">Archiv</button></form>
             </div>
           </td>
         </tr>
@@ -46,3 +46,11 @@
   <div class="mt-4"><a class="btn btn-sm btn-outline-secondary" href="/admin">Zum Settings Center</a></div>
 </div>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.querySelectorAll('form.js-unpublish').forEach(f=>{
+  f.addEventListener('submit', e=>{ if(!window.confirm('Als Entwurf setzen?')) e.preventDefault(); });
+});
+document.querySelectorAll('form.js-archive').forEach(f=>{
+  f.addEventListener('submit', e=>{ if(!window.confirm('Archivieren?')) e.preventDefault(); });
+});
+</script>

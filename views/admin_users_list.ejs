@@ -8,7 +8,7 @@
     <button class="btn btn-sm btn-outline-secondary">Suche</button>
     <a href="/admin/users" class="btn btn-sm btn-link">Reset</a>
     <a class="btn btn-sm btn-primary" href="/admin/users/new">Neuer Benutzer</a>
-    <button type="button" class="btn btn-sm btn-outline-info" onclick="loadAudit()">Audit Log</button>
+  <button type="button" class="btn btn-sm btn-outline-info" id="btnAuditLog">Audit Log</button>
   </div>
 </form>
 <table class="table table-sm table-striped align-middle">
@@ -28,8 +28,8 @@
       <td>
         <a class="btn btn-sm btn-outline-secondary" href="/admin/users/<%= u.id %>">Bearbeiten</a>
         <% if(u.is_deleted){ %>
-          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline"><input type="hidden" name="action" value="restore" /><button class="btn btn-sm btn-outline-success" onclick="return confirm('Wiederherstellen?')">Restore</button></form>
-          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline"><input type="hidden" name="action" value="hard_delete" /><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Hard Delete? Dies ist endgültig!')">Hard</button></form>
+          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline js-restore"><input type="hidden" name="action" value="restore" /><button class="btn btn-sm btn-outline-success">Restore</button></form>
+          <form method="post" action="/admin/users/<%= u.id %>" class="d-inline js-hard-delete"><input type="hidden" name="action" value="hard_delete" /><button class="btn btn-sm btn-outline-danger">Hard</button></form>
         <% } %>
       </td>
     </tr>
@@ -58,5 +58,12 @@ async function loadAudit(){
   try{ const r=await fetch('/admin/users/api/audit'); const j=await r.json(); const b=document.getElementById('auditBody'); if(!j.ok){ b.textContent='Fehler beim Laden'; } else { b.innerHTML = j.audit.map(a=>`<div>[${a.id}] ${a.created_at} actor=${a.actor_id} target=${a.target_id} action=${a.action} detail=${a.detail||''}</div>`).join(''); const m=new bootstrap.Modal(document.getElementById('auditModal')); m.show(); } }
   catch(e){ alert('Audit Fehler'); }
 }
+document.getElementById('btnAuditLog')?.addEventListener('click', ()=> loadAudit());
+document.querySelectorAll('form.js-restore').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Wiederherstellen?')) e.preventDefault(); });
+});
+document.querySelectorAll('form.js-hard-delete').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Hard Delete? Dies ist endgültig!')) e.preventDefault(); });
+});
 </script>
 <%- include('partials/footer') %>

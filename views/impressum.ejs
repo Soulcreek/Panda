@@ -74,7 +74,7 @@
             <div class="alert alert-warning small">Hinweis: Dieser Datenschutz-/Cookie-Text ist ein technischer Vorschlag und ersetzt keine individuelle Rechtsberatung. Bitte lassen Sie den finalen Wortlaut rechtlich prüfen.</div>
 
             <h5>Cookie-Einstellungen zurücksetzen</h5>
-            <p><button class="btn btn-sm btn-outline-secondary" onclick="(function(){ localStorage.removeItem('pp_cookie_consent_v1'); localStorage.removeItem('pp_theme'); alert('Lokale Präferenzen gelöscht. Seite wird neu geladen.'); location.reload(); })();">Zurücksetzen & neu laden</button></p>
+            <p><button class="btn btn-sm btn-outline-secondary" id="btnResetPrefs">Zurücksetzen & neu laden</button></p>
 
             <hr class="my-5">
             <h2>Privacy & Cookies (English Summary)</h2>
@@ -105,3 +105,9 @@
 </div>
 
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.getElementById('btnResetPrefs')?.addEventListener('click', ()=>{
+    try{ localStorage.removeItem('pp_cookie_consent_v1'); localStorage.removeItem('pp_theme'); alert('Lokale Präferenzen gelöscht. Seite wird neu geladen.'); location.reload(); }
+    catch(_){ /* noop */ }
+});
+</script>

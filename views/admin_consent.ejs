@@ -1,4 +1,5 @@
 <%- include('partials/admin_header') %>
+<style nonce="<%= cspNonce %>">.w-120{ width:120px; }</style>
 <div class="container my-4">
   <h1>Consent Events</h1>
   <p class="small text-muted">Non-identifying consent events (most recent first)</p>
@@ -23,7 +24,7 @@
   </table>
   <form method="POST" action="/admin/consent-events/purge" class="d-flex gap-2 align-items-center">
     <label class="small text-muted mb-0">Purge events older than</label>
-    <input type="number" name="days" value="365" class="form-control form-control-sm" style="width:120px" />
+  <input type="number" name="days" value="365" class="form-control form-control-sm w-120" />
     <button class="btn btn-sm btn-outline-danger">Purge</button>
   </form>
 </div>

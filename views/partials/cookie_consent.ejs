@@ -9,7 +9,7 @@
     </div>
   </div>
 </div>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   const KEY='pp_cookie_consent_v1';
   function hide(){ const bar=document.getElementById('cookieConsentBar'); if(bar) bar.style.display='none'; }
@@ -87,7 +87,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   function readConsent(){ try{ const raw = localStorage.getItem('pp_cookie_consent_v1'); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; } }
   function writeConsent(obj){ try{ localStorage.setItem('pp_cookie_consent_v1', JSON.stringify(obj)); }catch(e){} try{ window.dispatchEvent(new CustomEvent('pp:consent', { detail: obj })); }catch(e){} }

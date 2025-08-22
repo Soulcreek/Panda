@@ -18,7 +18,7 @@
     <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Speichern</button><a href="/editors/podcasts" class="btn btn-secondary">Abbrechen</a></div>
   </form>
 </div>
-<script>
+<script nonce="<%= cspNonce %>">
 document.addEventListener('DOMContentLoaded',()=>{ const btn=document.getElementById('select-audio-btn'); if(btn){ btn.addEventListener('click',()=>{ if(typeof openMediaLibraryModal==='function'){ openMediaLibraryModal({ returnObject:true, callback:(m)=>{ if(m.type && m.type.startsWith('audio/')){ document.getElementById('audio_url').value=m.path || ('/uploads/'+m.name); } else alert('Bitte eine Audiodatei wählen.'); }}); } else alert('Medienbibliothek nicht geladen.'); }); }});
 (function(){
   const metaBtn=document.getElementById('btnAiMeta'); if(!metaBtn) return;

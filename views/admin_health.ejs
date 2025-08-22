@@ -1,0 +1,31 @@
+<%- include('partials/header') %>
+<%- include('partials/admin_nav') %>
+<div class="container my-5">
+  <h2>System Health</h2>
+  <p class="text-muted">Kurzer Überblick über DB- und Request-Metriken.</p>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">DB Health</div>
+        <div class="card-body">
+          <pre class="small" id="dbHealthPre">Lade…</pre>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Timings</div>
+        <div class="card-body">
+          <pre class="small" id="timingsPre">Lade…</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script nonce="<%= cspNonce %>">
+document.addEventListener('DOMContentLoaded',()=>{
+  fetch('/admin/api/db-health').then(r=>r.json()).then(j=>{ document.getElementById('dbHealthPre').textContent = JSON.stringify(j,null,2); }).catch(()=>{ document.getElementById('dbHealthPre').textContent='Fehler'; });
+  fetch('/admin/api/timings').then(r=>r.json()).then(j=>{ document.getElementById('timingsPre').textContent = JSON.stringify(j,null,2); }).catch(()=>{ document.getElementById('timingsPre').textContent='Fehler'; });
+});
+</script>
+<%- include('partials/footer') %>

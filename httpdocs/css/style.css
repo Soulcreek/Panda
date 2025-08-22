@@ -198,6 +198,9 @@ html.dark-mode .btn-outline-secondary { color:#ccc; border-color:#555; }
 html.dark-mode .btn-outline-secondary:hover { background:#444; color:#fff; }
 html.dark-mode pre, html.dark-mode code { background:#1e1e1e; color:#ffdf9b; }
 html.dark-mode .modal-content { background:#1f1f1f; color:#e2e2e2; }
+
+/* Offline page wrapper */
+.offline-wrap{ max-width:640px; margin:4rem auto; padding:2rem; text-align:center; }
 html.dark-mode .dropdown-menu { background:#1f1f1f; color:#e2e2e2; }
 html.dark-mode .dropdown-item { color:#ddd; }
 html.dark-mode .dropdown-item:hover { background:#2a2a2a; color:#fff; }

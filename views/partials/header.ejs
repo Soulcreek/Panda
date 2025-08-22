@@ -59,7 +59,7 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                     </button>
                 </li>
                                 <li class="nav-item ms-lg-3">
-                        <form action="/search" method="GET" class="d-flex" role="search" onsubmit="return (this.q.value||'').trim().length>1">
+                        <form action="/search" method="GET" class="d-flex" role="search" id="siteSearchForm">
                             <input class="form-control form-control-sm" type="search" placeholder="<%= t('search.placeholder') %>" aria-label="Search" name="q" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
                             <button class="btn btn-sm btn-outline-primary ms-2" type="submit"><i class="bi bi-search"></i></button>
                         </form>
@@ -86,3 +86,9 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 <script nonce="<%= cspNonce %>" src="/js/inline/logo_swap.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/inline/sw_register.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/purview-nav.js"></script>
+<script nonce="<%= cspNonce %>">
+document.getElementById('siteSearchForm')?.addEventListener('submit', function(e){
+    const v=(this.q.value||'').trim();
+    if(v.length<=1){ e.preventDefault(); }
+});
+</script>

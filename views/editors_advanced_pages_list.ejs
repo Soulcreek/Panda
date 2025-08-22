@@ -22,7 +22,7 @@
         <td class="text-end">
           <a href="/editors/advanced-pages/edit/<%= p.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
           <a href="/editors/advanced-pages/preview/<%= p.id %>" class="btn btn-sm btn-outline-secondary">Preview</a>
-          <form action="/editors/advanced-pages/delete/<%= p.id %>" method="POST" class="d-inline" onsubmit="return confirm('Seite löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+          <form action="/editors/advanced-pages/delete/<%= p.id %>" method="POST" class="d-inline js-del-page"><button class="btn btn-sm btn-outline-danger">Del</button></form>
         </td>
       </tr>
     <% }); } else { %>
@@ -40,9 +40,9 @@
         <td><%= t.title %></td>
         <td><%= t.updated_at ? t.updated_at.toISOString().substring(0,19).replace('T',' ') : '' %></td>
         <td class="text-end">
-          <form action="/editors/advanced-pages/from-template/<%= t.id %>" method="POST" class="d-inline"><button class="btn btn-sm btn-success">Verwenden</button></form>
+          <form action="/editors/advanced-pages/from-template/<%= t.id %>" method="POST" class="d-inline js-use-template"><button class="btn btn-sm btn-success">Verwenden</button></form>
           <a href="/editors/advanced-pages/edit/<%= t.id %>" class="btn btn-sm btn-outline-primary">Edit</a>
-          <form action="/editors/advanced-pages/delete/<%= t.id %>" method="POST" class="d-inline" onsubmit="return confirm('Template löschen?');"><button class="btn btn-sm btn-outline-danger">Del</button></form>
+          <form action="/editors/advanced-pages/delete/<%= t.id %>" method="POST" class="d-inline js-del-template"><button class="btn btn-sm btn-outline-danger">Del</button></form>
         </td>
       </tr>
     <% }); } else { %>
@@ -53,3 +53,15 @@
   <p class="small text-muted">Beim Speichern einer Seite kannst du sie als Template markieren.</p>
 </div>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.querySelectorAll('form.js-del-page').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Seite löschen?')) e.preventDefault(); });
+});
+document.querySelectorAll('form.js-del-template').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Template löschen?')) e.preventDefault(); });
+});
+// Optional confirm when creating from template
+document.querySelectorAll('form.js-use-template').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Seite aus Template erstellen?')) e.preventDefault(); });
+});
+</script>

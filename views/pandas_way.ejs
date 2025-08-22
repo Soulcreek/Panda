@@ -62,7 +62,7 @@
         </div>
 </div>
 
-<style>
+<style nonce="<%= cspNonce %>">
     .path-card{cursor:pointer;transition:transform .25s, box-shadow .25s, border-color .25s; border:2px solid transparent; font-size:.9rem;}
     .path-card .card-img-top{height:140px;object-fit:cover;}
     .path-card:hover{transform:translateY(-4px);box-shadow:0 .75rem 1.25rem -0.5rem rgba(0,0,0,.15);} 
@@ -110,7 +110,7 @@
     .content-block[data-effect*='flip']{transform-style:preserve-3d;}
 </style>
 
-<script>
+<script nonce="<%= cspNonce %>">
 document.addEventListener('DOMContentLoaded', ()=>{
     const rawLevels = document.getElementById('pathsContent').dataset.levels || '[]';
     let dbLevels=[]; try { dbLevels = JSON.parse(rawLevels); } catch(e) { dbLevels=[]; }

@@ -1,8 +1,18 @@
 <%- include('partials/admin_header',{ title: title||'Feature Flags' }) %>
 <div class="container py-4">
   <h1 class="h3 mb-4">Feature Flags (<%= siteKey %>)</h1>
-  <form id="flag-form" class="row g-3 mb-4" method="post" action="/admin/api/feature-flags" onsubmit="return submitFlag(event)">
+  <form id="flag-form" class="row g-3 mb-4" method="post" action="/admin/api/feature-flags">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-12">
+      <label class="form-label">Vordefinierte Flags</label>
+    <select id="known-flags" class="form-select">
+        <option value="">— manuell auswählen —</option>
+        <% (knownFlags||[]).forEach(f=>{ %>
+      <option value="<%= f.key %>" data-description="<%= f.description||'' %>" data-suggested="<%= f.suggestedVariant||'' %>"><%= f.label %> (<%= f.key %>)</option>
+        <% }) %>
+      </select>
+      <div class="form-text">Auswahl füllt unten Key/Beschreibung automatisch.</div>
+    </div>
     <div class="col-md-3">
       <label class="form-label">Key</label>
       <input name="flag_key" class="form-control" placeholder="z.B. new_editor_ui" required maxlength="100">
@@ -28,7 +38,7 @@
     <thead><tr><th>Key</th><th>Aktiv</th><th>Variante</th><th>Beschreibung</th><th>Zuletzt</th><th></th></tr></thead>
     <tbody>
     <% (flags||[]).forEach(f=>{ %>
-      <tr data-flag="<%= f.flag_key %>"><td><code><%= f.flag_key %></code></td><td><span class="badge <%= f.enabled? 'bg-success':'bg-secondary' %>"><%= f.enabled? 'Ja':'Nein' %></span></td><td><%= f.variant||'' %></td><td class="small"><%= f.description||'' %></td><td class="text-muted small"><%= f.updated_at.toISOString ? f.updated_at.toISOString().slice(0,19).replace('T',' ') : f.updated_at %></td><td><button class="btn btn-sm btn-outline-danger" onclick="deleteFlag('<%= f.flag_key %>')">Löschen</button></td></tr>
+  <tr data-flag="<%= f.flag_key %>"><td><code><%= f.flag_key %></code></td><td><span class="badge <%= f.enabled? 'bg-success':'bg-secondary' %>"><%= f.enabled? 'Ja':'Nein' %></span></td><td><%= f.variant||'' %></td><td class="small"><%= f.description||'' %></td><td class="text-muted small"><%= f.updated_at.toISOString ? f.updated_at.toISOString().slice(0,19).replace('T',' ') : f.updated_at %></td><td><button class="btn btn-sm btn-outline-danger flag-delete" data-flag="<%= f.flag_key %>">Löschen</button></td></tr>
     <% }) %>
     </tbody>
   </table>
@@ -41,44 +51,70 @@
       <tbody id="audit-body"><tr><td colspan="6" class="text-muted">Lade...</td></tr></tbody>
     </table>
   </div></div>
-  <script>
+  <script nonce="<%= cspNonce %>">
   async function loadAudit(){
     try { const r=await fetch('/admin/api/feature-flags/audit'); const j=await r.json(); if(!r.ok) return; const tb=document.getElementById('audit-body'); tb.innerHTML=(j.audit||[]).map(a=>`<tr><td>${(a.created_at||'').toString().replace('T',' ').slice(0,19)}</td><td><code>${a.flag_key}</code></td><td>${a.action}</td><td>${a.enabled? 'Ja':'Nein'}</td><td>${a.variant||''}</td><td class="small">${a.description||''}</td></tr>`).join('') || '<tr><td colspan="6" class="text-muted">Keine Einträge</td></tr>'; } catch(_){}
   }
   loadAudit();
   setInterval(loadAudit, 20000);
   </script>
+  <script nonce="<%= cspNonce %>">
+  (function(){
+    // Known flags selector -> populate fields
+    const knownSel = document.getElementById('known-flags');
+    const keyInput = document.querySelector('input[name="flag_key"]');
+    const varInput = document.querySelector('input[name="variant"]');
+    const descInput = document.querySelector('input[name="description"]');
+    knownSel?.addEventListener('change', ()=>{
+      const opt = knownSel.options[knownSel.selectedIndex];
+      const v = knownSel.value;
+      if(!v){ return; }
+      keyInput && (keyInput.value = v);
+      const d = opt?.getAttribute('data-description') || '';
+      descInput && (descInput.value = d);
+      const s = opt?.getAttribute('data-suggested') || '';
+      if(s && varInput && !varInput.value) varInput.value = s;
+    });
+    async function submitFlag(e){
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const res = await fetch('/admin/api/feature-flags',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
+      const j = await res.json();
+      if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return; }
+      renderFlags(j.flags);
+      e.target.reset();
+    }
+    async function deleteFlag(key){
+      if(!confirm('Flag wirklich löschen? '+key)) return;
+      const fd = new FormData(); fd.append('flag_key', key); fd.append('_csrf', document.querySelector('input[name=_csrf]').value);
+      const res = await fetch('/admin/api/feature-flags/delete',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
+      const j = await res.json();
+      if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return; }
+      renderFlags(j.flags);
+    }
+    function renderFlags(flags){
+      const tb = document.querySelector('#flags-table tbody');
+      tb.innerHTML = (flags||[]).map(f=>`
+        <tr data-flag="${f.flag_key}">
+          <td><code>${f.flag_key}</code></td>
+          <td><span class="badge ${f.enabled? 'bg-success':'bg-secondary'}">${f.enabled? 'Ja':'Nein'}</span></td>
+          <td>${f.variant||''}</td>
+          <td class="small">${f.description||''}</td>
+          <td class="text-muted small">${(f.updated_at||'').toString().replace('T',' ').slice(0,19)}</td>
+          <td><button class="btn btn-sm btn-outline-danger flag-delete" data-flag="${f.flag_key}">Löschen</button></td>
+        </tr>`).join('');
+    }
+    // Wire events
+    document.getElementById('flag-form')?.addEventListener('submit', submitFlag);
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.flag-delete');
+      if(!btn) return;
+      e.preventDefault();
+      deleteFlag(btn.getAttribute('data-flag'));
+    });
+    // Expose for other inline consumers in same page (if any future widgets)
+    window.renderFlags = renderFlags;
+  })();
+  </script>
 </div>
-<script>
-async function submitFlag(e){
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const res = await fetch('/admin/api/feature-flags',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
-  const j = await res.json();
-  if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return false; }
-  renderFlags(j.flags);
-  e.target.reset();
-  return false;
-}
-async function deleteFlag(key){
-  if(!confirm('Flag wirklich löschen? '+key)) return;
-  const fd = new FormData(); fd.append('flag_key', key); fd.append('_csrf', document.querySelector('input[name=_csrf]').value);
-  const res = await fetch('/admin/api/feature-flags/delete',{ method:'POST', headers:{'CSRF-Token': fd.get('_csrf')}, body: fd });
-  const j = await res.json();
-  if(!res.ok){ alert('Fehler: '+(j.error||res.status)); return; }
-  renderFlags(j.flags);
-}
-function renderFlags(flags){
-  const tb = document.querySelector('#flags-table tbody');
-  tb.innerHTML = (flags||[]).map(f=>`
-    <tr data-flag="${f.flag_key}">
-      <td><code>${f.flag_key}</code></td>
-      <td><span class="badge ${f.enabled? 'bg-success':'bg-secondary'}">${f.enabled? 'Ja':'Nein'}</span></td>
-      <td>${f.variant||''}</td>
-      <td class="small">${f.description||''}</td>
-      <td class="text-muted small">${(f.updated_at||'').toString().replace('T',' ').slice(0,19)}</td>
-      <td><button class="btn btn-sm btn-outline-danger" onclick="deleteFlag('${f.flag_key}')">Löschen</button></td>
-    </tr>`).join('');
-}
-</script>
 <%- include('partials/admin_footer') %>

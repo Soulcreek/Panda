@@ -3,12 +3,13 @@ const router = express.Router();
 const pool = require('../../db');
 const { isAdmin } = require('../../lib/auth');
 const { ensureTable, listFlags, upsertFlag, deleteFlag, recentAudit } = require('../../lib/featureFlags');
+const { KNOWN_FLAGS } = require('../../lib/featureFlagsCatalog');
 
 // Basic page
 router.get('/feature-flags', isAdmin, async (req,res)=>{
   await ensureTable();
   const flags = await listFlags(req.siteKey);
-  res.render('admin_feature_flags', { title:'Feature Flags', flags });
+  res.render('admin_feature_flags', { title:'Feature Flags', flags, knownFlags: KNOWN_FLAGS });
 });
 
 // API list

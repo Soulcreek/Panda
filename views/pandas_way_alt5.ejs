@@ -50,7 +50,7 @@
     <% } %>
   </section>
 </div>
-<style>
+<style nonce="<%= cspNonce %>">
 .alt5-hero{background:linear-gradient(135deg,#111,#222);overflow:hidden;position:relative;z-index:0;}
 .alt5-hero > .container{position:relative;z-index:2;}
 .alt5-bg-layer{position:absolute;inset:0;opacity:.4;background:radial-gradient(circle at 70% 30%,rgba(99,102,241,.35),transparent 60%);z-index:1;pointer-events:none;} 
@@ -90,7 +90,7 @@
   .alt5-bubble:before{left:-38px !important;right:auto;}
 }
 </style>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   console.log('alt5 init');
   var rootEl = document.getElementById('alt5Root');
@@ -177,5 +177,5 @@
 })();
 </script>
 <% /* Level & Config JSON Einbetten (Server muss site config & levels mitliefern) */ %>
-<script type="application/json" id="alt5LevelData"><%- JSON.stringify({ config: typeof timelineSiteConfig!=='undefined'? timelineSiteConfig : {}, levels: typeof timelineLevels!=='undefined'? timelineLevels : [] }) %></script>
+<script type="application/json" id="alt5LevelData" nonce="<%= cspNonce %>"><%- JSON.stringify({ config: typeof timelineSiteConfig!=='undefined'? timelineSiteConfig : {}, levels: typeof timelineLevels!=='undefined'? timelineLevels : [] }) %></script>
 <%- include('partials/footer') %>

@@ -5,15 +5,15 @@
     <span><%= post ? 'Beitrag bearbeiten' : 'Neuen Beitrag erstellen' %></span>
     <span class="small text-muted">/ Editors</span>
   </h1>
-  <form action="<%= post ? '/editors/posts/edit/' + post.id : '/editors/posts/new' %>" method="POST" onsubmit="return syncEditors()" class="row g-4" data-seo-prefix="<%- (typeof seoPrefix!=='undefined' && seoPrefix) ? seoPrefix.replace(/"/g,'&quot;') : '' %>">
+  <form action="<%= post ? '/editors/posts/edit/' + post.id : '/editors/posts/new' %>" method="POST" class="row g-4" data-seo-prefix="<%- (typeof seoPrefix!=='undefined' && seoPrefix) ? seoPrefix.replace(/"/g,'&quot;') : '' %>">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="col-12 col-lg-8">
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span>Titelbild</span>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openMediaPicker()">Wählen</button>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFeaturedImage()">Entfernen</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPickFeatured">Wählen</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearFeatured">Entfernen</button>
           </div>
         </div>
         <div class="card-body">
@@ -28,12 +28,14 @@
         </div>
       </div>
       <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span>Inhalt</span>
           <div class="btn-group btn-group-sm">
             <button type="button" id="btnWhatsNew" class="btn btn-outline-primary">Research News</button>
             <button type="button" id="btnSample" class="btn btn-outline-secondary">Sample</button>
             <button type="button" id="btnTranslate" class="btn btn-outline-secondary">DE→EN</button>
+      <button type="button" id="btnCopyDeToEn" class="btn btn-outline-secondary">DE→EN kopieren</button>
+      <button type="button" id="btnCopyEnToDe" class="btn btn-outline-secondary">EN→DE kopieren</button>
           </div>
         </div>
   <div id="aiFeedback" class="px-3 pt-2 border-top hidden-init">
@@ -171,8 +173,8 @@
 </div>
 <%- include('partials/footer') %>
 <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" nonce="<%= cspNonce %>"></script>
+<script nonce="<%= cspNonce %>">
 function syncEditors(){
   // Push Quill HTML into hidden textareas before submit
   if(window.__quill_de){ document.getElementById('content_de').value = window.__quill_de.root.innerHTML; }
@@ -180,9 +182,14 @@ function syncEditors(){
   return true;
 }
 (function(){
+  // Ensure editor content sync without inline onsubmit
+  const form = document.querySelector('form');
+  if(form){ form.addEventListener('submit', (e)=>{ const ok = (typeof syncEditors==='function') ? syncEditors() : true; if(ok===false){ e.preventDefault(); e.stopPropagation(); } }); }
   const whatsBtn=document.getElementById('btnWhatsNew');
   const sampleBtn=document.getElementById('btnSample');
   const translateBtn=document.getElementById('btnTranslate');
+  const copyDeToEnBtn=document.getElementById('btnCopyDeToEn');
+  const copyEnToDeBtn=document.getElementById('btnCopyEnToDe');
   const teaser=document.getElementById('whatsnew');
   const teaserCounter=document.getElementById('teaserCounter');
   function updTeaser(){ if(teaserCounter) teaserCounter.textContent = (teaser.value||'').length + ' / 180'; }
@@ -231,13 +238,42 @@ function syncEditors(){
       document.getElementById('title_en').value=parsed.title||''; setEditorValue('content_en', parsed.content||'');
       flash(translateBtn,'ok'); showAiSuccess(translateBtn,data);
   } catch(e){ flash(translateBtn,'err'); showAiError(translateBtn,e); console.warn('AI translate error',e); } }); }
+  // Quick copy helpers (no AI) for bilingual editing
+  if(copyDeToEnBtn){ copyDeToEnBtn.addEventListener('click', ()=>{
+    const tDe=document.getElementById('title_de'); const tEn=document.getElementById('title_en'); if(tDe && tEn){ tEn.value = tDe.value || ''; }
+    const htmlDe = getEditorValue('content_de'); setEditorValue('content_en', htmlDe);
+    flash(copyDeToEnBtn,'ok','Kopiert');
+  }); }
+  if(copyEnToDeBtn){ copyEnToDeBtn.addEventListener('click', ()=>{
+    const tDe=document.getElementById('title_de'); const tEn=document.getElementById('title_en'); if(tDe && tEn){ tDe.value = tEn.value || ''; }
+    const htmlEn = getEditorValue('content_en'); setEditorValue('content_de', htmlEn);
+    flash(copyEnToDeBtn,'ok','Kopiert');
+  }); }
   // SEO Ableiten
   const seoBtn=document.getElementById('btnSeoFromContent');
   const seoDesc=document.getElementById('seo_description');
   const seoDescCounter=document.getElementById('seoDescCounter');
   function updSeo(){ if(!seoDescCounter) return; const len=(seoDesc.value||'').length; seoDescCounter.textContent=len+' / 160'; seoDescCounter.classList.toggle('text-danger',len>170); }
   if(seoDesc){ seoDesc.addEventListener('input', updSeo); updSeo(); }
-  if(seoBtn){ seoBtn.addEventListener('click',()=>{ const title=document.getElementById('title_de'); const seoTitle=document.querySelector('input[name="seo_title"]'); if(title && seoTitle && !seoTitle.value) seoTitle.value=title.value.slice(0,60); if(seoDesc && !seoDesc.value){ let text=(getEditorValue('content_de')||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); let snip=text.slice(0,160); const lastDot=snip.lastIndexOf('.'); if(lastDot>70) snip=snip.slice(0,lastDot+1); seoDesc.value=snip; updSeo(); } }); }
+  if(seoBtn){ seoBtn.addEventListener('click',()=>{
+    const activePane=document.querySelector('.tab-pane.active');
+    const useEn = !!(activePane && activePane.id==='lang-en');
+    const title = document.getElementById(useEn ? 'title_en' : 'title_de');
+    const seoTitle=document.querySelector('input[name="seo_title"]');
+    if(title && seoTitle && !seoTitle.value) seoTitle.value = (title.value||'').slice(0,60);
+    if(seoDesc && !seoDesc.value){
+      let text=(getEditorValue(useEn ? 'content_en' : 'content_de')||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+      let snip=text.slice(0,160); const lastDot=snip.lastIndexOf('.'); if(lastDot>70) snip=snip.slice(0,lastDot+1);
+      seoDesc.value=snip; updSeo();
+    }
+  }); }
+  // Slug from title (works also on new posts)
+  const btnSlug=document.getElementById('btnSlugFromTitle');
+  const titleDe=document.getElementById('title_de');
+  const titleEn=document.getElementById('title_en');
+  const slugInput=document.getElementById('slug_manual');
+  function slugify(str){ return (str||'').toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,190); }
+  if(btnSlug && slugInput){ btnSlug.addEventListener('click',()=>{ const src=(titleDe&&titleDe.value)|| (titleEn&&titleEn.value) || ''; if(src){ slugInput.value = slugify(src); } }); }
   // Quill initialisieren
   const quilOpts={ theme:'snow', modules:{ toolbar:[['bold','italic','underline'],[{ 'list':'ordered'},{'list':'bullet'}],['link','code-block','image']] } };
   if(window.Quill){
@@ -255,27 +291,36 @@ function syncEditors(){
   let currentCat='all';
   const refresh=document.getElementById('btnRefreshMedia');
   async function loadMedia(){ if(!grid) return; grid.innerHTML='<div class="col-12 text-center py-3 text-muted"><div class="spinner-border spinner-border-sm"></div></div>'; let url='/editors/api/media'; if(currentCat && currentCat!=='all') url+='?category='+encodeURIComponent(currentCat); try { const resp=await fetch(url); if(!resp.ok) throw new Error('HTTP '+resp.status); const data=await resp.json(); grid.innerHTML='';
-    data.filter(m=>/^image\//.test(m.type||'')).slice(0,300).forEach(m=>{ const col=document.createElement('div'); col.className='col-4 col-sm-3 col-md-3'; const wrap=document.createElement('div'); wrap.className='position-relative border rounded bg-white p-1 h-100 d-flex flex-column media-thumb'; wrap.style.cursor='grab'; wrap.draggable=true; wrap.dataset.path=m.path; const img=document.createElement('img'); img.src=m.path; img.alt=m.alt_text||m.name||''; img.className='img-fluid rounded mb-1 flex-grow-1'; img.style.objectFit='cover'; img.style.maxHeight='90px'; const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-light border copy-link-btn'; btn.innerHTML='<i class="bi bi-clipboard"></i>'; btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); navigator.clipboard.writeText(m.path).then(()=>{ btn.innerHTML='<i class="bi bi-check text-success"></i>'; setTimeout(()=>btn.innerHTML='<i class="bi bi-clipboard"></i>',1200); }); }); wrap.appendChild(img); wrap.appendChild(btn); col.appendChild(wrap); grid.appendChild(col); wrap.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', m.path); ev.dataTransfer.effectAllowed='copy'; }); }); if(!grid.children.length) grid.innerHTML='<div class="col-12 small text-muted py-2">Keine Medien.</div>'; }
+    data.filter(m=>/^image\//.test(m.type||'')).slice(0,300).forEach(m=>{ const col=document.createElement('div'); col.className='col-4 col-sm-3 col-md-3'; const wrap=document.createElement('div'); wrap.className='position-relative border rounded bg-white p-1 h-100 d-flex flex-column media-thumb'; wrap.style.cursor='grab'; wrap.draggable=true; wrap.dataset.path=m.path; wrap.dataset.id=m.id; const img=document.createElement('img'); img.src=m.path; img.alt=m.alt_text||m.name||''; img.className='img-fluid rounded mb-1 flex-grow-1'; img.style.objectFit='cover'; img.style.maxHeight='90px'; const btn=document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-light border copy-link-btn'; btn.innerHTML='<i class="bi bi-clipboard"></i>'; btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); navigator.clipboard.writeText(m.path).then(()=>{ btn.innerHTML='<i class="bi bi-check text-success"></i>'; setTimeout(()=>btn.innerHTML='<i class=\"bi bi-clipboard\"></i>',1200); }); }); wrap.appendChild(img); wrap.appendChild(btn); col.appendChild(wrap); grid.appendChild(col); wrap.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', m.path); ev.dataTransfer.effectAllowed='copy'; }); }); if(!grid.children.length) grid.innerHTML='<div class="col-12 small text-muted py-2">Keine Medien.</div>'; }
     catch(e){ grid.innerHTML='<div class="col-12 small text-danger">Fehler Laden</div>'; }
   }
   function insertImage(path){ // active tab
     const activePane=document.querySelector('.tab-pane.active'); const isDe=activePane && activePane.id==='lang-de'; const q = isDe ? window.__quill_de : window.__quill_en; if(q){ const r=q.getSelection(true)||{index:q.getLength()}; q.insertEmbed(r.index,'image',path,'user'); q.setSelection(r.index+1,0);} }
-  if(grid){ grid.addEventListener('click', e=>{ const el=e.target.closest('.media-thumb'); if(!el) return; insertImage(el.dataset.path); }); loadMedia(); if(refresh) refresh.addEventListener('click', loadMedia); }
+  // Featured picker mode
+  let pickFeatured = false; const chooseBtn = document.getElementById('btnPickFeatured'); const clearBtn = document.getElementById('btnClearFeatured');
+  function updateChooseBtn(state){ if(!chooseBtn) return; if(state){ chooseBtn.classList.remove('btn-outline-secondary'); chooseBtn.classList.add('btn-success'); chooseBtn.textContent='Bild wählen: aktiv'; }
+    else { chooseBtn.classList.remove('btn-success'); chooseBtn.classList.add('btn-outline-secondary'); chooseBtn.textContent='Wählen'; } }
+  if(chooseBtn){ chooseBtn.addEventListener('click', ()=>{ pickFeatured = true; updateChooseBtn(true); const lib=document.getElementById('mediaQuickGrid'); if(lib) lib.scrollIntoView({behavior:'smooth'}); }); }
+  if(grid){ grid.addEventListener('click', e=>{ const el=e.target.closest('.media-thumb'); if(!el) return; if(pickFeatured){ setFeatured(el.dataset.id || '', el.dataset.path || ''); pickFeatured=false; updateChooseBtn(false); } else { insertImage(el.dataset.path); } }); loadMedia(); if(refresh) refresh.addEventListener('click', loadMedia); }
   if(catsBtns){ catsBtns.addEventListener('click', e=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; currentCat=b.dataset.cat; catsBtns.querySelectorAll('button[data-cat]').forEach(x=>x.classList.toggle('active', x===b)); loadMedia(); }); }
   function enableDragDrop(q){ if(!q) return; q.root.addEventListener('dragover', e=>{ e.preventDefault(); }); q.root.addEventListener('drop', e=>{ e.preventDefault(); const path=e.dataTransfer.getData('text/plain'); if(path){ const r=q.getSelection(true)||{index:q.getLength()}; q.insertEmbed(r.index,'image',path,'user'); q.setSelection(r.index+1,0);} }); }
   enableDragDrop(window.__quill_de); enableDragDrop(window.__quill_en);
   // Featured Image helpers
   function setFeatured(id,path){ const hidden=document.getElementById('featured_image_id'); const prev=document.getElementById('featuredPreview'); if(hidden) hidden.value=id; if(prev){ prev.innerHTML= path ? '<img src="'+path+'" class="w-100 h-100 object-fit-cover" alt="Featured">' : '<span class=\'text-muted small\'>Kein Bild gewählt</span>'; } }
-  window.clearFeaturedImage=function(){ setFeatured('', ''); };
-  window.openMediaPicker=function(){ const lib=document.getElementById('mediaQuickGrid'); if(lib) lib.scrollIntoView({behavior:'smooth'}); };
+  if(clearBtn){ clearBtn.addEventListener('click', ()=> setFeatured('', '')); }
   // Tag Suggest Buttons
   const tagInput=document.getElementById('tags');
   document.querySelectorAll('.tag-suggestion').forEach(btn=> btn.addEventListener('click',()=>{ if(!tagInput) return; const cur=(tagInput.value||'').split(',').map(s=>s.trim()).filter(Boolean); const val=btn.dataset.tag; if(!cur.includes(val)){ cur.push(val); tagInput.value=cur.join(', ');} }));
   // SEO Titel Präfix Vorschlag
   const formEl=document.querySelector('form[data-seo-prefix]');
   const SEO_PREFIX = formEl ? formEl.getAttribute('data-seo-prefix') : '';
-  if(SEO_PREFIX){ const seoTitle=document.querySelector('input[name="seo_title"]'); const titleDe=document.getElementById('title_de'); function applyPrefix(){ if(!seoTitle) return; if(!seoTitle.value && titleDe && titleDe.value){ seoTitle.value = (SEO_PREFIX + titleDe.value).slice(0,255); } }
-    if(titleDe) titleDe.addEventListener('blur', applyPrefix);
+  if(SEO_PREFIX){
+    const seoTitle=document.querySelector('input[name="seo_title"]');
+    const titleDe=document.getElementById('title_de');
+    const titleEn=document.getElementById('title_en');
+    function applyPrefix(src){ if(!seoTitle) return; const el = (src==='en') ? titleEn : titleDe; if(!seoTitle.value && el && el.value){ seoTitle.value = (SEO_PREFIX + el.value).slice(0,255); } }
+    if(titleDe) titleDe.addEventListener('blur', ()=>applyPrefix('de'));
+    if(titleEn) titleEn.addEventListener('blur', ()=>applyPrefix('en'));
   }
   // AI Parse Error Badge (shows last error if any)
   function showParseBadge(btn, parseError){ if(!btn) return; let badge=btn.parentElement.querySelector('.ai-parse-error'); if(parseError){ if(!badge){ badge=document.createElement('span'); badge.className='badge bg-danger ms-2 ai-parse-error'; badge.style.cursor='help'; btn.parentElement.appendChild(badge); } badge.textContent='Parse?'; badge.title=parseError; } }
@@ -293,7 +338,7 @@ function syncEditors(){
   const copyBtn=document.getElementById('aiCopyRaw'); if(copyBtn){ copyBtn.addEventListener('click',()=>{ if(!__lastAiRaw) return; navigator.clipboard.writeText(__lastAiRaw).then(()=>{ const orig=copyBtn.textContent; copyBtn.textContent='Kopiert'; copyBtn.classList.add('btn-success'); setTimeout(()=>{ copyBtn.textContent=orig; copyBtn.classList.remove('btn-success'); },1200); }); }); }
 })();
 </script>
-<style>
+<style nonce="<%= cspNonce %>">
 #featuredPreview img{object-fit:cover;}
 .media-thumb{transition:box-shadow .2s, transform .2s;}
 .media-thumb:hover{box-shadow:0 0 0 3px #0d6efd55; transform:scale(1.02);} 
@@ -318,13 +363,8 @@ function syncEditors(){
     </div>
   </div>
 </div>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
-  function slugify(str){ return (str||'').toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,190); }
-  const btnSlug=document.getElementById('btnSlugFromTitle');
-  const titleDe=document.getElementById('title_de');
-  const slugInput=document.getElementById('slug_manual');
-  if(btnSlug && titleDe && slugInput){ btnSlug.addEventListener('click',()=>{ if(titleDe.value){ slugInput.value=slugify(titleDe.value); } }); }
   // Revisions UI
   const btnRev=document.getElementById('btnShowRevisions');
   if(btnRev){ btnRev.addEventListener('click', async ()=>{

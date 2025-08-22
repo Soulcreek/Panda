@@ -35,6 +35,17 @@ const app = express();
 if(!global.__startup_enforced){
     (async ()=>{
         try {
+            // Warn if insecure/placeholder secrets are present (dev hint only)
+            try {
+                const sec = process.env.SESSION_SECRET || '';
+                if(!sec || /zufaellige_zeichenkette|changeme|change_me|test/i.test(sec)){
+                    console.warn('[security] SESSION_SECRET looks weak or placeholder. Set a long random value in .env');
+                }
+                const adminTok = process.env.ADMIN_ACCESS_TOKEN || '';
+                if(adminTok && /DEIN_TOKEN|some_long_random_string|changeme/i.test(adminTok)){
+                    console.warn('[security] ADMIN_ACCESS_TOKEN uses a placeholder. Replace with a strong random token.');
+                }
+            } catch(_){}
             // Enforce podcasts.slug NOT NULL after ensuring no NULL/empty remain
             const [[missing]] = await pool.query('SELECT COUNT(*) c FROM podcasts WHERE slug IS NULL OR slug=""');
             if(missing.c){
@@ -229,18 +240,15 @@ app.use(async (req, res, next) => {
 // Prefetch feature flags for admin & editors pages
 app.use((req,res,next)=>{ if(req.path.startsWith('/admin') || req.path.startsWith('/editors')){ featureFlags.listFlags(req.siteKey||'default').then(list=>{ const map={}; list.forEach(f=> map[f.flag_key]=!!f.enabled); res.locals.flags=map; res.locals.flagsList=list; next(); }).catch(()=>next()); } else next(); });
 
-// Security headers (CSP script nonce; style hardening pending)
+// Security headers (strict CSP with per-request nonces for scripts and styles)
 app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     const nonce = res.locals.cspNonce;
-    const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://cdn.tiny.cloud https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self'; frame-ancestors 'self'; connect-src 'self';`;
+    const csp = `default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-${nonce}' https://cdn.tiny.cloud https://cdn.jsdelivr.net https://unpkg.com; style-src-elem 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob:; media-src 'self'; frame-ancestors 'self'; connect-src 'self';`;
     res.setHeader('Content-Security-Policy', csp);
-    // Report-Only variant preparing removal of 'unsafe-inline' (will help collect violations)
-    const ro = csp.replace("'unsafe-inline' ", '');
-    res.setHeader('Content-Security-Policy-Report-Only', ro);
     next();
 });
 

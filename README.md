@@ -134,6 +134,12 @@ Seeding ALT5: Erstaufruf erstellt Beispiel-Einträge mit Level-Verteilung (1–3
 
 ## 11. Dark Mode & Preferences
 - Server setzt class="dark-mode" wenn userPrefs.theme==='dark'
+
+DB Host guidance
+
+- Prefer using your provider’s external hostname (e.g., `mysqle94c.netcup.net`) in `DB_HOST`.
+- If external host fails due to firewall/DNS, fallback to the given IP or a socket path via `DB_SOCKET_PATH`.
+- The app logs which path is used at startup and continues serving diagnostics even if DB connect fails.
 - Früher Startscript liest localStorage (pp_theme)
 - Toggle Button synchronisiert (localStorage & optional /api/user/preferences – nur bei vollem Cookie Consent)
 

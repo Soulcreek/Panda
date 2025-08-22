@@ -28,9 +28,14 @@
   <% if (result) { %>
     <div class="mb-2 d-flex align-items-center gap-2">
       <strong class="me-auto">Roh-Antwort</strong>
-      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('aiRawOut').textContent)">Copy</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyRaw">Copy</button>
     </div>
   <pre id="aiRawOut" class="p-2 bg-light border h-400 of-auto ws-pre-wrap"><%= result %></pre>
   <% } %>
 </div>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.getElementById('btnCopyRaw')?.addEventListener('click', ()=>{
+  const el=document.getElementById('aiRawOut'); if(!el) return; navigator.clipboard.writeText(el.textContent||'');
+});
+</script>

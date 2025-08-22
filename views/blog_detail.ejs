@@ -1,6 +1,6 @@
 <%- include('partials/header') %>
 <main class="container my-5 blog-detail">
-  <script type="application/json" id="seoData"><%- JSON.stringify(seo||{}) %></script>
+  <script type="application/json" id="seoData" nonce="<%= cspNonce %>"><%- JSON.stringify(seo||{}) %></script>
   <article class="mb-5">
     <header class="mb-4">
       <h1 class="mb-3"><%= post.title %></h1>

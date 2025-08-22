@@ -13,7 +13,7 @@
   </table>
   <a href="/admin" class="btn btn-secondary">Zurück</a>
 </div>
-<script>
+<script nonce="<%= cspNonce %>">
 async function loadTimings(){
   try {
     const r = await fetch('/admin/api/timings');

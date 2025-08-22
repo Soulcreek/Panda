@@ -31,6 +31,29 @@ router.post('/media/edit/:id', isEditor, async (req,res)=>{ const { name, alt_te
 // Media API
 router.get('/api/media', isEditor, async (req,res)=>{ try { const { category, type } = req.query; let sql='SELECT m.id,m.name,m.path,m.type,m.alt_text,m.description,m.category_id,m.uploaded_at, mc.label AS category_label FROM media m LEFT JOIN media_categories mc ON m.category_id=mc.id AND mc.site_key=? WHERE m.site_key=?'; const cond=[]; const vals=[req.siteKey, req.siteKey]; if(category){ cond.push('mc.slug=?'); vals.push(category); } if(type){cond.push('m.type LIKE ?');vals.push(type+'%');} if(cond.length) sql+=' AND '+cond.join(' AND '); sql+=' ORDER BY m.uploaded_at DESC LIMIT 500'; const [rows]=await pool.query(sql,vals); res.json(rows); } catch(e){ res.apiError(500,{ error:'Media Liste Fehler', code:'MEDIA_LIST', detail:e.message }); } });
 
+// Media Categories API (site-scoped)
+router.get('/api/media-categories', isEditor, async (req,res)=>{
+	try {
+		try { await pool.query('ALTER TABLE media_categories ADD COLUMN site_key VARCHAR(64) NOT NULL DEFAULT "default", ADD INDEX idx_media_cat_site (site_key)'); } catch(_){ }
+		const [cats] = await pool.query('SELECT slug,label FROM media_categories WHERE site_key=? ORDER BY label ASC',[req.siteKey]);
+		res.json({ categories: cats });
+	} catch(e){ res.apiError(500,{ error:'Media Kategorien Fehler', code:'MEDIA_CAT_LIST', detail:e.message }); }
+});
+router.post('/api/media-categories', isEditor, async (req,res)=>{
+	try {
+		const label = (req.body && req.body.label || '').trim();
+		if(!label) return res.apiError(400,{ error:'Label fehlt', code:'CAT_LABEL_REQUIRED' });
+		// ensure table/columns
+		try { await pool.query('CREATE TABLE IF NOT EXISTS media_categories (id INT AUTO_INCREMENT PRIMARY KEY, slug VARCHAR(190) NOT NULL, label VARCHAR(190) NOT NULL, site_key VARCHAR(64) NOT NULL DEFAULT "default", UNIQUE KEY uq_site_slug (site_key, slug)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'); } catch(_){ }
+		// slugify
+		const slug = label.toLowerCase().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,190) || 'cat';
+		// upsert per site
+		await pool.query('INSERT INTO media_categories (slug,label,site_key) VALUES (?,?,?) ON DUPLICATE KEY UPDATE label=VALUES(label)', [slug, label, req.siteKey]);
+		const [cats] = await pool.query('SELECT slug,label FROM media_categories WHERE site_key=? ORDER BY label ASC',[req.siteKey]);
+		res.json({ ok:true, categories: cats });
+	} catch(e){ res.apiError(500,{ error:'Media Kategorie speichern fehlgeschlagen', code:'MEDIA_CAT_SAVE', detail:e.message }); }
+});
+
 // Uploads
 const uploadDir = path.join(__dirname,'..','..','httpdocs','uploads'); try { fs.mkdirSync(uploadDir,{recursive:true}); } catch(_){ }
 const storage = multer.diskStorage({ destination:(req,file,cb)=>cb(null,uploadDir), filename:(req,file,cb)=>{ const ext=path.extname(file.originalname).toLowerCase(); cb(null, Date.now()+'-'+Math.round(Math.random()*1e6)+ext);} });

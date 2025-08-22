@@ -29,7 +29,7 @@
   <div class="mt-4"><a class="btn btn-sm btn-outline-secondary" href="/admin">Zum Settings Center</a></div>
 </div>
 <%- include('partials/footer') %>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   const buttons=document.querySelectorAll('.btn-ai-meta');
   buttons.forEach(btn=>{

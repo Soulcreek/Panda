@@ -9,8 +9,8 @@ Examples:
   # dry run (no changes):
   node scripts/run_migrations.js --database=k302164_PP_Data --dry-run
 
-  # apply using env vars
-  DB_HOST=10.35.233.76 DB_USER=k302164_PP2 DB_PASSWORD='%wQ6181qh' DB_NAME=k302164_PP_Data node scripts/run_migrations.js
+  # apply using env vars (replace placeholders accordingly)
+  DB_HOST=YOUR_DB_HOST DB_USER=APP_USER DB_PASSWORD='YOUR_DB_PASSWORD' DB_NAME=YOUR_DB_NAME node scripts/run_migrations.js
 
 Safety notes:
 - The runner records applied migrations in a `schema_migrations` table. If a file's checksum changes after being applied, the runner will stop and report a checksum mismatch.

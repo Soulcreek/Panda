@@ -82,10 +82,10 @@ try {
       connection.release();
     })
     .catch(err => {
-      console.error('[DB] FATAL: Konnte nach dem Erstellen des Pools keine Verbindung zur Datenbank herstellen.');
+      console.error('[DB] WARN: Verbindungstest fehlgeschlagen. Server startet dennoch, DB-abhängige Seiten können fehlschlagen.');
       console.error('[DB] Bitte prüfe deine .env Konfiguration (Host, User, Passwort, Socket-Pfad).');
       console.error(err);
-      process.exit(1); // Beendet den Prozess bei einem Fehler, um klare Logs zu erzeugen
+      // Do not exit hard; allow app to surface diagnostics routes/pages
     });
 
 } catch (err) {
@@ -94,5 +94,8 @@ try {
   process.exit(1);
 }
 
+// Export both default and named for flexibility
 module.exports = pool;
+module.exports.pool = pool;
 module.exports.dbHealth = dbHealth;
+module.exports.getPool = () => pool;

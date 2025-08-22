@@ -11,7 +11,7 @@
   </section>
   <section class="container py-5" id="alt1Content"></section>
 </div>
-<style>
+<style nonce="<%= cspNonce %>">
 .alt1-card{cursor:pointer;min-width:140px;padding:1rem 1.1rem;border-radius:1rem;backdrop-filter:blur(6px);background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25);transition:.35s;position:relative;overflow:hidden;font-size:.85rem;text-align:left;}
 .alt1-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.25),transparent);opacity:0;transition:.4s;}
 .alt1-card:hover{transform:translateY(-6px);box-shadow:0 1.25rem 2rem -1rem rgba(0,0,0,.6);} 
@@ -26,7 +26,7 @@
 .alt-icon{font-size:2.2rem;line-height:1;color:#0d6efd;margin-right:.75rem;}
 .alt-gradient-bg{background:linear-gradient(135deg,#eef5ff,#ffffff,#f1e8ff);} 
 </style>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
  console.log('alt1 init');
  const LEVELS = {

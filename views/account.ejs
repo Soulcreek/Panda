@@ -9,7 +9,7 @@
       <pre class="small bg-light p-3 rounded"><%= JSON.stringify(prefs || {}, null, 2) %></pre>
       <div class="d-flex flex-wrap gap-3 mt-3">
         <a href="/account/export" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export (JSON)</a>
-        <form method="POST" action="/account/delete" onsubmit="return confirm('Delete account? This will anonymize your username.');">
+  <form method="POST" action="/account/delete" class="js-account-delete">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</button>
         </form>
       </div>
@@ -20,3 +20,8 @@
   </div>
 </div>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.querySelectorAll('form.js-account-delete').forEach(f=>{
+  f.addEventListener('submit', (e)=>{ if(!window.confirm('Delete account? This will anonymize your username.')) e.preventDefault(); });
+});
+</script>

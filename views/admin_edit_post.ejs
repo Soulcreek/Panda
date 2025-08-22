@@ -20,7 +20,7 @@
     <p class="text-muted small mb-1">Diese Seite bleibt temporär für alte interne Links bestehen und wird bald entfernt.</p>
     <p class="text-muted small">Archivierte Original-Datei: <code>views/legacy/admin_edit_post.ejs</code> (falls vorhanden).</p>
 </div>
-<script>
+<script nonce="<%= cspNonce %>">
 // Soft redirect to new editors route; keep DOM simple to avoid EJS lint noise
 setTimeout(()=>{
     var target = '<%- (post ? ('/editors/posts/edit/'+post.id) : '/editors/posts/new') %>';

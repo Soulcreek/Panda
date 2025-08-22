@@ -73,14 +73,14 @@
 <div id="apLayoutData" data-json="<%= encodeURIComponent(layoutJSON) %>"></div>
 <div id="apDataPosts" data-json="<%= encodeURIComponent(JSON.stringify(typeof posts!=='undefined'?posts:[])) %>"></div>
 <div id="apDataPodcasts" data-json="<%= encodeURIComponent(JSON.stringify(typeof podcasts!=='undefined'?podcasts:[])) %>"></div>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   function parse(id){ try { var el=document.getElementById(id); if(!el) return []; return JSON.parse(decodeURIComponent(el.getAttribute('data-json')||'%5B%5D')); } catch(_){ return []; } }
   window.__AP_PRE_POSTS = parse('apDataPosts');
   window.__AP_PRE_PODCASTS = parse('apDataPodcasts');
 })();
 </script>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   const btn = document.getElementById('apResetBtn');
   if(!btn) return;
@@ -103,11 +103,11 @@
   });
 })();
 </script>
-<script>(function(){ try { var el=document.getElementById('apLayoutData'); window.__AP_INITIAL_LAYOUT = JSON.parse(decodeURIComponent(el.getAttribute('data-json'))); } catch(e){ window.__AP_INITIAL_LAYOUT={version:2,rows:[]}; } })();</script>
+<script nonce="<%= cspNonce %>">(function(){ try { var el=document.getElementById('apLayoutData'); window.__AP_INITIAL_LAYOUT = JSON.parse(decodeURIComponent(el.getAttribute('data-json'))); } catch(e){ window.__AP_INITIAL_LAYOUT={version:2,rows:[]}; } })();</script>
 <link rel="stylesheet" href="/css/advanced_pages.css">
 <script src="/js/a11y.js"></script>
 <script src="/js/advanced_pages_builder.js"></script>
-<script>
+<script nonce="<%= cspNonce %>">
 (function(){
   const seoBtn=document.getElementById('apSeoAuto');
   const desc=document.getElementById('apSeoDesc');

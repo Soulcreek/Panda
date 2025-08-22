@@ -76,12 +76,12 @@ async function openMediaLibraryModal(options) {
             } else if(item.type && item.type.startsWith('audio/')){
                 const wrap = document.createElement('div');
                 wrap.className = 'text-center p-3';
-                wrap.innerHTML = '<i class="bi bi-music-note-beamed" style="font-size:2rem;"></i><div class="small text-muted text-truncate" style="max-width:100%">'+filename+'</div>';
+                wrap.innerHTML = '<i class="bi bi-music-note-beamed fs-2"></i><div class="small text-muted text-truncate mw-100">'+filename+'</div>';
                 card.appendChild(wrap);
             } else {
                 const wrap = document.createElement('div');
                 wrap.className = 'text-center p-3';
-                wrap.innerHTML = '<i class="bi bi-file-earmark" style="font-size:2rem;"></i><div class="small text-muted">'+filename+'</div>';
+                wrap.innerHTML = '<i class="bi bi-file-earmark fs-2"></i><div class="small text-muted">'+filename+'</div>';
                 card.appendChild(wrap);
             }
             col.appendChild(card);

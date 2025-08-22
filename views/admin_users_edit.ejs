@@ -28,18 +28,23 @@
   <button class="btn btn-primary">Speichern</button>
   <a class="btn btn-secondary" href="/admin/users">Zurück</a>
 </form>
-<form method="post" onsubmit="return confirm('Benutzer wirklich löschen (soft)?');">
+<form method="post" class="js-soft-delete">
   <input type="hidden" name="action" value="delete">
   <button class="btn btn-outline-danger">Soft Delete</button>
 </form>
 <% if(user.is_deleted){ %>
-<form method="post" class="mt-2" onsubmit="return confirm('Wiederherstellen?');">
+<form method="post" class="mt-2 js-restore">
   <input type="hidden" name="action" value="restore">
   <button class="btn btn-outline-success">Restore</button>
 </form>
-<form method="post" class="mt-2" onsubmit="return confirm('Hard Delete? Dies ist endgültig!');">
+<form method="post" class="mt-2 js-hard-delete">
   <input type="hidden" name="action" value="hard_delete">
   <button class="btn btn-danger">Hard Delete (final)</button>
 </form>
 <% } %>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.querySelector('form.js-soft-delete')?.addEventListener('submit', e=>{ if(!window.confirm('Benutzer wirklich löschen (soft)?')) e.preventDefault(); });
+document.querySelector('form.js-restore')?.addEventListener('submit', e=>{ if(!window.confirm('Wiederherstellen?')) e.preventDefault(); });
+document.querySelector('form.js-hard-delete')?.addEventListener('submit', e=>{ if(!window.confirm('Hard Delete? Dies ist endgültig!')) e.preventDefault(); });
+</script>

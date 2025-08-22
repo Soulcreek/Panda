@@ -23,6 +23,17 @@
         </div>
     <% } %>
 
+    <% if(!debug && (mode==='raw' || mode==='tables')){ %>
+        <div class="mb-3">
+            <div class="alert alert-warning small mb-2">Keine Daten sichtbar? Führe die Diagnose aus, um DB-User/Schema zu prüfen.</div>
+            <div class="btn-group" role="group" aria-label="Diagnostics">
+                <button id="diagBtn" class="btn btn-sm btn-outline-primary">Run DB Diag</button>
+                <button id="uploadsBtn" class="btn btn-sm btn-outline-secondary">List Uploads</button>
+            </div>
+            <div id="diagOutput" class="mt-3"><pre class="small bg-light p-2 rounded" id="diagPre"></pre></div>
+        </div>
+    <% } %>
+
     <% if(mode==='structured'){ %>
         <h4 class="mt-4">Beiträge (letzte <%= posts.length %>)</h4>
         <div class="table-responsive mb-4">

@@ -88,11 +88,11 @@
         </div>
     </div>
 </div>
-<style>
+<style nonce="<%= cspNonce %>">
 html.dark-mode .card{background:linear-gradient(135deg,#1e1e1e,#191b1d);border-color:#2a2f36;}
 .admin-dashboard .h2{font-size:1.9rem;}
 </style>
-<script>
+<script nonce="<%= cspNonce %>">
 document.getElementById('dbPingBtnLocal')?.addEventListener('click',async()=>{try{await fetch('/admin/api/db-health?force=1');location.reload();}catch(_){}});
 async function loadHttpMetrics(){
     try {

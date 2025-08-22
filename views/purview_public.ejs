@@ -7,7 +7,7 @@
   <nav class="toc small mb-5 p-3 border rounded bg-light bg-gradient position-relative" aria-label="Inhaltsverzeichnis">
     <strong class="d-block mb-2 text-uppercase">Inhalt</strong>
     <ol class="mb-0" id="purviewToc"></ol>
-  <button class="btn btn-sm btn-outline-secondary position-absolute top-05 right-05" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">Top</button>
+  <button class="btn btn-sm btn-outline-secondary position-absolute top-05 right-05" type="button" id="btnTop">Top</button>
   </nav>
   <section class="mb-5">
     <h2 class="h4 mb-3">1. Was ist Microsoft Purview?</h2>
@@ -193,9 +193,12 @@
   </section>
   <footer class="mt-5 pt-4 border-top small text-muted">Hinweis: Diese Seite ist eine eigenständige Zusammenfassung und kein offizielles Microsoft Dokument.</footer>
 </div>
-<style>
+<style nonce="<%= cspNonce %>">
 .purview-page h2{scroll-margin-top:80px}
 .purview-page .card{border:1px solid #e5e9ef;background:linear-gradient(145deg,#fff,#f7f9fc);} html.dark-mode .purview-page .card{background:linear-gradient(145deg,#1e1f23,#17191c);border-color:#2a2f36;}
 .purview-page .card-title{font-size:.95rem;letter-spacing:.5px;text-transform:uppercase;font-weight:600;color:#0d6efd;} html.dark-mode .purview-page .card-title{color:#4da3ff;}
 </style>
 <%- include('partials/footer') %>
+<script nonce="<%= cspNonce %>">
+document.getElementById('btnTop')?.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+</script>

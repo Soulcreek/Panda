@@ -104,7 +104,8 @@ Priorität: 1 = kritisch → 5 = niedrig
 	 - Symptome: Auf Seitenwechsel wechselt die Seite Light→Dark (mobile reproduzierbar).
 	 - Kurzaufgaben:
 		 - [ ] Reproduce & Log: Console logs beim Theme-Toggle, prüfe `userPrefs` Rendering in `header.ejs`.
-		 - [ ] Ensure theme preference precedence: localStorage > cookie > server; do not overwrite on init.
+		- [x] Ensure theme preference precedence: localStorage > server; do not overwrite incorrectly on init. Implemented in `httpdocs/js/inline/bootstrap_start.js` to always enforce computed theme class on each load.
+		- [ ] Verify on mobile (iOS/Android) across navigation that theme remains stable; record console logs from `bootstrap_start.js` if any regressions.
 
 4. i18n / Language Switch & Dark-mode visual regressions (mittel)
 	 - Symptome: DE→EN Switch nicht überall; Dark Mode führt zu unlesbarem Text in Komponenten.

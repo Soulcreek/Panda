@@ -60,7 +60,7 @@
 </div>
 
 <%- include('partials/footer') %>
-<script>
+<script nonce="<%= cspNonce %>">
 // Enhance tag buttons: if user is on /blog convert to hash navigation for deep link
 (function(){
     if(location.pathname==='/blog'){
