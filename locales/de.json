@@ -1,6 +1,6 @@
 {
   "nav.pandas_way": "Panda's Way",
-  "nav.purview": "Purview",
+  "nav.purview": "Microsoft Purview",
   "nav.blog": "Blog",
   "nav.podcasts": "Podcasts",
   "nav.author": "Autor",
@@ -27,4 +27,5 @@
   "home.latest_posts.heading": "Aktuelle Beiträge",
   "home.latest_posts.read_more": "Weiterlesen",
   "home.latest_posts.none": "Aktuell sind keine weiteren Beiträge vorhanden."
+  ,"nav.purview.title": "Mehr über Microsoft Purview (öffentliche Info-Seite)"
 }

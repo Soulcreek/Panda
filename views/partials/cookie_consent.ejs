@@ -14,11 +14,97 @@
   const KEY='pp_cookie_consent_v1';
   function hide(){ const bar=document.getElementById('cookieConsentBar'); if(bar) bar.style.display='none'; }
   function show(){ const bar=document.getElementById('cookieConsentBar'); if(bar) bar.style.display='block'; }
+
+  function readConsent(){
+    try{ const raw = localStorage.getItem(KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+  }
+  function writeConsent(obj){
+    try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(e){}
+    try{ window.dispatchEvent(new CustomEvent('pp:consent', { detail: obj })); }catch(e){}
+  }
+
+  function sendConsentBeacon(obj){
+    // Only send a minimal, non-identifying event when analytics consent is allowed
+    if(!obj || !obj.categories || !obj.categories.analytics) return;
+    const payload = JSON.stringify({ event: 'consent_given', meta:{ categories: obj.categories, ts: obj.ts } });
+    try{
+      if(navigator.sendBeacon){
+        navigator.sendBeacon('/api/track', payload);
+      } else {
+        fetch('/api/track', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:payload }).catch(()=>{});
+      }
+    }catch(e){}
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
-    if(!localStorage.getItem(KEY)) show();
-    const acc=document.getElementById('cookieAcceptBtn'); const dec=document.getElementById('cookieDeclineBtn');
-    acc&&acc.addEventListener('click', ()=>{ localStorage.setItem(KEY,'all'); hide(); });
-    dec&&dec.addEventListener('click', ()=>{ localStorage.setItem(KEY,'necessary'); hide(); });
+    const existing = readConsent();
+    if(!existing) show();
+
+    const acc=document.getElementById('cookieAcceptBtn');
+    const dec=document.getElementById('cookieDeclineBtn');
+
+    acc&&acc.addEventListener('click', ()=>{
+      const obj = { version:1, ts:Date.now(), categories:{ necessary:true, preferences:true, analytics:true } };
+      writeConsent(obj); hide(); sendConsentBeacon(obj);
+      // Try optional server-side ingestion (no credentials, non-identifying)
+      try{ fetch('/api/consent', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ categories: obj.categories, ts: obj.ts }) }).catch(()=>{}); }catch(e){}
+      // Preference sync may read this from localStorage; other scripts can listen to pp:consent
+    });
+
+    dec&&dec.addEventListener('click', ()=>{
+      const obj = { version:1, ts:Date.now(), categories:{ necessary:true, preferences:false, analytics:false } };
+      writeConsent(obj); hide();
+      try{ fetch('/api/consent', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ categories: obj.categories, ts: obj.ts }) }).catch(()=>{}); }catch(e){}
+    });
+  });
+})();
+</script>
+
+<!-- Cookie Settings Modal -->
+<div class="modal fade" id="cookieSettingsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title">Cookie-Einstellungen</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body small">
+        <p>Wählen Sie, welche optionalen Kategorien Sie zulassen möchten.</p>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="consentPreferences">
+          <label class="form-check-label" for="consentPreferences">Preferences (Theme, UI-Einstellungen)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="consentAnalytics">
+          <label class="form-check-label" for="consentAnalytics">Analytics (anonyme Nutzungsdaten)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-outline-light" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="button" id="saveConsentBtn" class="btn btn-sm btn-primary">Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function readConsent(){ try{ const raw = localStorage.getItem('pp_cookie_consent_v1'); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; } }
+  function writeConsent(obj){ try{ localStorage.setItem('pp_cookie_consent_v1', JSON.stringify(obj)); }catch(e){} try{ window.dispatchEvent(new CustomEvent('pp:consent', { detail: obj })); }catch(e){} }
+  function sendConsentBeacon(obj){ if(!obj || !obj.categories || !obj.categories.analytics) return; const payload = JSON.stringify({ event: 'consent_given', meta:{ categories: obj.categories, ts: obj.ts } }); try{ if(navigator.sendBeacon){ navigator.sendBeacon('/api/track', payload); } else { fetch('/api/track', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:payload }).catch(()=>{}); } }catch(e){}
+    try{ fetch('/api/consent', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ categories: obj.categories, ts: obj.ts }) }).catch(()=>{}); }catch(e){}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Open modal from footer link if present
+    const openLink = document.getElementById('openCookieSettingsLink');
+    const modalEl = document.getElementById('cookieSettingsModal');
+    if(openLink && modalEl){
+      openLink.addEventListener('click', function(e){ e.preventDefault(); const bs = new bootstrap.Modal(modalEl); const cur = readConsent(); if(cur && cur.categories){ document.getElementById('consentPreferences').checked = !!cur.categories.preferences; document.getElementById('consentAnalytics').checked = !!cur.categories.analytics; } else { document.getElementById('consentPreferences').checked = true; document.getElementById('consentAnalytics').checked = false; } bs.show(); });
+    }
+
+    const saveBtn = document.getElementById('saveConsentBtn');
+    if(saveBtn){ saveBtn.addEventListener('click', function(){ const prefs = !!document.getElementById('consentPreferences').checked; const analytics = !!document.getElementById('consentAnalytics').checked; const obj = { version:1, ts:Date.now(), categories:{ necessary:true, preferences: prefs, analytics: analytics } }; writeConsent(obj); sendConsentBeacon(obj); const modal = bootstrap.Modal.getInstance(modalEl); if(modal) modal.hide(); }); }
   });
 })();
 </script>

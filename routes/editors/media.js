@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool, isEditor } = require('./_shared');
 const fs = require('fs');
 const path = require('path');
+const { generateThumbnail } = require('../../lib/thumbnail');
 const multer = require('multer');
 const { validateUploadedFile } = require('../../lib/uploadValidation');
 
@@ -45,6 +46,8 @@ router.post('/api/upload-inline-image', isEditor, upload.single('file'), async (
 	}
 	const filename=req.file.filename; const relPath='/uploads/'+filename;
 	try{ await pool.query('INSERT INTO media (name,path,type,alt_text,description,category_id,site_key) VALUES (?,?,?,?,?,?,?)',[filename,relPath,req.file.mimetype,'','',null, req.siteKey]); } catch(_){ }
+	// generate thumbnail for immediate availability
+	try { await generateThumbnail(req.file.path, filename); } catch(_){}
 	res.json({ path:relPath, name:filename });
 } catch(e){ res.apiError(500,{ error:'Upload fehlgeschlagen', code:'UPLOAD_FAIL', detail:e.message }); } });
 router.post('/upload', isEditor, upload.array('mediaFiles',25), async (req,res)=>{ try {
@@ -71,6 +74,8 @@ router.post('/upload', isEditor, upload.array('mediaFiles',25), async (req,res)=
 		// Resolve category_id
 		let catId=null; if(catVal){ try { const [c] = await pool.query('SELECT id,slug FROM media_categories WHERE (slug=? OR label=?) AND site_key=? LIMIT 1',[catVal,catVal, req.siteKey]); if(c.length){ catId=c[0].id; catVal=c[0].slug; } } catch(_){ catId=null; }}
 		try{ await pool.query('INSERT INTO media (name,path,type,alt_text,description,category_id,site_key) VALUES (?,?,?,?,?,?,?)',[storedName,relPath,f.mimetype,alt_text||'',description||'',catId, req.siteKey]); } catch(_){ }
+		// generate thumbnail
+		try { await generateThumbnail(path.join(uploadDir,storedName), storedName); } catch(_){}
 	}
 	res.redirect('/editors/media');
 } catch(e){ res.apiError(500,{ error:'Bulk Upload fehlgeschlagen', code:'UPLOAD_BULK_FAIL', detail:e.message }); } });

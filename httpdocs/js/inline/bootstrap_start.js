@@ -4,8 +4,10 @@
     var attr = document.documentElement.getAttribute('data-user-prefs');
     window.__USER_PREFS = attr ? JSON.parse(decodeURIComponent(attr)) : null;
     if(!document.documentElement.classList.contains('dark-mode')){
-      var theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null;
-      if(!theme){ theme = localStorage.getItem('pp_theme'); }
+      // Theme precedence: localStorage (user explicit) > server-provided userPrefs > system
+      var theme = null;
+      try { var ls = localStorage.getItem('pp_theme'); if(ls && ls!=='system') theme = ls; } catch(e){ /* ignore */ }
+      if(!theme){ theme = (window.__USER_PREFS && window.__USER_PREFS.theme && window.__USER_PREFS.theme!=='system') ? window.__USER_PREFS.theme : null; }
       if(!theme || theme==='system') theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
       if(theme==='dark') document.documentElement.classList.add('dark-mode');
     }

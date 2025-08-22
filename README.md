@@ -53,9 +53,14 @@ views/                 # EJS Templates (partials/, editors_*, admin_* stubs, blo
 locales/               # i18n JSON (de.json, en.json)
 i18n.js                # Sprachlogik / Helper t()
 db.js                  # MySQL Connection Pool
-migrations/            # (deprecated) leer / Platzhalter – alte Dateien archiviert
+migrations/            # (deprecated) leer / Platzhalter – alte Dateien archived. Use `schema_consolidated.sql` and apply SQL manually.
 migrations_legacy/     # Archiv der ursprünglichen SQL Migrationen
 schema_consolidated.sql# Neues konsolidiertes Schema & Content-Patches (MySQL)
+
+### Migrations & Deployment Notes
+- The previous per-file migration workflow has been consolidated. Please run SQL manually from `schema_consolidated.sql` on the target DB.
+- Files `migrations/007-*.sql` through `migrations/009-*.sql` have been folded into `schema_consolidated.sql` and removed from the migrations folder. This project now expects DB schema changes to be applied manually by DBAs or via your preferred migration tooling referencing `schema_consolidated.sql`.
+- Rationale: you requested manual application of SQL on the server. This removes repetitive discussion about running the internal migrate runner.
 ```
 
 ## 4. Wichtige Features

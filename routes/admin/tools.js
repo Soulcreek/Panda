@@ -53,4 +53,64 @@ router.post('/tools/prompt-tester', isAuth, async (req,res)=>{
 	res.render('admin_tool_prompt_tester',{ title:'AI Prompt Tester', result: rawResp, error: parse_error });
 });
 
+// Diagnostic endpoint: authenticated helper to verify DB user and selected database.
+// Returns JSON with CURRENT_USER() and DATABASE() to assist in triage when raw/tables views show no data.
+router.get('/tools/diag', isAuth, async (req,res)=>{
+	const debug = process.env.ADMIN_TOOLS_DEBUG === 'true';
+	try {
+		const [rows] = await pool.query('SELECT CURRENT_USER() AS current_user, DATABASE() AS database_name');
+		const info = rows && rows[0] ? rows[0] : {};
+		const out = { current_user: info.current_user || null, database_name: info.database_name || null, env_DB_NAME: process.env.DB_NAME || null, debug };
+
+		// Try to run SHOW TABLES to detect permission issues or wrong DB selection
+		try {
+			const [tablesRows] = await pool.query('SHOW TABLES');
+			if(Array.isArray(tablesRows) && tablesRows.length){
+				const key = Object.keys(tablesRows[0])[0];
+				out.tables_sample = tablesRows.slice(0,20).map(r=>r[key]);
+				out.tables_count = tablesRows.length;
+			} else {
+				out.tables_sample = [];
+				out.tables_count = 0;
+			}
+		} catch(e){
+			out.show_tables_error = e.message;
+		}
+
+		// Check whether querying information_schema is allowed (helps identify metadata privilege issues)
+		try {
+			const [cntRows] = await pool.query("SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE()");
+			out.info_schema_count = (cntRows && cntRows[0] && cntRows[0].c != null) ? cntRows[0].c : null;
+		} catch(e){
+			out.info_schema_error = e.message;
+		}
+
+		return res.json(out);
+	} catch(e){
+		console.error('Admin Tools Diag Error', e);
+		return res.status(500).json({ error: e.message, env_DB_NAME: process.env.DB_NAME || null, debug });
+	}
+});
+
+// List uploads directory contents (authenticated). Useful to verify files exist and permissions.
+router.get('/tools/uploads', isAuth, async (req,res)=>{
+	const fs = require('fs').promises;
+	const path = require('path');
+	const uploadDir = path.join(__dirname,'..','..','httpdocs','uploads');
+	try {
+		const names = await fs.readdir(uploadDir);
+		const list = [];
+		for(const n of names.slice(0,500)){
+			try {
+				const st = await fs.stat(path.join(uploadDir,n));
+				list.push({ name: n, size: st.size, mtime: st.mtime, isFile: st.isFile() });
+			} catch(e){ list.push({ name: n, error: e.message }); }
+		}
+		return res.json({ count: names.length, sample: list });
+	} catch(e){
+		console.error('Uploads diag error', e);
+		return res.status(500).json({ error: e.message });
+	}
+});
+
 module.exports = router;

@@ -74,6 +74,19 @@ app.use((req,res,next)=>{ if(typeof res.locals.locale==='undefined'){ res.locals
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'httpdocs')));
+
+// Serve a placeholder for missing thumbnails under /uploads/thumbnails/* to avoid broken UI
+app.get('/uploads/thumbnails/*', (req, res, next) => {
+    const filePath = path.join(__dirname, 'httpdocs', req.path);
+    const placeholder = path.join(__dirname, 'httpdocs', 'uploads', 'placeholders', 'placeholder.svg');
+    res.sendFile(filePath, (err) => {
+        if(err){
+            // If not found, serve placeholder SVG
+            return res.sendFile(placeholder);
+        }
+        // otherwise file served
+    });
+});
 app.use(attachResponseHelpers);
 
 // EJS als Template-Engine einrichten
@@ -91,8 +104,9 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Nur über HTTPS in Produktion
-        maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
+    secure: process.env.NODE_ENV === 'production', // Nur über HTTPS in Produktion
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // stricter in prod
+    maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
     }
 }));
 

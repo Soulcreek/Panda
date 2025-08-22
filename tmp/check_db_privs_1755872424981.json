@@ -1,0 +1,9 @@
+{
+  "host": "10.35.233.76",
+  "port": "3306",
+  "user": "k302164_adm",
+  "database": "k302164_PP_Data",
+  "timestamp": "2025-08-22T14:20:14.936Z",
+  "results": {},
+  "connect_error": "connect ETIMEDOUT"
+}

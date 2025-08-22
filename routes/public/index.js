@@ -14,5 +14,9 @@ router.use(require('./staticPages'));
 router.use(require('./apiPublic'));
 // Purview information page
 try { router.use(require('./purview')); } catch(_){ }
+// Lightweight tracking endpoint
+try { router.use(require('./track')); } catch(_) { }
+// Optional consent ingestion (non-identifying)
+try { router.use(require('./consent')); } catch(_) { }
 
 module.exports = router;

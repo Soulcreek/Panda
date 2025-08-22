@@ -217,6 +217,39 @@ ALTER TABLE posts ADD CONSTRAINT fk_posts_featured_media FOREIGN KEY (featured_i
 -- ENDE
 
 /* =========================
+  MANUELL ZU RUNDETE MIGRATIONEN (früher migrations/007 - migrations/009)
+  Diese SQL-Snippets wurden aus den separaten migration-Dateien übernommen.
+  Hinweis: Du hast entschieden, SQL manuell auf dem DB-Server auszuführen. Führe die folgenden Abschnitte nur einmal aus, falls deine Instanz sie noch nicht enthält.
+  Die ursprünglichen files migrations/007-009 wurden aus dem Repo entfernt.
+  ========================= */
+
+-- 007: Grant minimal SELECT privileges needed for Admin Tools (raw/tables)
+-- Run these statements as a DBA (root) on the MySQL server. Adjust APP_HOST if your app connects from a specific host.
+-- Example (replace DB_NAME / APP_USER):
+--   mysql -u root -p -e "GRANT SELECT ON `k302164_PP_Data`.* TO 'k302164_PP2'@'%'; FLUSH PRIVILEGES;"
+
+GRANT SELECT ON `k302164_PP_Data`.* TO 'k302164_PP2'@'%';
+FLUSH PRIVILEGES;
+
+-- If you prefer a localhost-scoped grant, replace '@"%"' with '@"localhost"' for tighter security.
+
+-- 008: Create table to store precomputed Purview aggregates
+CREATE TABLE IF NOT EXISTS purview_aggregates (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  payload JSON NOT NULL,
+  generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (generated_at)
+);
+
+-- 009: Create table to store consent events (non-identifying)
+CREATE TABLE IF NOT EXISTS consent_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  categories JSON NOT NULL,
+  meta JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (created_at)
+);
+
   ANGEWANDTE MYSQL MIGRATIONEN (ehemals migrations/003-005)
   Diese Sektion wurde aus dem entfernten migrations Ordner übernommen.
   Nur ausführen, falls deine Instanz diese Änderungen noch nicht enthält.

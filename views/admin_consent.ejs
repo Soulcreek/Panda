@@ -1,0 +1,30 @@
+<%- include('partials/admin_header') %>
+<div class="container my-4">
+  <h1>Consent Events</h1>
+  <p class="small text-muted">Non-identifying consent events (most recent first)</p>
+  <table class="table table-sm">
+    <thead>
+      <tr><th>ID</th><th>Time</th><th>Categories</th><th>Meta</th></tr>
+    </thead>
+    <tbody>
+      <% if(!events || events.length===0){ %>
+        <tr><td colspan="4" class="text-muted">No events found</td></tr>
+      <% } else { %>
+        <% events.forEach(ev=>{ %>
+          <tr>
+            <td><%= ev.id %></td>
+            <td><%= ev.created_at %></td>
+            <td><pre class="mb-0"><%= typeof ev.categories === 'string' ? ev.categories : JSON.stringify(ev.categories) %></pre></td>
+            <td><pre class="mb-0"><%= typeof ev.meta === 'string' ? ev.meta : JSON.stringify(ev.meta) %></pre></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+  <form method="POST" action="/admin/consent-events/purge" class="d-flex gap-2 align-items-center">
+    <label class="small text-muted mb-0">Purge events older than</label>
+    <input type="number" name="days" value="365" class="form-control form-control-sm" style="width:120px" />
+    <button class="btn btn-sm btn-outline-danger">Purge</button>
+  </form>
+</div>
+<%- include('partials/admin_footer') %>

@@ -470,6 +470,19 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // Sync Preferences (theme & pandasWayLevel) to server if logged in and consent given
+function getConsent(){
+    try{
+        const raw = localStorage.getItem('pp_cookie_consent_v1');
+        if(!raw) return null;
+        try{ const parsed = JSON.parse(raw); return parsed; }catch(e){
+            // legacy value support ('all' or 'necessary')
+            if(raw==='all') return { legacy:true, categories:{ necessary:true, preferences:true, analytics:true } };
+            if(raw==='necessary') return { legacy:true, categories:{ necessary:true, preferences:false, analytics:false } };
+            return null;
+        }
+    }catch(e){ return null; }
+}
+
 function queuePrefSync(){
     if(!window.__prefSyncScheduled){
         window.__prefSyncScheduled = true;
@@ -479,8 +492,11 @@ function queuePrefSync(){
 async function doPrefSync(){
     window.__prefSyncScheduled = false;
     try {
-        const consent = localStorage.getItem('pp_cookie_consent_v1');
-        if(consent !== 'all') return; // only if full consent
+        const consent = getConsent();
+        if(!consent) return; // no decision yet
+        // Only sync prefs if preferences category is allowed (support legacy 'all')
+        const allowPref = consent.categories ? Boolean(consent.categories.preferences) : (consent==='all');
+        if(!allowPref) return;
         const theme = localStorage.getItem('pp_theme') || 'system';
         const lvl = localStorage.getItem('pandasWayLevel') || localStorage.getItem('pandasWayLevelAlt5') || '1';
         // Heuristik: user logged in? server injected flag via data attr on body maybe future; fallback: attempt and ignore 401
@@ -492,6 +508,11 @@ async function doPrefSync(){
 document.addEventListener('DOMContentLoaded', ()=>{
     // If preferences from server were injected we could apply them earlier (placeholder for future server->client hydration)
     queuePrefSync();
+});
+
+// If consent changes (new structured consent object written), trigger a pref sync if allowed
+window.addEventListener('pp:consent', function(ev){
+    try{ const detail = ev && ev.detail; if(detail && detail.categories && detail.categories.preferences){ queuePrefSync(); } }catch(e){}
 });
 
 // Featured Image Auswahl (Admin Post Editor) über globales Modal

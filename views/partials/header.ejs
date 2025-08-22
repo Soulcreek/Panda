@@ -41,7 +41,7 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                 <li class="nav-item"><a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="/blog"><%= t('nav.blog') %></a></li>
                 <li class="nav-item"><a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="/pandas-way"><%= t('nav.pandas_way') %></a></li>
                 <li class="nav-item"><a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="/podcasts"><%= t('nav.podcasts') %></a></li>
-                <li class="nav-item"><a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview"><%= t('nav.purview') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview" title="<%= t('nav.purview.title') %>" aria-label="<%= t('nav.purview.title') %>"><%= t('nav.purview') %></a></li>
                 <li class="nav-item"><a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a></li>
                 <% if (isEditor) { %>
                     <% if (isAdmin) { %>
@@ -85,3 +85,4 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 <script nonce="<%= cspNonce %>" src="/js/inline/deeplinks.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/inline/logo_swap.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/inline/sw_register.js"></script>
+<script nonce="<%= cspNonce %>" src="/js/purview-nav.js"></script>

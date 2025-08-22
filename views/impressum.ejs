@@ -50,7 +50,7 @@
 
             <h5>4. Präferenzspeicherung (Optionale Cookies / Local Storage)</h5>
             <ul>
-                <li><strong>pp_cookie_consent_v1</strong> – speichert Ihre Einwilligungsentscheidung ("all" oder "necessary").</li>
+                <li><strong>pp_cookie_consent_v1</strong> – speichert Ihre Einwilligungsentscheidung als JSON (z. B. { version:1, ts:..., categories:{ necessary:true, preferences:true, analytics:true } }). Die ältere Form (einfacher String 'all' / 'necessary') wird weiterhin unterstützt.</li>
                 <li><strong>pp_theme</strong> (localStorage) – Dark-/Light-Mode Einstellung.</li>
                 <li><strong>pandasWayLevel / pandasWayLevelAlt5</strong> (localStorage) – Lern-/Fortschrittsstufe für "Panda's Way" Darstellung.</li>
             </ul>
@@ -86,7 +86,7 @@
             <p><code>connect.sid</code> – session for authentication (expires end of session).</p>
             <h5>3. Optional Preferences</h5>
             <ul>
-                <li><code>pp_cookie_consent_v1</code> – consent choice.</li>
+                <li><code>pp_cookie_consent_v1</code> – consent choice (structured JSON; legacy 'all' also supported).</li>
                 <li><code>pp_theme</code> – dark/light mode preference.</li>
                 <li><code>pandasWayLevel</code> – learning/progress level.</li>
             </ul>

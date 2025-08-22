@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<div class="container my-5">
+  <h1>Microsoft Purview — Knowledge</h1>
+  <p class="text-muted">A short, non-technical introduction to Microsoft Purview and how it maps to our site operations.</p>
+
+  <div id="kpiRow" class="row g-3 my-4">
+    <!-- KPI cards will be injected by client script -->
+  </div>
+
+  <section class="my-4">
+    <h3>What is Microsoft Purview?</h3>
+    <p>Microsoft Purview is a data governance solution. It offers cataloging, classification and policy controls to help organizations understand and govern their data.</p>
+    <h4>How this maps to Panda</h4>
+    <ul>
+      <li>Catalog/Inventory → media &amp; posts metadata (our <code>media.tags</code> and post metadata)</li>
+      <li>Classifications → content tags, sensitivity labels (mapped to internal tag fields)</li>
+      <li>Retention → retention policies documented in the Admin guides</li>
+    </ul>
+  </section>
+
+  <section class="my-4">
+    <h3>Glossary</h3>
+    <dl>
+      <dt>Catalog</dt><dd>Inventory of data sources and assets.</dd>
+      <dt>Classification</dt><dd>Labels applied to assets (e.g., public, internal, restricted).</dd>
+      <dt>Lineage</dt><dd>How data flows between systems.</dd>
+    </dl>
+  </section>
+
+  <script src="/js/purview.js" nonce="<%= cspNonce %>"></script>
+</div>
+<%- include('partials/footer') %>

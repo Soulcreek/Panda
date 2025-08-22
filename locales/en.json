@@ -1,6 +1,6 @@
 {
   "nav.pandas_way": "Panda's Way",
-  "nav.purview": "Purview",
+  "nav.purview": "Microsoft Purview",
   "nav.blog": "Blog",
   "nav.podcasts": "Podcasts",
   "nav.author": "Author",
@@ -27,4 +27,5 @@
   "home.latest_posts.heading": "Latest Posts",
   "home.latest_posts.read_more": "Read more",
   "home.latest_posts.none": "No posts available right now."
+  ,"nav.purview.title": "Learn about Microsoft Purview (public knowledge page)"
 }
