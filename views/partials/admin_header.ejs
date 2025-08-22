@@ -1,0 +1,3 @@
+<% /* Minimal admin header: compose main header + admin nav for admin pages */ %>
+<%- include('header', { title: title || 'Admin', csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : null, cspNonce: typeof cspNonce !== 'undefined' ? cspNonce : '' , userPrefs: typeof userPrefs !== 'undefined' ? userPrefs : null, isAdmin: true, isEditor: true, currentPath: typeof currentPath !== 'undefined' ? currentPath : '/admin' }) %>
+<%- include('admin_nav', { aiUsageInfo: typeof aiUsageInfo !== 'undefined' ? aiUsageInfo : null, dbHealth: typeof dbHealth !== 'undefined' ? dbHealth : null, cspNonce: typeof cspNonce !== 'undefined' ? cspNonce : '' }) %>

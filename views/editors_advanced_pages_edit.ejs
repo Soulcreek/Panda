@@ -64,8 +64,9 @@
       <div class="form-text">Veröffentlichte Seiten erscheinen unter <code>/pages/&lt;slug&gt;</code>.</div>
     </div>
     <div class="mb-5">
-      <button class="btn btn-success">Speichern</button>
-      <a href="/editors/advanced-pages" class="btn btn-outline-secondary">Zurück</a>
+  <button class="btn btn-success">Speichern</button>
+  <button type="button" id="apResetBtn" class="btn btn-outline-danger ms-2">Zurücksetzen</button>
+  <a href="/editors/advanced-pages" class="btn btn-outline-secondary ms-2">Zurück</a>
     </div>
   </form>
 </div>
@@ -77,6 +78,29 @@
   function parse(id){ try { var el=document.getElementById(id); if(!el) return []; return JSON.parse(decodeURIComponent(el.getAttribute('data-json')||'%5B%5D')); } catch(_){ return []; } }
   window.__AP_PRE_POSTS = parse('apDataPosts');
   window.__AP_PRE_PODCASTS = parse('apDataPodcasts');
+})();
+</script>
+<script>
+(function(){
+  const btn = document.getElementById('apResetBtn');
+  if(!btn) return;
+  btn.addEventListener('click', ()=>{
+    if(!confirm('Formular zurücksetzen? Alle ungespeicherten Änderungen gehen verloren. Fortfahren?')) return;
+    try{
+      // Clear main inputs
+      ['apTitle','apSlug','apSeoDesc'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+      // Uncheck template flag
+      const tpl = document.getElementById('apMakeTemplate'); if(tpl) tpl.checked = false;
+      // Reset status selector to draft
+      const status = document.querySelector('select[name="status"]'); if(status) status.value='draft';
+      // Clear hidden layout input
+      const layoutInput = document.getElementById('apLayoutInput'); if(layoutInput) layoutInput.value = JSON.stringify({version:2,rows:[]});
+      // Remove autosave drafts
+      try{ Object.keys(localStorage).filter(k=>k && k.indexOf('ap_draft')===0).forEach(k=>localStorage.removeItem(k)); }catch(_){ }
+    }catch(_){ }
+    // Reload so the builder initializes clean for new pages (and picks up server state for edits)
+    location.reload();
+  });
 })();
 </script>
 <script>(function(){ try { var el=document.getElementById('apLayoutData'); window.__AP_INITIAL_LAYOUT = JSON.parse(decodeURIComponent(el.getAttribute('data-json'))); } catch(e){ window.__AP_INITIAL_LAYOUT={version:2,rows:[]}; } })();</script>

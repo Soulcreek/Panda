@@ -55,8 +55,8 @@
             <div class="alert alert-warning small">Keine Tabellen gefunden oder DB leer. (SHOW TABLES Ergebnis leer)</div>
         <% } else { %>
             <ul class="nav nav-pills mb-3 flex-wrap" id="rawTabs">
-                <% tables.forEach(function(t,i){ %>
-                    <li class="nav-item"><button class="nav-link <%= i===0? 'active':'' %>" data-bs-toggle="tab" data-bs-target="#raw-<%= t %>" type="button"><%= t %></button></li>
+                <% tables.forEach(function(t,i){ const cnt = (rawData && rawData[t])? (rawData[t].length||0) : 0; %>
+                    <li class="nav-item"><button class="nav-link <%= i===0? 'active':'' %>" data-bs-toggle="tab" data-bs-target="#raw-<%= t %>" type="button"><%= t %> <span class="badge bg-secondary ms-2"><%= cnt %></span></button></li>
                 <% }); %>
             </ul>
             <div class="tab-content border rounded bg-light scroll-mh-560" id="rawTabContent">

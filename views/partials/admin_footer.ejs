@@ -1,0 +1,4 @@
+<% /* Minimal admin footer: include global footer and allow admin-specific scripts */ %>
+<%- include('footer', { cspNonce: typeof cspNonce !== 'undefined' ? cspNonce : '' }) %>
+<!-- admin footer hooks -->
+<script nonce="<%= cspNonce %>">/* admin footer inline hooks can go here */</script>

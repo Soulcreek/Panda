@@ -27,8 +27,16 @@
 
   // History & autosave
   const history = { stack:[], index:-1, push(state){ const s=JSON.stringify(state); if(this.index>=0 && this.stack[this.index]===s) return; if(this.index < this.stack.length-1) this.stack=this.stack.slice(0,this.index+1); this.stack.push(s); if(this.stack.length>50) this.stack.shift(); this.index=this.stack.length-1; updateUndoRedoButtons(); }, canUndo(){return this.index>0;}, canRedo(){return this.index < this.stack.length-1;}, undo(){ if(!this.canUndo()) return; this.index--; updateUndoRedoButtons(); return JSON.parse(this.stack[this.index]); }, redo(){ if(!this.canRedo()) return; this.index++; updateUndoRedoButtons(); return JSON.parse(this.stack[this.index]); } };
-  const AUTOSAVE_KEY='ap_draft_'+(slugInput?.value||'new'); let autosaveTimer=null;
-  (function restoreDraft(){ try { const raw=localStorage.getItem(AUTOSAVE_KEY); if(raw){ const parsed=JSON.parse(raw); if(parsed && Array.isArray(parsed.rows)){ layout.rows = parsed.rows; } } } catch(_){} })();
+  // Autosave key: stable when editing an existing page (slug present),
+  // but unique per-load for brand-new pages to avoid reusing a shared 'new' draft.
+  let AUTOSAVE_KEY;
+  if(slugInput && slugInput.value){
+    AUTOSAVE_KEY = 'ap_draft_' + slugInput.value;
+  } else {
+    AUTOSAVE_KEY = 'ap_draft_new_' + Date.now();
+  }
+  let autosaveTimer = null;
+  (function restoreDraft(){ try { const raw = localStorage.getItem(AUTOSAVE_KEY); if(raw){ const parsed = JSON.parse(raw); if(parsed && Array.isArray(parsed.rows)){ layout.rows = parsed.rows; } } } catch(_){} })();
   function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer=setTimeout(()=>{ try { localStorage.setItem(AUTOSAVE_KEY, serialize()); } catch(_){} },1200); }
 
   function presetColumns(preset){ switch(preset){ case 'full': return [{width:12,blocks:[]}]; case 'two-equal': return [{width:6,blocks:[]},{width:6,blocks:[]}]; case 'two-67-33': return [{width:8,blocks:[]},{width:4,blocks:[]}]; case 'two-33-67': return [{width:4,blocks:[]},{width:8,blocks:[]}]; case 'three': return [{width:4,blocks:[]},{width:4,blocks:[]},{width:4,blocks:[]}]; default: return [{width:12,blocks:[]}]; } }
