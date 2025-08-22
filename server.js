@@ -105,7 +105,27 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Session-Speicher in der Datenbank einrichten
-const sessionStore = new MySQLStore({}, pool);
+// WICHTIG: express-mysql-session erwartet eine Callback-basierte Connection/Pool oder Options,
+// nicht das Promise-Pool-Objekt. Übergib daher Options, damit die Library selbst eine
+// kompatible Verbindung erstellt. Bei Fehlern: Fallback auf MemoryStore (degradierter Modus).
+let sessionStore;
+try {
+    sessionStore = new MySQLStore({
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT || '3306', 10),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        createDatabaseTable: true,
+        clearExpired: true,
+        checkExpirationInterval: 15 * 60 * 1000, // 15min
+        expiration: 24 * 60 * 60 * 1000 // 24h
+    });
+    console.log('[Session] MySQLStore initialisiert.');
+} catch (e) {
+    console.warn('[Session] MySQLStore Init fehlgeschlagen, Fallback auf MemoryStore:', e.message);
+    sessionStore = new session.MemoryStore();
+}
 
 // Sessions
 app.use(session({

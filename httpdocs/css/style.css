@@ -16,9 +16,30 @@ body {
 
 .navbar-brand img {
     transition: transform 0.2s ease-in-out;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 .navbar-brand:hover img {
     transform: scale(1.05);
+}
+
+/* Modern navbar brand styling */
+.navbar-brand {
+    position: relative;
+}
+
+.navbar-brand::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--panda-primary), var(--panda-secondary));
+    transition: width 0.3s ease;
+}
+
+.navbar-brand:hover::after {
+    width: 100%;
 }
 
 .btn-primary {
@@ -35,18 +56,60 @@ body {
 
 /* Hero-Bereich auf der Startseite */
 .hero-section {
-    background: linear-gradient(45deg, rgba(13, 110, 253, 0.7), rgba(13, 202, 240, 0.6)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2070&auto-format&fit=crop');
+    background: linear-gradient(45deg, rgba(13, 110, 253, 0.7), rgba(13, 202, 240, 0.6)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2070&auto=format&fit=crop');
     background-size: cover;
     background-position: center;
     color: white;
     padding: 120px 0;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(13, 110, 253, 0.1), rgba(13, 202, 240, 0.1));
+    backdrop-filter: blur(1px);
+    pointer-events: none;
 }
 
 .hero-section h1 {
     font-size: 3.8rem;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #ffffff, #e3f2fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+    z-index: 1;
+}
+
+/* Modern heading styles */
+.display-4, .display-5, .display-6 {
+    position: relative;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+}
+
+.display-4::after, .display-5::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--panda-primary), var(--panda-secondary));
+    border-radius: 2px;
 }
 
 /* Fly-in Animationen mit AOS */

@@ -31,8 +31,106 @@ router.get('/', async (req, res) => {
        LEFT JOIN media m ON p.featured_image_id = m.id
        WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW()) AND p.is_deleted=0 AND p.id != ?
        ORDER BY COALESCE(p.published_at, p.created_at) DESC
-       LIMIT 4`, [featuredPost ? featuredPost.id : 0]);
-    res.render('index', { title: 'Startseite', featuredPost, latestPosts: latestPostsRows });
+       LIMIT 6`, [featuredPost ? featuredPost.id : 0]);
+    
+    // Enhanced analytics for Home v2
+    let homeAnalytics = {
+      totalPosts: 0,
+      totalMedia: 0,
+      totalPodcasts: 0,
+      recentActivity: [],
+      topTags: [],
+      publishedThisWeek: 0
+    };
+    
+    try {
+      // Aggregate content counts
+      const [postCount] = await pool.query(`SELECT COUNT(*) as count FROM posts WHERE status='published' AND is_deleted=0`);
+      const [mediaCount] = await pool.query(`SELECT COUNT(*) as count FROM media WHERE 1=1`);
+      const [podcastCount] = await pool.query(`SELECT COUNT(*) as count FROM podcasts WHERE 1=1`);
+      
+      homeAnalytics.totalPosts = postCount[0]?.count || 0;
+      homeAnalytics.totalMedia = mediaCount[0]?.count || 0;
+      homeAnalytics.totalPodcasts = podcastCount[0]?.count || 0;
+      
+      // Recent activity (last 7 days) - handle missing created_at columns gracefully
+      try {
+        const [recentActivity] = await pool.query(`
+          SELECT 'post' as type, title as name, created_at as timestamp, slug 
+          FROM posts 
+          WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status='published' AND is_deleted=0
+          ORDER BY created_at DESC LIMIT 5`);
+        homeAnalytics.recentActivity = recentActivity;
+      } catch(activityError) {
+        // Fallback if created_at column doesn't exist
+        try {
+          const [fallbackActivity] = await pool.query(`
+            SELECT 'post' as type, title as name, updated_at as timestamp, slug 
+            FROM posts 
+            WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status='published' AND is_deleted=0
+            ORDER BY updated_at DESC LIMIT 5`);
+          homeAnalytics.recentActivity = fallbackActivity;
+        } catch(_) {
+          homeAnalytics.recentActivity = [];
+        }
+      }
+      
+      // Top tags (from published posts)
+      try {
+        const [tagRows] = await pool.query(`
+          SELECT tags FROM posts 
+          WHERE status='published' AND is_deleted=0 AND tags IS NOT NULL AND tags != ''
+          LIMIT 100`);
+        const tagCounts = {};
+        tagRows.forEach(row => {
+          if (row.tags) {
+            row.tags.split(',').forEach(tag => {
+              const cleanTag = tag.trim();
+              if (cleanTag) {
+                tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
+              }
+            });
+          }
+        });
+        homeAnalytics.topTags = Object.entries(tagCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([tag, count]) => ({ tag, count }));
+      } catch(_) { /* Tags column might not exist */ }
+      
+      // Published this week - handle missing created_at column
+      try {
+        const [weeklyPosts] = await pool.query(`
+          SELECT COUNT(*) as count FROM posts 
+          WHERE status='published' AND is_deleted=0 
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
+        homeAnalytics.publishedThisWeek = weeklyPosts[0]?.count || 0;
+      } catch(_) {
+        // Fallback to updated_at if created_at doesn't exist
+        try {
+          const [weeklyPostsFallback] = await pool.query(`
+            SELECT COUNT(*) as count FROM posts 
+            WHERE status='published' AND is_deleted=0 
+            AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
+          homeAnalytics.publishedThisWeek = weeklyPostsFallback[0]?.count || 0;
+        } catch(_) {
+          homeAnalytics.publishedThisWeek = 0;
+        }
+      }
+      
+    } catch(analyticsError) {
+      console.warn('[HOME] Analytics collection failed:', analyticsError.message);
+      // Continue with basic data
+    }
+    
+    res.render('index', { 
+      title: 'Home', 
+      featuredPost, 
+      latestPosts: latestPostsRows,
+      homeAnalytics,
+      currentUser: req.session?.username || null,
+      isAdmin: req.session?.role === 'admin'
+    });
   } catch (err) {
     console.error('Fehler Startseite:', err);
     res.status(500).json({ message:'Interner Fehler', error: err.message });
@@ -142,6 +240,45 @@ router.get('/blog/:slug', async (req,res)=>{
     const currentUrl = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/,'') + req.originalUrl;
     res.render('blog_detail',{ title: post.seo_title || post.title, post, related, currentUrl, seo:{ title: post.seo_title||post.title, description: post.seo_description||post.whatsnew||'', keywords: post.meta_keywords||'', image: post.featured_image_path||'', url: currentUrl, type: 'article' } });
   } catch(e){ console.error('Slug route Fehler', e); res.status(500).render('partials/error_500',{ title:'Fehler', error:e }); }
+});
+
+// KPI Dashboard API endpoint
+router.get('/api/dashboard/kpis', async (req, res) => {
+  try {
+    // Get current counts with error handling
+    const [postCount] = await pool.query(`SELECT COUNT(*) as count FROM posts WHERE status='published' AND is_deleted=0`);
+    const [mediaCount] = await pool.query(`SELECT COUNT(*) as count FROM media WHERE 1=1`);
+    const [podcastCount] = await pool.query(`SELECT COUNT(*) as count FROM podcasts WHERE 1=1`);
+    
+    // Calculate this week's activity
+    const [weeklyPosts] = await pool.query(`
+      SELECT COUNT(*) as count FROM posts 
+      WHERE status='published' AND is_deleted=0 
+      AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)
+    `);
+    
+    const kpiData = {
+      posts: postCount[0]?.count || 0,
+      media: mediaCount[0]?.count || 0,
+      podcasts: podcastCount[0]?.count || 0,
+      weekly_activity: weeklyPosts[0]?.count || 0,
+      last_updated: new Date().toISOString()
+    };
+    
+    // Cache for 5 minutes
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json(kpiData);
+  } catch (error) {
+    console.error('KPI API error:', error);
+    res.status(500).json({ 
+      error: 'Unable to fetch KPI data',
+      posts: 0,
+      media: 0,
+      podcasts: 0,
+      weekly_activity: 0,
+      last_updated: new Date().toISOString()
+    });
+  }
 });
 
 module.exports = router;

@@ -14,12 +14,17 @@ async function fetchCategories(siteKey){
 
 // Medienbibliothek
 router.get('/media', isEditor, async (req,res)=>{ try {
+    console.log('[MEDIA] Loading media library for site:', req.siteKey);
     try { await pool.query('ALTER TABLE media ADD COLUMN site_key VARCHAR(64) NOT NULL DEFAULT "default", ADD INDEX idx_media_site (site_key)'); } catch(_){ }
     try { await pool.query('ALTER TABLE media_categories ADD COLUMN site_key VARCHAR(64) NOT NULL DEFAULT "default", ADD INDEX idx_media_cat_site (site_key)'); } catch(_){ }
 	const [rows]=await pool.query('SELECT m.id,m.name,m.path,m.type,m.alt_text,m.description,m.seo_alt,m.seo_description,m.meta_keywords,m.uploaded_at,m.category_id, mc.label AS category_label FROM media m LEFT JOIN media_categories mc ON m.category_id=mc.id AND mc.site_key=? WHERE m.site_key=? ORDER BY m.uploaded_at DESC',[req.siteKey, req.siteKey]);
 	const cats = await fetchCategories(req.siteKey);
+	console.log('[MEDIA] Found', rows.length, 'media files and', cats.length, 'categories');
 	res.render('editors_media_library',{ title:'Medien', files:rows, mediaCategories:cats });
-} catch(e){ res.status(500).send('Medien Fehler'); } });
+} catch(e){ 
+    console.error('[MEDIA] Error loading media library:', e); 
+    res.status(500).send('Medien Fehler: ' + e.message); 
+} });
 router.get('/media/edit/:id', isEditor, async (req,res)=>{ try { const [[file]] = await pool.query('SELECT m.id,m.name,m.path,m.type,m.alt_text,m.description,m.seo_alt,m.seo_description,m.meta_keywords,m.category_id, mc.label AS category_label FROM media m LEFT JOIN media_categories mc ON m.category_id=mc.id AND mc.site_key=? WHERE m.id=? AND m.site_key=?',[req.siteKey, req.params.id, req.siteKey]); if(!file) return res.status(404).send('Nicht gefunden'); res.render('editors_edit_media',{ title:'Medien bearbeiten', file }); } catch(e){ res.status(500).send('Medien Edit Fehler'); } });
 router.post('/media/edit/:id', isEditor, async (req,res)=>{ const { name, alt_text, description, seo_alt, seo_description, meta_keywords, category }=req.body; try {
 	let catSlug = category||null; let catId = null;

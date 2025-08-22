@@ -1,32 +1,753 @@
 <%- include('partials/header') %>
 <div class="container my-5">
-  <h1>Microsoft Purview — Knowledge</h1>
-  <p class="text-muted">A short, non-technical introduction to Microsoft Purview and how it maps to our site operations.</p>
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="text-center mb-5">
+        <h1 class="display-4"><%= t('purview.title') %></h1>
+        <p class="lead text-muted"><%= t('purview.subtitle') %></p>
+      </div>
 
-  <div id="kpiRow" class="row g-3 my-4">
-    <!-- KPI cards will be injected by client script -->
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-warning">
+          <strong>Notice:</strong> <%= error %>
+        </div>
+      <% } %>
+
+      <!-- KPI Cards Row -->
+      <div id="kpiRow" class="row g-3 my-4">
+        <% if (typeof data !== 'undefined' && data.counts) { %>
+          <div class="col-md-4">
+            <div class="card border-primary shadow-sm">
+              <div class="card-body text-center">
+                <h5 class="card-title text-primary"><%= t('purview.kpi.posts') %></h5>
+                <h2 class="display-6" data-kpi="posts"><%= data.counts.posts || 0 %></h2>
+                <small class="text-muted">Blog posts & articles</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-success shadow-sm">
+              <div class="card-body text-center">
+                <h5 class="card-title text-success"><%= t('purview.kpi.media') %></h5>
+                <h2 class="display-6" data-kpi="media"><%= data.counts.media || 0 %></h2>
+                <small class="text-muted">Images & documents</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-info shadow-sm">
+              <div class="card-body text-center">
+                <h5 class="card-title text-info"><%= t('purview.kpi.podcasts') %></h5>
+                <h2 class="display-6" data-kpi="podcasts"><%= data.counts.podcasts || 0 %></h2>
+                <small class="text-muted">Audio content</small>
+              </div>
+            </div>
+          </div>
+          <% if (data.last_updated) { %>
+            <div class="col-12 text-center">
+              <small class="text-muted">Last updated: <%= new Date(data.last_updated).toLocaleDateString() %></small>
+            </div>
+          <% } %>
+        <% } else { %>
+          <div class="col-12 text-center">
+            <div class="card border-secondary shadow-sm">
+              <div class="card-body">
+                <p class="text-muted">Loading operational metrics...</p>
+              </div>
+            </div>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Main Content Sections -->
+      <section class="my-5">
+        <h3 class="border-bottom pb-2"><%= t('purview.what_is.title') %></h3>
+        <div class="row">
+          <div class="col-md-8">
+            <p class="lead"><%= t('purview.what_is.intro') %></p>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <div class="feature-icon bg-primary">
+                    <i class="bi bi-search"></i>
+                  </div>
+                  <div>
+                    <h5>Discover Data Assets</h5>
+                    <p>Automatically scan and catalog data across your entire environment, from on-premises to multi-cloud</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <div class="feature-icon bg-success">
+                    <i class="bi bi-tags"></i>
+                  </div>
+                  <div>
+                    <h5>Classify & Label</h5>
+                    <p>Apply sensitivity labels and classifications to protect sensitive information automatically</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <div class="feature-icon bg-info">
+                    <i class="bi bi-diagram-2"></i>
+                  </div>
+                  <div>
+                    <h5>Track Data Lineage</h5>
+                    <p>Understand data flow and dependencies across systems for better impact analysis</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <div class="feature-icon bg-warning">
+                    <i class="bi bi-shield-check"></i>
+                  </div>
+                  <div>
+                    <h5>Enforce Governance</h5>
+                    <p>Implement policies and compliance controls to meet regulatory requirements</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-light border-0">
+              <div class="card-body">
+                <h6 class="card-title">Quick Actions</h6>
+                <a href="/purview/glossary" class="btn btn-outline-primary d-block mb-2">
+                  <i class="bi bi-book me-2"></i>View Glossary
+                </a>
+                <a href="/purview/faq" class="btn btn-outline-primary d-block mb-2">
+                  <i class="bi bi-question-circle me-2"></i>Read FAQ
+                </a>
+                <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+                  <a href="/admin/tools" class="btn btn-primary d-block">
+                    <i class="bi bi-gear me-2"></i>Admin Tools
+                  </a>
+                <% } %>
+              </div>
+            </div>
+            
+            <!-- Data Governance Maturity -->
+            <div class="card mt-3 border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+              <div class="card-body">
+                <h6 class="card-title text-white">Governance Maturity</h6>
+                <div class="mb-2">
+                  <small>Data Discovery</small>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 85%"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <small>Classification</small>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 70%"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <small>Policy Enforcement</small>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-light" role="progressbar" style="width: 60%"></div>
+                  </div>
+                </div>
+                <small class="text-white-50">Based on current implementation</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5">
+        <h3 class="border-bottom pb-2">How This Maps to Our Operations</h3>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="bi bi-tags text-primary me-2"></i>Content Classification
+                </h5>
+                <p class="card-text">
+                  Our media tags and content categories align with Purview's classification system, 
+                  helping organize and discover content based on sensitivity and purpose.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="bi bi-diagram-2 text-success me-2"></i>Data Lineage
+                </h5>
+                <p class="card-text">
+                  Track how content flows through our system: from creation → editing → 
+                  publication → archival, maintaining audit trails for compliance.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="bi bi-shield-check text-warning me-2"></i>Governance Policies
+                </h5>
+                <p class="card-text">
+                  Retention policies and access controls ensure content lifecycle 
+                  management aligns with organizational and regulatory requirements.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="bi bi-search text-info me-2"></i>Discovery & Catalog
+                </h5>
+                <p class="card-text">
+                  Metadata-rich content catalog enables stakeholders to find and understand 
+                  information assets quickly and efficiently.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5">
+        <h3 class="border-bottom pb-2">Common Workflows</h3>
+        <div class="accordion" id="workflowAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="workflow1">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                <i class="bi bi-1-circle-fill me-2 text-primary"></i>
+                How to Tag Media for Better Discoverability
+              </button>
+            </h2>
+            <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#workflowAccordion">
+              <div class="accordion-body">
+                <div class="workflow-steps">
+                  <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                      <h6>Access Media Library</h6>
+                      <p>Navigate to the Media Library in the Editors section or use the direct link</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                      <h6>Upload or Select Media</h6>
+                      <p>Choose existing media or upload new files (supports images, documents, audio)</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                      <h6>Add Descriptive Tags</h6>
+                      <p>Use relevant keywords that describe content, purpose, and context</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                      <h6>Set Classification Level</h6>
+                      <p>Choose appropriate category: Public, Internal, or Restricted</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                      <h6>Optimize for SEO</h6>
+                      <p>Fill in SEO metadata including alt text, descriptions for public-facing content</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                  <i class="bi bi-lightbulb me-2"></i>
+                  <strong>Pro Tip:</strong> Use consistent naming conventions and tag hierarchies for better organization
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="workflow2">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                <i class="bi bi-2-circle-fill me-2 text-success"></i>
+                Understanding Content Retention Policies
+              </button>
+            </h2>
+            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#workflowAccordion">
+              <div class="accordion-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="retention-policy">
+                      <h6 class="text-primary">
+                        <i class="bi bi-file-earmark-text me-2"></i>Draft Content
+                      </h6>
+                      <div class="policy-details">
+                        <span class="retention-period">30 days</span>
+                        <p>Retained after last modification. Automatically purged unless published or explicitly saved.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="retention-policy">
+                      <h6 class="text-success">
+                        <i class="bi bi-check-circle me-2"></i>Published Content
+                      </h6>
+                      <div class="policy-details">
+                        <span class="retention-period">Indefinite</span>
+                        <p>Retained unless explicitly marked for deletion or archived by administrators.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="retention-policy">
+                      <h6 class="text-info">
+                        <i class="bi bi-image me-2"></i>Media Assets
+                      </h6>
+                      <div class="policy-details">
+                        <span class="retention-period">Usage-based</span>
+                        <p>Retained based on reference count and last access. Orphaned files reviewed quarterly.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="retention-policy">
+                      <h6 class="text-warning">
+                        <i class="bi bi-shield-check me-2"></i>Audit Logs
+                      </h6>
+                      <div class="policy-details">
+                        <span class="retention-period">2 years</span>
+                        <p>Required for compliance. Includes user actions, system changes, and access logs.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="workflow3">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                <i class="bi bi-3-circle-fill me-2 text-info"></i>
+                Data Lineage and Impact Analysis
+              </button>
+            </h2>
+            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#workflowAccordion">
+              <div class="accordion-body">
+                <p class="lead">Understanding how data flows through our system helps with impact analysis and troubleshooting.</p>
+                
+                <div class="lineage-flow">
+                  <div class="flow-step">
+                    <div class="flow-icon bg-primary">
+                      <i class="bi bi-plus-circle"></i>
+                    </div>
+                    <h6>Content Creation</h6>
+                    <p>Authors create content using editors with AI assistance for SEO optimization</p>
+                  </div>
+                  <div class="flow-arrow">→</div>
+                  <div class="flow-step">
+                    <div class="flow-icon bg-warning">
+                      <i class="bi bi-eye"></i>
+                    </div>
+                    <h6>Review Process</h6>
+                    <p>Content goes through editorial review, fact-checking, and compliance validation</p>
+                  </div>
+                  <div class="flow-arrow">→</div>
+                  <div class="flow-step">
+                    <div class="flow-icon bg-success">
+                      <i class="bi bi-broadcast"></i>
+                    </div>
+                    <h6>Publication</h6>
+                    <p>Approved content is published with proper metadata and tracking enabled</p>
+                  </div>
+                  <div class="flow-arrow">→</div>
+                  <div class="flow-step">
+                    <div class="flow-icon bg-info">
+                      <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h6>Analytics</h6>
+                    <p>Performance metrics collected, user engagement tracked for optimization</p>
+                  </div>
+                </div>
+                
+                <div class="alert alert-success mt-3">
+                  <i class="bi bi-check-circle me-2"></i>
+                  <strong>Impact Analysis:</strong> When modifying content, the system tracks dependencies and notifies stakeholders of potential impacts.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5">
+        <div class="alert alert-info">
+          <h5 class="alert-heading">Need More Information?</h5>
+          <p class="mb-0">
+            For detailed technical documentation and administrative access, 
+            contact your system administrator or visit the 
+            <a href="/purview/faq" class="alert-link">FAQ section</a>.
+          </p>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <section class="my-4">
-    <h3>What is Microsoft Purview?</h3>
-    <p>Microsoft Purview is a data governance solution. It offers cataloging, classification and policy controls to help organizations understand and govern their data.</p>
-    <h4>How this maps to Panda</h4>
-    <ul>
-      <li>Catalog/Inventory → media &amp; posts metadata (our <code>media.tags</code> and post metadata)</li>
-      <li>Classifications → content tags, sensitivity labels (mapped to internal tag fields)</li>
-      <li>Retention → retention policies documented in the Admin guides</li>
-    </ul>
-  </section>
+  <script nonce="<%= cspNonce %>">
+    // Simple client-side enhancement for KPI refresh
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-refresh KPIs every 5 minutes if page is visible
+      let refreshInterval;
+      
+      function refreshKPIs() {
+        if (document.visibilityState === 'visible') {
+          fetch('/api/public/purview')
+            .then(response => response.json())
+            .then(data => {
+              if (data.ok && data.data) {
+                console.log('KPIs refreshed:', data.data);
+                // Update DOM elements if needed
+                updateKPICards(data.data);
+              }
+            })
+            .catch(console.error);
+        }
+      }
+      
+      function updateKPICards(data) {
+        if (data.counts) {
+          // Update the KPI cards with fresh data
+          const postCountEl = document.querySelector('[data-kpi="posts"]');
+          const mediaCountEl = document.querySelector('[data-kpi="media"]');
+          const podcastCountEl = document.querySelector('[data-kpi="podcasts"]');
+          
+          if (postCountEl) postCountEl.textContent = data.counts.posts || 0;
+          if (mediaCountEl) mediaCountEl.textContent = data.counts.media || 0;
+          if (podcastCountEl) podcastCountEl.textContent = data.counts.podcasts || 0;
+        }
+      }
+      
+      // Set up visibility-aware refresh
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          refreshInterval = setInterval(refreshKPIs, 5 * 60 * 1000);
+        } else {
+          clearInterval(refreshInterval);
+        }
+      });
+      
+      if (document.visibilityState === 'visible') {
+        refreshInterval = setInterval(refreshKPIs, 5 * 60 * 1000);
+      }
+      
+      // Smooth accordion animations
+      const accordionButtons = document.querySelectorAll('.accordion-button');
+      accordionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const icon = this.querySelector('i');
+          setTimeout(() => {
+            if (this.classList.contains('collapsed')) {
+              icon.style.transform = 'rotate(0deg)';
+            } else {
+              icon.style.transform = 'rotate(180deg)';
+            }
+          }, 150);
+        });
+      });
+      
+      // Progress bar animations for governance maturity
+      const progressBars = document.querySelectorAll('.progress-bar');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const progressBar = entry.target;
+            const width = progressBar.style.width;
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+              progressBar.style.transition = 'width 1.5s ease-out';
+              progressBar.style.width = width;
+            }, 200);
+          }
+        });
+      }, { threshold: 0.5 });
+      
+      progressBars.forEach(bar => observer.observe(bar));
+    });
+  </script>
 
-  <section class="my-4">
-    <h3>Glossary</h3>
-    <dl>
-      <dt>Catalog</dt><dd>Inventory of data sources and assets.</dd>
-      <dt>Classification</dt><dd>Labels applied to assets (e.g., public, internal, restricted).</dd>
-      <dt>Lineage</dt><dd>How data flows between systems.</dd>
-    </dl>
-  </section>
-
-  <script src="/js/purview.js" nonce="<%= cspNonce %>"></script>
+  <!-- Enhanced Styles for Purview -->
+  <style nonce="<%= cspNonce %>">
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    .workflow-steps {
+      position: relative;
+    }
+    
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    
+    .step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: -20px;
+      width: 2px;
+      background: #e9ecef;
+    }
+    
+    .step-number {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+    
+    .step-content h6 {
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+    
+    .step-content p {
+      margin: 0;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    
+    .retention-policy {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border-left: 4px solid #007bff;
+      margin-bottom: 1rem;
+    }
+    
+    .retention-period {
+      display: inline-block;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    
+    .policy-details p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    .lineage-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    
+    .flow-step {
+      flex: 1;
+      text-align: center;
+      min-width: 150px;
+    }
+    
+    .flow-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      margin: 0 auto 1rem;
+    }
+    
+    .flow-step h6 {
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+    
+    .flow-step p {
+      font-size: 0.85rem;
+      color: #6c757d;
+      margin: 0;
+    }
+    
+    .flow-arrow {
+      font-size: 1.5rem;
+      color: #6c757d;
+      flex-shrink: 0;
+    }
+    
+    .accordion-button i {
+      transition: transform 0.3s ease;
+    }
+    
+    .progress {
+      background-color: rgba(255,255,255,0.3);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .lineage-flow {
+        flex-direction: column;
+      }
+      
+      .flow-arrow {
+        transform: rotate(90deg);
+        margin: 0.5rem 0;
+      }
+      
+      .feature-item {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .step-item {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .step-item::after {
+        display: none;
+      }
+    }
+    
+    /* Dark mode support */
+    [data-bs-theme="dark"] .retention-policy {
+      background: #2c3e50;
+      border-left-color: #3498db;
+    }
+    
+    [data-bs-theme="dark"] .step-content h6,
+    [data-bs-theme="dark"] .flow-step h6 {
+      color: #ecf0f1;
+    }
+    
+    [data-bs-theme="dark"] .step-content p,
+    [data-bs-theme="dark"] .policy-details p,
+    [data-bs-theme="dark"] .flow-step p {
+      color: #bdc3c7;
+    }
+  </style>
+  
+  <script nonce="<%= cspNonce %>">
+  (function() {
+    // KPI Auto-refresh functionality
+    async function refreshKPIs() {
+      try {
+        const response = await fetch('/api/dashboard/kpis');
+        const data = await response.json();
+        
+        // Update KPI displays with animation
+        const kpiElements = document.querySelectorAll('[data-kpi]');
+        kpiElements.forEach(element => {
+          const kpiType = element.getAttribute('data-kpi');
+          if (data[kpiType] !== undefined) {
+            const countElement = element.querySelector('.kpi-count');
+            if (countElement) {
+              // Animate number change
+              const currentValue = parseInt(countElement.textContent) || 0;
+              const newValue = data[kpiType];
+              
+              if (currentValue !== newValue) {
+                countElement.style.transform = 'scale(1.1)';
+                countElement.style.color = '#28a745';
+                
+                setTimeout(() => {
+                  countElement.textContent = newValue.toLocaleString();
+                  setTimeout(() => {
+                    countElement.style.transform = 'scale(1)';
+                    countElement.style.color = '';
+                  }, 300);
+                }, 150);
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.warn('KPI refresh failed:', error.message);
+      }
+    }
+    
+    // Progress bar animations
+    function animateProgressBars() {
+      const progressBars = document.querySelectorAll('.progress-bar');
+      progressBars.forEach(bar => {
+        const targetWidth = bar.getAttribute('data-width') || bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+          bar.style.width = targetWidth;
+        }, 300);
+      });
+    }
+    
+    // Refresh KPIs every 30 seconds
+    setInterval(refreshKPIs, 30000);
+    
+    // Animate progress bars when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(animateProgressBars, 1000);
+    });
+    
+    // Accordion behavior enhancements
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    accordionButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        if (icon) {
+          setTimeout(() => {
+            if (this.classList.contains('collapsed')) {
+              icon.style.transform = 'rotate(0deg)';
+            } else {
+              icon.style.transform = 'rotate(180deg)';
+            }
+          }, 100);
+        }
+      });
+    });
+  })();
+  </script>
 </div>
 <%- include('partials/footer') %>

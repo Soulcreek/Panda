@@ -5,30 +5,56 @@ const router = express.Router();
 
 router.get(['/tools','/tools/raw','/tools/tables'], isAuth, async (req,res)=>{
 	const mode = req.path.endsWith('/raw') ? 'raw' : (req.path.endsWith('/tables') ? 'tables' : 'structured');
-	const debug = process.env.ADMIN_TOOLS_DEBUG === 'true';
+	const debug = process.env.ADMIN_TOOLS_DEBUG === 'true' || true; // Force debug for now
 	const errors = [];
-	const note = (msg)=>{ if(debug) errors.push(msg); };
+	const note = (msg)=>{ console.log('[ADMIN_TOOLS]', msg); if(debug) errors.push(msg); };
+	
+	note(`Mode: ${mode}, Debug: ${debug}`);
+	
 	try {
 		let posts = [], podcasts = [], pages = [];
 		if(mode==='structured'){
-			try { const [rows] = await pool.query(`SELECT id,title,COALESCE(is_deleted,0) as is_deleted,COALESCE(is_featured,0) as is_featured,COALESCE(status='published',0) as is_visible,published_at FROM posts ORDER BY id DESC LIMIT 200`); posts = rows; if(!rows.length) note('Keine Posts gefunden (Tabelle leer?)'); } catch(e){ note('Posts Query Fehler: '+e.message); }
-			try { const [rows] = await pool.query(`SELECT id,title,published_at,seo_title,seo_description FROM podcasts ORDER BY id DESC LIMIT 100`); podcasts = rows; if(!rows.length) note('Keine Podcasts gefunden'); } catch(e){ note('Podcasts Query Fehler: '+e.message); }
-			try { const [rows] = await pool.query(`SELECT id,title,slug,status,updated_at,is_template FROM advanced_pages ORDER BY updated_at DESC LIMIT 150`); pages = rows; if(!rows.length) note('Keine Advanced Pages gefunden'); } catch(e){ note('Advanced Pages Query Fehler: '+e.message); }
+			note('Executing structured queries...');
+			try { const [rows] = await pool.query(`SELECT id,title,COALESCE(is_deleted,0) as is_deleted,COALESCE(is_featured,0) as is_featured,COALESCE(status='published',0) as is_visible,published_at FROM posts ORDER BY id DESC LIMIT 200`); posts = rows; note(`Posts found: ${rows.length}`); if(!rows.length) note('Keine Posts gefunden (Tabelle leer?)'); } catch(e){ note('Posts Query Fehler: '+e.message); }
+			try { const [rows] = await pool.query(`SELECT id,title,published_at,seo_title,seo_description FROM podcasts ORDER BY id DESC LIMIT 100`); podcasts = rows; note(`Podcasts found: ${rows.length}`); if(!rows.length) note('Keine Podcasts gefunden'); } catch(e){ note('Podcasts Query Fehler: '+e.message); }
+			try { const [rows] = await pool.query(`SELECT id,title,slug,status,updated_at,is_template FROM advanced_pages ORDER BY updated_at DESC LIMIT 150`); pages = rows; note(`Pages found: ${rows.length}`); if(!rows.length) note('Keine Advanced Pages gefunden'); } catch(e){ note('Advanced Pages Query Fehler: '+e.message); }
 			return res.render('admin_tools',{ title:'Admin Tools', mode, posts, podcasts, pages, tables:[], rawData:{}, errors, debug });
 		}
 		if(mode==='raw'){
+			note('Executing raw queries...');
 			let tables=[]; let rawData={};
-			try { const [rows] = await pool.query(`SHOW TABLES`); const key = Object.keys(rows[0]||{})[0]; tables = rows.map(r=>r[key]); if(!tables.length) note('SHOW TABLES lieferte keine Tabellen (richtige DB ausgewählt?)'); } catch(e){ note('SHOW TABLES Fehler: '+e.message); }
+			try { 
+				const [rows] = await pool.query(`SHOW TABLES`); 
+				const key = Object.keys(rows[0]||{})[0]; 
+				tables = rows.map(r=>r[key]); 
+				note(`Tables found: ${tables.length} - ${tables.join(', ')}`);
+				if(!tables.length) note('SHOW TABLES lieferte keine Tabellen (richtige DB ausgewählt?)'); 
+			} catch(e){ note('SHOW TABLES Fehler: '+e.message); }
 			for(const t of tables){
-				try { const [rows] = await pool.query(`SELECT * FROM \`${t}\` LIMIT 200`); rawData[t]=rows; } catch(e){ rawData[t]=[{error:'Nicht lesbar'}]; note(`Fehler beim Lesen von ${t}: ${e.message}`); }
+				try { 
+					const [rows] = await pool.query(`SELECT * FROM \`${t}\` LIMIT 200`); 
+					rawData[t]=rows; 
+					note(`Table ${t}: ${rows.length} rows`);
+				} catch(e){ rawData[t]=[{error:'Nicht lesbar'}]; note(`Fehler beim Lesen von ${t}: ${e.message}`); }
 			}
 			return res.render('admin_tools',{ title:'Admin Tools', mode, posts:[], podcasts:[], pages:[], tables, rawData, errors, debug });
 		}
 		if(mode==='tables'){
+			note('Executing tables schema queries...');
 			let tables=[]; let schemaByTable={};
-			try { const [rows] = await pool.query(`SHOW TABLES`); const key = Object.keys(rows[0]||{})[0]; tables = rows.map(r=>r[key]); if(!tables.length) note('SHOW TABLES lieferte keine Tabellen'); } catch(e){ note('SHOW TABLES Fehler: '+e.message); }
+			try { 
+				const [rows] = await pool.query(`SHOW TABLES`); 
+				const key = Object.keys(rows[0]||{})[0]; 
+				tables = rows.map(r=>r[key]); 
+				note(`Tables found for schema: ${tables.length}`);
+				if(!tables.length) note('SHOW TABLES lieferte keine Tabellen'); 
+			} catch(e){ note('SHOW TABLES Fehler: '+e.message); }
 			if(tables.length){
-				try { const [rows] = await pool.query(`SELECT table_name,column_name,data_type,character_maximum_length,is_nullable,column_key,extra FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position`); rows.forEach(r=>{ (schemaByTable[r.table_name]=schemaByTable[r.table_name]||[]).push(r); }); } catch(e){ note('Information_schema Query Fehler: '+e.message); }
+				try { 
+					const [rows] = await pool.query(`SELECT table_name,column_name,data_type,character_maximum_length,is_nullable,column_key,extra FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position`); 
+					note(`Schema rows found: ${rows.length}`);
+					rows.forEach(r=>{ (schemaByTable[r.table_name]=schemaByTable[r.table_name]||[]).push(r); }); 
+				} catch(e){ note('Information_schema Query Fehler: '+e.message); }
 			}
 			return res.render('admin_tools_tables',{ title:'Tabellen Übersicht', mode, tables, schemaByTable, errors, debug });
 		}
@@ -38,6 +64,87 @@ router.get(['/tools','/tools/raw','/tools/tables'], isAuth, async (req,res)=>{
 		if(mode==='tables') return res.status(500).render('admin_tools_tables',{ title:'Tabellen Übersicht', mode:'tables', tables:[], schemaByTable:{}, errors, debug });
 		res.status(500).render('admin_tools',{ title:'Admin Tools', mode, posts:[], podcasts:[], pages:[], tables:[], rawData:{}, errors, debug });
 	}
+});
+
+router.get('/tools/diag', isAuth, async (req,res)=>{
+	const debug = process.env.ADMIN_TOOLS_DEBUG === 'true' || true;
+	console.log('[ADMIN_DIAG] Starting diagnostic...');
+	
+	const diag = {
+		timestamp: new Date().toISOString(),
+		debug: debug,
+		database: {
+			connected: false,
+			tables: [],
+			sample_queries: {}
+		},
+		media: {
+			uploads_dir_exists: false,
+			placeholders_exist: false,
+			sample_files: []
+		},
+		environment: {
+			db_name: process.env.DB_NAME,
+			db_host: process.env.DB_HOST,
+			node_env: process.env.NODE_ENV
+		}
+	};
+
+	// Database diagnostics
+	try {
+		console.log('[ADMIN_DIAG] Testing database connection...');
+		await pool.query('SELECT 1');
+		diag.database.connected = true;
+		
+		// Get tables
+		const [tables] = await pool.query('SHOW TABLES');
+		const key = Object.keys(tables[0] || {})[0];
+		diag.database.tables = tables.map(r => r[key]);
+		console.log('[ADMIN_DIAG] Found tables:', diag.database.tables.length);
+		
+		// Test key tables
+		if (diag.database.tables.includes('posts')) {
+			const [posts] = await pool.query('SELECT COUNT(*) as count FROM posts');
+			diag.database.sample_queries.posts_count = posts[0].count;
+		}
+		if (diag.database.tables.includes('media')) {
+			const [media] = await pool.query('SELECT COUNT(*) as count FROM media');
+			diag.database.sample_queries.media_count = media[0].count;
+		}
+		if (diag.database.tables.includes('podcasts')) {
+			const [podcasts] = await pool.query('SELECT COUNT(*) as count FROM podcasts');
+			diag.database.sample_queries.podcasts_count = podcasts[0].count;
+		}
+	} catch (e) {
+		console.error('[ADMIN_DIAG] Database error:', e);
+		diag.database.error = e.message;
+	}
+
+	// Media diagnostics
+	try {
+		const fs = require('fs');
+		const path = require('path');
+		
+		const uploadsDir = path.join(__dirname, '../../httpdocs/uploads');
+		const placeholdersDir = path.join(__dirname, '../../httpdocs/uploads/placeholders');
+		
+		diag.media.uploads_dir_exists = fs.existsSync(uploadsDir);
+		diag.media.placeholders_exist = fs.existsSync(placeholdersDir);
+		
+		console.log('[ADMIN_DIAG] Uploads dir exists:', diag.media.uploads_dir_exists);
+		console.log('[ADMIN_DIAG] Placeholders exist:', diag.media.placeholders_exist);
+		
+		if (diag.media.uploads_dir_exists) {
+			const files = fs.readdirSync(uploadsDir);
+			diag.media.sample_files = files.slice(0, 10); // First 10 files
+		}
+	} catch (e) {
+		console.error('[ADMIN_DIAG] Media diagnostics error:', e);
+		diag.media.error = e.message;
+	}
+
+	console.log('[ADMIN_DIAG] Diagnostic complete');
+	res.json(diag);
 });
 
 router.get('/tools/prompt-tester', isAuth, (req,res)=>{ res.render('admin_tool_prompt_tester',{ title:'AI Prompt Tester', result:null, error:null }); });

@@ -35,6 +35,12 @@ Quick KPI Definition für Abschluss jedes Blocks:
 - [x] Slug Editing: Manuelles Override Feld + Lock/Auto Heuristik implementiert.
 - [x] Blog Post Revisionen: Tabelle `post_revisions` + Hook vor Update + Restore Endpoint/UI.
 - [x] AI Prompt Testing Tool (/admin/tools/prompt-tester): Mini-Form zum Ad-hoc Prompt + Raw Response.
+- [x] **Microsoft Purview Knowledge Center**: Vollständige Implementation mit KPI Dashboard, Glossar, FAQ und Workflow-Dokumentation
+- [x] **Modern Home v2**: Komplettes UI/UX Redesign mit animierter Branding, Glass Morphism und responsive Design
+- [x] **Deutsche Internationalisierung**: Vollständige Lokalisierung aller UI-Elemente und Content-Bereiche
+- [x] **KPI Refresh API**: Real-time Datenaktualisierung mit Progress Animations
+- [x] **Enhanced Blog Cards**: Modern floating Design mit professioneller Typographie
+- [x] **Database Connection Fix**: Object Spread Wrapper Pattern eliminiert mysql2/promise Recursion-Fehler
 - [ ] Unit Tests für `advancedPagesUtil`, AI helper fallback parsing (Slug Generator & API Key Auswahl bereits abgedeckt durch `slug.test.js`, `aiConfig.test.js`) – REST AUSSTEHEND.
 - [x] Security Hardening: Reaktivierung CSRF für AI Endpunkte (Header Token Mapping) implementiert.
 - [x] Logging: Fehlerhafte JSON Parses im Editor persistent in `ai_usage_log.error_message` + `parse_error_flag` (implementiert 2025-08-21)

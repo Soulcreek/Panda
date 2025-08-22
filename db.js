@@ -28,6 +28,7 @@ if (process.env.DB_SOCKET_PATH) {
 }
 
 let pool;
+let proxiedPool;
 // Lightweight health metrics
 const dbHealth = {
   lastPingMs: null,
@@ -43,35 +44,86 @@ const dbHealth = {
 
 try {
   pool = mysql.createPool(connectionConfig);
-  // Metrics (lazy require to avoid cycle if server requires db early)
-  let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
-
-  // Wrap original query for latency tracking (non-invasive)
+  console.log('[DB] Pool created successfully');
+  
+  // Simple instrumented wrapper functions that don't cause recursion
   const origQuery = pool.query.bind(pool);
-  pool.query = async function wrappedQuery(sql, params){
-    const start = Date.now();
-    try {
-      const res = await origQuery(sql, params);
-      const dur = Date.now() - start;
-  if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
-  dbHealth.totalQueries++;
-  dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
-  const sum = dbHealth.window.reduce((a,b)=>a+b,0);
-  dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
-  if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
-  // degraded if current or rolling average exceeds threshold OR last error existed
-  dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
-      dbHealth.lastError = null;
-      dbHealth.lastCheckedAt = new Date();
-  // metrics histogram (seconds)
-  if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
-  return res;
-    } catch(e){
-      dbHealth.lastError = e.message;
-      dbHealth.degraded = true;
-      dbHealth.lastCheckedAt = new Date();
-  if(metrics){ metrics.inc('db_query_errors_total'); }
-      throw e;
+  const origExecute = pool.execute.bind(pool);
+  
+  // Create a simple wrapper object instead of a Proxy to avoid any recursion
+  proxiedPool = {
+    // Copy all pool properties/methods
+    ...pool,
+    
+    // Override query with instrumentation
+    query: async function(sql, params) {
+      // Strip any callback arguments
+      const args = typeof params === 'function' ? [sql] : [sql, params].filter(a => a !== undefined);
+      
+      const start = Date.now();
+      try {
+        const res = await origQuery(...args);
+        const dur = Date.now() - start;
+        
+        // Update health metrics
+        if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
+        dbHealth.totalQueries++;
+        dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
+        const sum = dbHealth.window.reduce((a,b)=>a+b,0);
+        dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
+        if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
+        dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
+        dbHealth.lastError = null;
+        dbHealth.lastCheckedAt = new Date();
+        
+        // Metrics
+        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
+        if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
+        
+        return res;
+      } catch(e){
+        dbHealth.lastError = e.message;
+        dbHealth.degraded = true;
+        dbHealth.lastCheckedAt = new Date();
+        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
+        if(metrics){ metrics.inc('db_query_errors_total'); }
+        throw e;
+      }
+    },
+    
+    // Override execute with instrumentation
+    execute: async function(sql, params) {
+      // Strip any callback arguments  
+      const args = typeof params === 'function' ? [sql] : [sql, params].filter(a => a !== undefined);
+      
+      const start = Date.now();
+      try {
+        const res = await origExecute(...args);
+        const dur = Date.now() - start;
+        
+        // Update health metrics (same as query)
+        if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
+        dbHealth.totalQueries++;
+        dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
+        const sum = dbHealth.window.reduce((a,b)=>a+b,0);
+        dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
+        if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
+        dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
+        dbHealth.lastError = null;
+        dbHealth.lastCheckedAt = new Date();
+        
+        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
+        if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
+        
+        return res;
+      } catch(e){
+        dbHealth.lastError = e.message;
+        dbHealth.degraded = true; 
+        dbHealth.lastCheckedAt = new Date();
+        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
+        if(metrics){ metrics.inc('db_query_errors_total'); }
+        throw e;
+      }
     }
   };
 
@@ -94,8 +146,8 @@ try {
   process.exit(1);
 }
 
-// Export both default and named for flexibility
-module.exports = pool;
-module.exports.pool = pool;
+// Export proxied pool by default so all existing imports work unchanged
+module.exports = proxiedPool || pool;
+module.exports.pool = proxiedPool || pool;
 module.exports.dbHealth = dbHealth;
-module.exports.getPool = () => pool;
+module.exports.getPool = () => proxiedPool || pool;

@@ -9,11 +9,11 @@ router.use(require('./blog'));
 router.use(require('./podcasts'));
 router.use(require('./pages'));
 router.use(require('./pandasWay'));
+// Purview information page (load before staticPages to avoid conflicts)
+try { router.use(require('./purview')); } catch(_){ }
 router.use(require('./staticPages'));
 // Public read API (rate limited)
 router.use(require('./apiPublic'));
-// Purview information page
-try { router.use(require('./purview')); } catch(_){ }
 // Lightweight tracking endpoint
 try { router.use(require('./track')); } catch(_) { }
 // Optional consent ingestion (non-identifying)

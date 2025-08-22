@@ -1,76 +1,1055 @@
 <%- include('partials/header') %>
 
-<header class="hero-section">
-    <div class="container" data-aos="fade-up">
-        <h1 class="display-3">Purview Panda</h1>
-    <p class="lead"><%= t('home.hero.tagline') %></p>
-    <a href="/blog" class="btn btn-primary btn-lg mt-3"><%= t('home.hero.cta_blog') %></a>
+<!-- Hero Section with Dynamic Background -->
+<header class="hero-section position-relative overflow-hidden">
+  <div class="hero-bg-overlay"></div>
+  <div class="hero-particles"></div>
+  <div class="container position-relative" data-aos="fade-up">
+    <div class="row align-items-center min-vh-75">
+      <div class="col-lg-10 mx-auto text-center">
+        <!-- Modern Logo/Title -->
+        <div class="hero-logo mb-4">
+          <div class="logo-container">
+            <div class="logo-icon">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="logo-text">
+              <h1 class="brand-name">
+                <span class="brand-main">Purview</span>
+                <span class="brand-accent">Panda</span>
+              </h1>
+              <p class="brand-tagline">Data Governance Made Simple</p>
+            </div>
+          </div>
+        </div>
+        
+        <p class="hero-description fs-5 mb-5 text-muted">
+          <%= t('home.hero.tagline') || 'Your comprehensive platform for data governance, cybersecurity insights, and enterprise knowledge management' %>
+        </p>
+        
+        <!-- Quick Stats Bar with Modern Design -->
+        <div class="stats-container mb-5">
+          <div class="row g-0 justify-content-center">
+            <div class="col-md-3">
+              <div class="stat-card-modern">
+                <div class="stat-icon">
+                  <i class="bi bi-file-text"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= homeAnalytics.totalPosts %></div>
+                  <div class="stat-label">Articles</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card-modern">
+                <div class="stat-icon">
+                  <i class="bi bi-images"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= homeAnalytics.totalMedia %></div>
+                  <div class="stat-label">Media</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card-modern">
+                <div class="stat-icon">
+                  <i class="bi bi-mic"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= homeAnalytics.totalPodcasts %></div>
+                  <div class="stat-label">Podcasts</div>
+                </div>
+              </div>
+            </div>
+            <% if (homeAnalytics.publishedThisWeek > 0) { %>
+            <div class="col-md-3">
+              <div class="stat-card-modern highlight">
+                <div class="stat-icon">
+                  <i class="bi bi-star-fill"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= homeAnalytics.publishedThisWeek %></div>
+                  <div class="stat-label">This Week</div>
+                </div>
+              </div>
+            </div>
+            <% } %>
+          </div>
+        </div>
+        
+        <!-- Enhanced CTAs -->
+        <div class="hero-actions">
+          <a href="/blog" class="btn-hero btn-primary">
+            <i class="bi bi-journal-text"></i>
+            <span><%= t('home.hero.cta_blog') || 'Explore Blog' %></span>
+          </a>
+          <a href="/purview" class="btn-hero btn-secondary">
+            <i class="bi bi-lightbulb"></i>
+            <span>Knowledge Center</span>
+          </a>
+          <% if (isAdmin) { %>
+            <a href="/admin" class="btn-hero btn-admin">
+              <i class="bi bi-gear"></i>
+              <span>Admin</span>
+            </a>
+          <% } %>
+        </div>
+      </div>
     </div>
+  </div>
 </header>
 
-<!-- Featured Post Sektion -->
+<!-- Featured Content Section -->
 <% if (featuredPost) { %>
-<div class="container my-5">
-    <div class="card mb-3 shadow-lg border-0" data-aos="fade-up">
-        <div class="row g-0">
-            <div class="col-md-6">
-                <% if (featuredPost.featured_image_path) { %>
-                <img src="<%= featuredPost.featured_image_path %>" class="img-fluid rounded-start of-cover h-100" alt="<%= featuredPost.title %>">
-                <% } %>
+<section class="featured-section py-5">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6 order-lg-2" data-aos="fade-left">
+        <% if (featuredPost.featured_image_path) { %>
+          <div class="featured-image-wrapper">
+            <img src="<%= featuredPost.featured_image_path %>" class="img-fluid rounded-3 shadow-lg" alt="<%= featuredPost.title %>">
+            <div class="featured-badge">
+              <i class="bi bi-star-fill"></i> Featured
             </div>
-            <div class="col-md-6 d-flex align-items-center">
-                <div class="card-body p-5">
-                    <h5 class="text-muted">Im Fokus</h5>
-                    <h2 class="card-title display-6"><%= featuredPost.title %></h2>
-                    <p class="card-text mt-3">
-                        <% if (featuredPost.content) { %>
-                            <%= featuredPost.content.replace(/<[^>]*>?/gm, '').substring(0, 200) %>...
-                        <% } %>
-                    </p>
-                    <button type="button" class="btn btn-primary mt-3 read-more-btn" data-bs-toggle="modal" data-bs-target="#blogPostModal" data-post-id="<%= featuredPost.id %>">
-                        Ganzen Beitrag lesen
-                    </button>
-                </div>
-            </div>
+          </div>
+        <% } %>
+      </div>
+      <div class="col-lg-6 order-lg-1" data-aos="fade-right">
+        <div class="featured-content">
+          <div class="d-flex align-items-center mb-3">
+            <span class="badge bg-primary fs-6 me-2">Latest</span>
+            <small class="text-muted">
+              <% if (featuredPost.published_at) { %>
+                <%= new Date(featuredPost.published_at).toLocaleDateString('de-DE', { 
+                  year: 'numeric', month: 'long', day: 'numeric' 
+                }) %>
+              <% } else { %>
+                <%= new Date(featuredPost.created_at).toLocaleDateString('de-DE', { 
+                  year: 'numeric', month: 'long', day: 'numeric' 
+                }) %>
+              <% } %>
+            </small>
+          </div>
+          <h2 class="display-6 fw-bold mb-3"><%= featuredPost.title %></h2>
+          <% if (featuredPost.whatsnew || featuredPost.content) { %>
+            <p class="lead text-muted mb-4">
+              <%= (featuredPost.whatsnew || featuredPost.content.replace(/<[^>]*>?/gm, '').substring(0, 200)) %>...
+            </p>
+          <% } %>
+          <button type="button" class="btn btn-primary btn-lg read-more-btn" 
+                  data-bs-toggle="modal" data-bs-target="#blogPostModal" 
+                  data-post-id="<%= featuredPost.id %>">
+            <i class="bi bi-book-open me-2"></i><%= t('home.featured.read_full_article') %>
+          </button>
         </div>
+      </div>
     </div>
-</div>
+  </div>
+</section>
 <% } %>
 
-<div class="bg-light dark-mode-alt-surface py-5">
-    <div class="container">
-        <div class="row text-center mb-5" data-aos="fade-up">
-            <div class="col-lg-8 mx-auto">
-                <h2 class="mb-3"><%= t('home.latest_posts.heading') %></h2>
-            </div>
-        </div>
-        <div class="row g-4">
-             <% if (latestPosts && latestPosts.length > 0) { %>
-                <% latestPosts.forEach(function(post) { %>
-                    <div class="col-md-4" data-aos="zoom-in-up">
-                        <div class="card h-100 shadow-sm card-blog">
-                            <% if (post.featured_image_path) { %>
-                                <img src="<%= post.featured_image_path %>" class="card-img-top h-180 of-cover" alt="<%= post.title %>">
-                            <% } %>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title"><%= post.title %></h5>
-                                <p class="card-text text-muted flex-grow-1">
-                                    <% if (post.content) { %>
-                                        <%= post.content.replace(/<[^>]*>?/gm, '').substring(0, 100) %>...
-                                    <% } %>
-                                </p>
-                                <button type="button" class="btn btn-sm btn-outline-primary mt-auto read-more-btn" data-bs-toggle="modal" data-bs-target="#blogPostModal" data-post-id="<%= post.id %>">
-                                    <%= t('home.latest_posts.read_more') %>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                <% }); %>
-            <% } else { %>
-                <p class="text-center text-muted"><%= t('home.latest_posts.none') %></p>
-            <% } %>
-        </div>
+<!-- Latest Posts Grid -->
+<section class="latest-posts-section py-5 bg-light dark-mode-alt-surface">
+  <div class="container">
+    <div class="row mb-5" data-aos="fade-up">
+      <div class="col-lg-8 mx-auto text-center">
+        <h2 class="display-6 fw-bold mb-3"><%= t('home.latest_posts.heading') %></h2>
+        <p class="text-muted"><%= t('home.latest_posts.subtitle') %></p>
+      </div>
     </div>
-</div>
+    
+    <div class="row g-4">
+      <% if (latestPosts && latestPosts.length > 0) { %>
+        <% latestPosts.forEach(function(post, index) { %>
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
+            <article class="post-card-modern h-100">
+              <% if (post.featured_image_path) { %>
+                <div class="post-image-container">
+                  <img src="<%= post.featured_image_path %>" class="post-image" alt="<%= post.title %>">
+                  <div class="post-overlay-gradient"></div>
+                  <div class="post-actions">
+                    <button type="button" class="btn-floating read-more-btn" 
+                            data-bs-toggle="modal" data-bs-target="#blogPostModal" 
+                            data-post-id="<%= post.id %>"
+                            title="<%= t('home.latest_posts.read_article') %>">
+                      <i class="bi bi-book-open"></i>
+                    </button>
+                  </div>
+                </div>
+              <% } else { %>
+                <div class="post-image-placeholder">
+                  <div class="placeholder-content">
+                    <i class="bi bi-file-text display-1"></i>
+                    <p>No Image</p>
+                  </div>
+                </div>
+              <% } %>
+              
+              <div class="post-content">
+                <div class="post-header">
+                  <% if (post.tags) { %>
+                    <% const tags = post.tags.split(',').slice(0, 2); %>
+                    <div class="post-tags">
+                      <% tags.forEach(function(tag) { %>
+                        <span class="tag-pill"><%= tag.trim() %></span>
+                      <% }); %>
+                    </div>
+                  <% } %>
+                  <div class="post-date">
+                    <i class="bi bi-calendar3"></i>
+                    <%= new Date(post.created_at).toLocaleDateString('de-DE', { 
+                      day: 'numeric', 
+                      month: 'short' 
+                    }) %>
+                  </div>
+                </div>
+                
+                <h3 class="post-title"><%= post.title %></h3>
+                
+                <% if (post.whatsnew || post.content) { %>
+                  <p class="post-excerpt">
+                    <%= (post.whatsnew || post.content.replace(/<[^>]*>?/gm, '').substring(0, 140)) %>...
+                  </p>
+                <% } %>
+                
+                <div class="post-footer">
+                  <div class="post-stats">
+                    <span class="read-time">
+                      <i class="bi bi-clock"></i>
+                      <% 
+                        const wordCount = (post.content || '').replace(/<[^>]*>?/gm, '').split(' ').length;
+                        const readTime = Math.max(1, Math.ceil(wordCount / 200));
+                      %>
+                      <%= readTime %> <%= t('home.latest_posts.min_read') %>
+                    </span>
+                  </div>
+                  <button type="button" class="btn-read-more read-more-btn" 
+                          data-bs-toggle="modal" data-bs-target="#blogPostModal" 
+                          data-post-id="<%= post.id %>">
+                    <%= t('home.latest_posts.read_more') %>
+                    <i class="bi bi-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="col-12 text-center">
+          <div class="empty-state py-5">
+            <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
+            <h3 class="text-muted">No posts available</h3>
+            <p class="text-muted">Check back soon for new content!</p>
+          </div>
+        </div>
+      <% } %>
+    </div>
+    
+    <!-- View All Posts CTA -->
+    <div class="row mt-5">
+      <div class="col text-center">
+        <a href="/blog" class="btn btn-outline-primary btn-lg">
+          <i class="bi bi-grid me-2"></i>View All Posts
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Dashboard Overview for Admin Users -->
+<% if (isAdmin && homeAnalytics.recentActivity.length > 0) { %>
+<section class="dashboard-overview py-5">
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
+        <h3 class="fw-bold mb-3">Recent Activity</h3>
+        <p class="text-muted">Latest content updates from the past week</p>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-lg-8 mx-auto">
+        <div class="activity-timeline">
+          <% homeAnalytics.recentActivity.forEach(function(item, index) { %>
+            <div class="activity-item" data-aos="fade-right" data-aos-delay="<%= index * 100 %>">
+              <div class="activity-icon <%= item.type === 'post' ? 'bg-primary' : 'bg-success' %>">
+                <i class="bi <%= item.type === 'post' ? 'bi-file-text' : 'bi-mic' %>"></i>
+              </div>
+              <div class="activity-content">
+                <h6 class="mb-1"><%= item.name %></h6>
+                <small class="text-muted">
+                  <%= item.type === 'post' ? 'Blog Post' : 'Podcast' %> • 
+                  <%= new Date(item.timestamp).toLocaleDateString('de-DE') %>
+                </small>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- Tag Cloud Section -->
+<% if (homeAnalytics.topTags && homeAnalytics.topTags.length > 0) { %>
+<section class="tag-cloud-section py-5 bg-light dark-mode-alt-surface">
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
+        <h3 class="fw-bold mb-3">Popular Topics</h3>
+        <p class="text-muted">Explore content by trending topics and categories</p>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <div class="tag-cloud text-center" data-aos="zoom-in">
+          <% homeAnalytics.topTags.forEach(function(tagObj, index) { %>
+            <a href="/blog/tag/<%= encodeURIComponent(tagObj.tag) %>" 
+               class="tag-bubble" 
+               data-count="<%= tagObj.count %>">
+              <%= tagObj.tag %>
+              <span class="tag-count">(<%= tagObj.count %>)</span>
+            </a>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- Quick Links Section -->
+<section class="quick-links-section py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4" data-aos="fade-up" data-aos-delay="0">
+        <div class="quick-link-card h-100">
+          <div class="card-icon bg-primary">
+            <i class="bi bi-lightbulb"></i>
+          </div>
+          <h5 class="card-title">Knowledge Center</h5>
+          <p class="card-text">Learn about Microsoft Purview and data governance principles</p>
+          <a href="/purview" class="btn btn-modern">Explore →</a>
+        </div>
+      </div>
+      
+      <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="quick-link-card h-100">
+          <div class="card-icon bg-success">
+            <i class="bi bi-headphones"></i>
+          </div>
+          <h5 class="card-title">Podcasts</h5>
+          <p class="card-text">Listen to our latest episodes on technology and governance</p>
+          <a href="/podcasts" class="btn btn-modern">Listen →</a>
+        </div>
+      </div>
+      
+      <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="quick-link-card h-100">
+          <div class="card-icon bg-info">
+            <i class="bi bi-person-circle"></i>
+          </div>
+          <h5 class="card-title">About</h5>
+          <p class="card-text"><%= t('home.team.description') %></p>
+          <a href="/autor" class="btn btn-modern"><%= t('home.author.read_more') %></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Enhanced Styles -->
+<style nonce="<%= cspNonce %>">
+  /* Hero Section Enhancements */
+  .hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    min-height: 80vh;
+    position: relative;
+  }
+  
+  .hero-bg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.2);
+    z-index: 1;
+  }
+  
+  .hero-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+  }
+  
+  .hero-particles::before,
+  .hero-particles::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    animation: float 20s infinite ease-in-out;
+  }
+  
+  .hero-particles::before {
+    width: 300px;
+    height: 300px;
+    top: 10%;
+    left: -150px;
+    animation-delay: -5s;
+  }
+  
+  .hero-particles::after {
+    width: 200px;
+    height: 200px;
+    bottom: 10%;
+    right: -100px;
+    animation-delay: -10s;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(180deg); }
+  }
+  
+  /* Modern Logo Design */
+  .hero-logo {
+    margin-bottom: 3rem;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .logo-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5); }
+  }
+  
+  .brand-name {
+    font-size: 4rem;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1;
+  }
+  
+  .brand-main {
+    background: linear-gradient(45deg, #ffffff, #e3f2fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .brand-accent {
+    background: linear-gradient(45deg, #ffd700, #ffeb3b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .brand-tagline {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0.5rem 0 0 0;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+  
+  .hero-description {
+    max-width: 600px;
+    margin: 0 auto 3rem;
+    opacity: 0.9;
+    line-height: 1.6;
+  }
+  
+  /* Modern Stats Cards */
+  .stats-container {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  
+  .stat-card-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 1rem;
+    text-align: left;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+  }
+  
+  .stat-card-modern:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+  }
+  
+  .stat-card-modern.highlight {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+  }
+  
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+  }
+  
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin: 0;
+    font-weight: 500;
+  }
+  
+  /* Modern Hero Buttons */
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .btn-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    min-width: 180px;
+    justify-content: center;
+  }
+  
+  .btn-hero.btn-primary {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+  
+  .btn-hero.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+  
+  .btn-hero.btn-secondary {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border-color: rgba(255,255,255,0.3);
+  }
+  
+  .btn-hero.btn-secondary:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+    color: white;
+  }
+  
+  .btn-hero.btn-admin {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+  }
+  
+  .btn-hero.btn-admin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+    color: white;
+  }
+  
+  /* Modern Post Cards */
+  .post-card-modern {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border: none;
+    position: relative;
+  }
+  
+  .post-card-modern:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  }
+  
+  .post-image-container {
+    position: relative;
+    height: 240px;
+    overflow: hidden;
+  }
+  
+  .post-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+  
+  .post-card-modern:hover .post-image {
+    transform: scale(1.1);
+  }
+  
+  .post-overlay-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  
+  .post-card-modern:hover .post-overlay-gradient {
+    opacity: 1;
+  }
+  
+  .post-actions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: all 0.4s ease;
+  }
+  
+  .post-card-modern:hover .post-actions {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  
+  .btn-floating {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    color: #667eea;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  
+  .btn-floating:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  }
+  
+  .post-image-placeholder {
+    height: 240px;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .placeholder-content {
+    text-align: center;
+    color: #999;
+  }
+  
+  .placeholder-content i {
+    margin-bottom: 1rem;
+  }
+  
+  .post-content {
+    padding: 2rem;
+  }
+  
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .post-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .tag-pill {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .post-date {
+    color: #999;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .post-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .post-excerpt {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+  }
+  
+  .read-time {
+    color: #999;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .btn-read-more {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-read-more:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    color: white;
+  }
+  
+  /* Featured Content Updates */
+  .featured-image-wrapper {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  
+  .featured-badge {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: linear-gradient(45deg, #ffd700, #ffeb3b);
+    color: #2c3e50;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+    z-index: 2;
+  }
+  
+  /* Quick Link Cards - Clean Modern Style */
+  .quick-link-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    border: none !important;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .quick-link-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  .quick-link-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  }
+  
+  .quick-link-card:hover::before {
+    transform: scaleX(1);
+  }
+  
+  .card-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: white;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+  
+  .quick-link-card .card-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+  }
+  
+  .quick-link-card .card-text {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+  
+  .btn-modern {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-modern:hover {
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  }
+  
+  /* Dark mode adjustments */
+  [data-bs-theme="dark"] .post-card-modern {
+    background: #2c3e50;
+    border: 1px solid #34495e;
+  }
+  
+  [data-bs-theme="dark"] .post-title {
+    color: #ecf0f1;
+  }
+  
+  [data-bs-theme="dark"] .post-excerpt {
+    color: #bdc3c7;
+  }
+  
+  [data-bs-theme="dark"] .post-footer {
+    border-top-color: #34495e;
+  }
+  
+  [data-bs-theme="dark"] .tag-pill {
+    background: #34495e;
+    color: #ecf0f1;
+  }
+  
+  [data-bs-theme="dark"] .quick-link-card {
+    background: #2c3e50;
+    border: 1px solid #34495e;
+  }
+  
+  [data-bs-theme="dark"] .quick-link-card .card-title {
+    color: #ecf0f1;
+  }
+  
+  [data-bs-theme="dark"] .quick-link-card .card-text {
+    color: #bdc3c7;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .hero-section {
+      min-height: 70vh;
+    }
+    
+    .brand-name {
+      font-size: 2.5rem;
+    }
+    
+    .logo-container {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .logo-icon {
+      width: 60px;
+      height: 60px;
+      font-size: 1.5rem;
+    }
+    
+    .stats-container {
+      padding: 1.5rem 1rem;
+    }
+    
+    .stat-card-modern {
+      flex-direction: column;
+      text-align: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-hero {
+      min-width: 150px;
+      font-size: 1rem;
+    }
+    
+    .post-content {
+      padding: 1.5rem;
+    }
+    
+    .post-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .hero-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .btn-hero {
+      width: 100%;
+      max-width: 280px;
+    }
+  }
+</style>
+
+<script nonce="<%= cspNonce %>">
+document.addEventListener('DOMContentLoaded', function() {
+  // Lazy loading for images
+  const images = document.querySelectorAll('img[data-src]');
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+        observer.unobserve(img);
+      }
+    });
+  });
+  
+  images.forEach(img => imageObserver.observe(img));
+  
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+  
+  // Analytics tracking for homepage interactions
+  const trackInteraction = (action, category = 'homepage') => {
+    if (window.gtag) {
+      gtag('event', action, {
+        event_category: category,
+        event_label: window.location.pathname
+      });
+    }
+  };
+  
+  // Track CTA clicks
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      trackInteraction('cta_click', 'engagement');
+    });
+  });
+  
+  // Dynamic tag sizing based on count
+  document.querySelectorAll('.tag-bubble').forEach(tag => {
+    const count = parseInt(tag.dataset.count, 10) || 1;
+    const size = Math.max(0.8, Math.min(2.0, count / 10 + 0.8));
+    const opacity = Math.max(0.6, Math.min(1.0, count / 20 + 0.6));
+    tag.style.fontSize = size + 'rem';
+    tag.style.opacity = opacity;
+  });
+});
+</script>
 
 <%- include('partials/footer') %>

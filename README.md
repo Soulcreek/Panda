@@ -30,6 +30,8 @@ Purview Panda ist eine modulare Content-Plattform (DE/EN) mit:
 - Podcasts
 - Interaktiven Lernpfaden ("Panda's Way" – mehrere Varianten inkl. ALT5 Glass Timeline)
 - Advanced Pages (layout-basierter Builder mit Blöcken: html, text, image, background)
+- Microsoft Purview Knowledge Center (Interaktive Wissensdatenbank mit KPIs, Glossar, FAQ und Workflows)
+- Modern Home v2 (Animierte Homepage mit Glass Morphism Design, floating Analytics und responsive Design)
 - KI Features (News Research, Sample Generator, Übersetzung, Medien Alt-Text)
 
 ## 2. Tech Stack & Architektur
@@ -64,13 +66,18 @@ schema_consolidated.sql# Neues konsolidiertes Schema & Content-Patches (MySQL)
 ```
 
 ## 4. Wichtige Features
-- Blog Editor (/editors): Quill + Inline Bild Upload (Drag/Paste) + KI Buttons (Research News / Sample / Translate)
+- **Modern Home v2**: Vollständig überarbeitete Homepage mit animiertem Gradient-Logo, Glass Morphism Design, floating Analytics-Cards und responsive Blog-Grid
+- **Microsoft Purview Knowledge Center**: Interaktive Wissensdatenbank mit real-time KPI Dashboard, umfassendem Glossar, FAQ-Sektion und detaillierten Workflow-Dokumentationen
+- **Enhanced Blog System**: Quill Editor mit Inline Bild Upload (Drag/Paste) + KI Buttons (Research News / Sample / Translate), 6-Card responsive Homepage Grid
+- **Real-time Analytics**: KPI Refresh API mit live Datenaktualisierung, Progress Animations und Dashboard-Metriken
 - Featured Image UX: Auswahl über Medienbibliothek, Clear-Link, Statushinweise
 - Medienbibliothek (/editors/media): Kategorien Merge aus Config + DB Distinct Tags
 - Advanced Pages (migriert nach /editors/advanced-pages, alte /admin Pfade 301 Redirect)
 - Timeline ALT5 (öffentlich) + Vollständiger Timeline Editor im Editors Center (/editors/timeline-editor)
 - Server-seitige SEO Meta Tags via `partials/seo_meta.ejs` (Blog Detail, künftig Podcasts)
 - Dark Mode: Sofortiges Laden per serverseitiger html class + Toggle (persist via localStorage + optional Sync /api/user/preferences)
+- **Internationalization**: Vollständige deutsche Lokalisierung für alle UI-Elemente, Buttons und Content-Bereiche
+- **Modern Design System**: CSS Custom Properties, Glass Morphism Effects, Floating Animations, Professional Gradient Branding
 
 ## 5. Datenbank-Modelle (relevant)
 (Tabelle wird bei Bedarf erstellt wenn Route aufgerufen wird)
@@ -163,6 +170,10 @@ CLEAR_SESSIONS_ON_START=false
 ## 14. Admin & Editors & API (Auszug)
 | Route | Zweck |
 |-------|-------|
+| GET / | Modern Home v2 mit Analytics Dashboard |
+| GET /purview | Microsoft Purview Knowledge Center |
+| GET /api/dashboard/kpis | KPI Data API für Homepage Analytics |
+| POST /api/purview/kpis/refresh | KPI Refresh Endpoint |
 | GET /editors | Editors Dashboard |
 | GET /editors/posts | Beiträge Übersicht |
 | GET /editors/posts/new | Neuer Beitrag |
@@ -282,11 +293,18 @@ Langfristig:
 
 ## 18. Changelog (Auswahl jüngste Änderungen)
 Neueste Schritte ganz oben:
+- **Microsoft Purview Knowledge Center** implementiert: Interaktive Wissensdatenbank mit KPI Dashboard, Glossar, FAQ und Workflow-Dokumentation
+- **Modern Home v2** mit vollständigem UI/UX Redesign: Animierte Branding, Glass Morphism Design, floating Analytics und responsive Blog-Grid
+- **Deutsche Internationalisierung** abgeschlossen: Vollständige Lokalisierung aller UI-Elemente, Buttons und Content-Bereiche
+- **KPI Refresh API** implementiert: Real-time Datenaktualisierung mit Progress Animations und Dashboard-Metriken
+- **Enhanced Blog Cards**: Modern floating Design mit Hover-Effekten und professioneller Typographie
+- **Design System Modernization**: CSS Custom Properties, Gradient Branding, Glass Morphism Effects, Backdrop Filters
+- **Database Connection Stability**: Object Spread Wrapper Pattern für mysql2/promise eliminiert Recursion-Fehler
 - Health Endpoint `/health` (+ `?deep=1` für DB-Ping) hinzugefügt (Load Balancer / Uptime Robot geeignet)
 - KI Logging erweitert: ai_usage_log jetzt mit response_raw + Modal Detailansicht
 - AI Editor Feedback Panel (Status, Parse-Warnung, Raw Snippet)
 - Slug-Generierung bei Posts: ensureUniqueSlug + Auto-Migration fehlender Spalten (ensurePostsColumns)
- - Slug-Override Feld & manuelle Generierung + Revisionssystem (post_revisions) mit Wiederherstellen im Editor
+- Slug-Override Feld & manuelle Generierung + Revisionssystem (post_revisions) mit Wiederherstellen im Editor
 - Blog Config: Defaults gemerged, Prompts persistenter Merge statt Überschreiben
 - Einheitliche 301 Redirect Middleware für migrierte Content-Pfade `/admin/*` → `/editors/*` (Posts, Media, Podcasts, Advanced Pages, Timeline)
 - Legacy Admin-Content-Views durch schlanke Hinweis-Stubs ersetzt; Originale unter `views/legacy/` archiviert
