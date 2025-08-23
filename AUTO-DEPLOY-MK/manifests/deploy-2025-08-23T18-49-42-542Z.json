@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T18:49:42.542Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "bad indentation of a mapping entry (51:5)\n\n 48 |     remoteRoot: \"/httpdocs\" # Fixed ...\n 49 |   # Use the admin subdomain for dir ...\n 50 |   domain: \"admin.11seconds.de\"\n 51 |     ftp:\n----------^\n 52 |       host: \"ftp.11seconds.de\"\n 53 |       user: \"k302164_11s\""
+}

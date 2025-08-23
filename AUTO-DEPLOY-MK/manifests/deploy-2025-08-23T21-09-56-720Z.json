@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T21:09:56.720Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "bad indentation of a mapping entry (15:3)\n\n 12 |     - \".git/**\"\n 13 |     - \".gitignore\"\n 14 |     - \"README.md\"\n 15 |   - \"node_modules/**\"\n--------^\n 16 |   - \"assets/images/**\"\n 17 |   - \"assets/img/**\""
+}

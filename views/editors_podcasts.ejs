@@ -10,7 +10,7 @@
     </div>
   </div>
   <table class="table table-striped align-middle">
-  <thead><tr><th>Titel</th><th>Veröffentlicht am</th><th class="w-260">Aktionen</th></tr></thead>
+  <thead><tr><th><%= t('editors.title') %></th><th><%= t('editors.published_at') %></th><th class="w-260"><%= t('editors.actions') %></th></tr></thead>
     <tbody>
       <% if (podcasts && podcasts.length) { podcasts.forEach(p=>{ %>
         <tr data-id="<%= p.id %>">

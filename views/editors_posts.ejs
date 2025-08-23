@@ -14,7 +14,7 @@
   </div>
   <div class="card"><div class="card-body">
     <table class="table table-striped mb-0">
-      <thead><tr><th>Titel</th><th>Status</th><th>Featured</th><th>Plan / Aktualisiert</th><th>Aktionen</th></tr></thead>
+      <thead><tr><th><%= t('editors.title') %></th><th><%= t('editors.status') %></th><th><%= t('editors.featured') %></th><th>Plan / Aktualisiert</th><th><%= t('editors.actions') %></th></tr></thead>
       <tbody>
         <% if (posts && posts.length) { posts.forEach(post=>{ %>
         <tr class="<%= post.is_featured ? 'table-warning' : '' %>">

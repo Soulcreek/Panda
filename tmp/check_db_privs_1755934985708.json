@@ -1,0 +1,37 @@
+{
+  "host": "202.61.233.76",
+  "port": "3306",
+  "user": "k302164_adm",
+  "database": "k302164_PP_Data",
+  "timestamp": "2025-08-23T07:43:05.463Z",
+  "results": {
+    "identity_error": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'current_user, DATABASE() AS database_name' at line 1",
+    "show_tables": {
+      "count": 23,
+      "sample": [
+        "advanced_page_generation_logs",
+        "advanced_page_generations",
+        "advanced_page_template_meta",
+        "advanced_pages",
+        "ai_call_log",
+        "ai_config",
+        "ai_usage",
+        "ai_usage_log",
+        "feature_flags",
+        "generator_profiles",
+        "media",
+        "media_categories",
+        "pandas_way_content",
+        "pandas_way_levels",
+        "podcasts",
+        "post_revisions",
+        "posts",
+        "sessions",
+        "timeline_entries",
+        "timeline_levels"
+      ]
+    },
+    "info_schema_count": 23,
+    "posts_count": 12
+  }
+}

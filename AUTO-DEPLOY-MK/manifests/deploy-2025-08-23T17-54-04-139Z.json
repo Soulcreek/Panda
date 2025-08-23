@@ -1,0 +1,123 @@
+{
+  "timestamp": "2025-08-23T17:54:04.139Z",
+  "project": "web",
+  "target": "production",
+  "parts": [
+    "default"
+  ],
+  "files": [
+    {
+      "relativePath": "asset-manifest.json",
+      "remotePath": "/asset-manifest.json",
+      "size": 369,
+      "part": "default"
+    },
+    {
+      "relativePath": "cache-clear.html",
+      "remotePath": "/cache-clear.html",
+      "size": 5090,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755959993644.html",
+      "remotePath": "/deploy-verify-1755959993644.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755960001474.html",
+      "remotePath": "/deploy-verify-1755960001474.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755960061317.html",
+      "remotePath": "/deploy-verify-1755960061317.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deployment.html",
+      "remotePath": "/deployment.html",
+      "size": 1201,
+      "part": "default"
+    },
+    {
+      "relativePath": "favicon.ico",
+      "remotePath": "/favicon.ico",
+      "size": 3870,
+      "part": "default"
+    },
+    {
+      "relativePath": "index.html",
+      "remotePath": "/index.html",
+      "size": 1712,
+      "part": "default"
+    },
+    {
+      "relativePath": "logo192.png",
+      "remotePath": "/logo192.png",
+      "size": 5347,
+      "part": "default"
+    },
+    {
+      "relativePath": "logo512.png",
+      "remotePath": "/logo512.png",
+      "size": 9664,
+      "part": "default"
+    },
+    {
+      "relativePath": "manifest.json",
+      "remotePath": "/manifest.json",
+      "size": 730,
+      "part": "default"
+    },
+    {
+      "relativePath": "robots.txt",
+      "remotePath": "/robots.txt",
+      "size": 67,
+      "part": "default"
+    },
+    {
+      "relativePath": "sw.js",
+      "remotePath": "/sw.js",
+      "size": 2257,
+      "part": "default"
+    },
+    {
+      "relativePath": "static\\css\\main.8c92987d.css",
+      "remotePath": "/static/css/main.8c92987d.css",
+      "size": 1228,
+      "part": "default"
+    },
+    {
+      "relativePath": "static\\css\\main.8c92987d.css.map",
+      "remotePath": "/static/css/main.8c92987d.css.map",
+      "size": 2601,
+      "part": "default"
+    },
+    {
+      "relativePath": "static\\js\\main.cae13afe.js",
+      "remotePath": "/static/js/main.cae13afe.js",
+      "size": 340655,
+      "part": "default"
+    },
+    {
+      "relativePath": "static\\js\\main.cae13afe.js.LICENSE.txt",
+      "remotePath": "/static/js/main.cae13afe.js.LICENSE.txt",
+      "size": 971,
+      "part": "default"
+    },
+    {
+      "relativePath": "static\\js\\main.cae13afe.js.map",
+      "remotePath": "/static/js/main.cae13afe.js.map",
+      "size": 852677,
+      "part": "default"
+    }
+  ],
+  "verification": {
+    "url": "https://11seconds.de/deploy-verify-1755971644219.html",
+    "success": true
+  },
+  "success": true
+}

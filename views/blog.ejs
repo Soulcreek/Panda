@@ -19,7 +19,7 @@
                         <div class="card-body">
                             <h2 class="card-title"><%= post.title %></h2>
                             <p class="card-subtitle mb-2 text-muted">
-                                Veröffentlicht am: <%= new Date(post.createdAt).toLocaleDateString('de-DE') %>
+                                <%= t('blog.published_on') %> <%= new Date(post.createdAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE') %>
                             </p>
                             <div class="card-text blog-post-content">
                                 <% if (post.content) { %>

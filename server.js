@@ -11,6 +11,7 @@ const path = require('path');
 const pool = require('./db');
 const { dbHealth } = require('./db');
 const { resolveSiteKey, ensureMultiTenant } = require('./lib/multiTenant');
+const { multilingualMiddleware, localizedUrl } = require('./lib/multilingualRoutes');
 const metrics = require('./lib/metrics');
 const featureFlags = require('./lib/featureFlags');
 
@@ -199,6 +200,9 @@ app.use(async (req, res, next) => {
     return csrfProtection(req, res, next);
 });
 
+// Multilingual URL handling - extract language from path prefixes
+app.use(multilingualMiddleware);
+
 // Globale Middleware, um Variablen für alle Templates verfügbar zu machen
 app.use(i18n);
 app.use(async (req, res, next) => {
@@ -210,6 +214,9 @@ app.use(async (req, res, next) => {
     if (typeof res.locals.locale === 'undefined' || !res.locals.locale) {
         res.locals.locale = 'de';
     }
+    
+    // Multilingual URL helper for templates
+    res.locals.localizedUrl = (path, locale) => localizedUrl(path, locale, res.locals.locale);
 
     // Admin access token
     const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN || '';

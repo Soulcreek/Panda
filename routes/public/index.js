@@ -2,6 +2,9 @@
 const express = require('express');
 const router = express.Router();
 
+// Work-in-progress gate (simple preview splash)
+try { router.use(require('./wip')); } catch(_){ }
+
 // Maintain original order roughly (auth/account first so their middleware sets locals early if needed)
 router.use(require('./account'));
 router.use(require('./media'));

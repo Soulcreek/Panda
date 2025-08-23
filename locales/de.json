@@ -42,5 +42,13 @@
   "purview.kpi.posts": "Veröffentlichte Beiträge",
   "purview.kpi.media": "Medien-Assets", 
   "purview.kpi.podcasts": "Podcast-Episoden",
-  "home.team.description": "Erfahren Sie mehr über unsere Mission und das Team hinter Purview Panda"
+  "home.team.description": "Erfahren Sie mehr über unsere Mission und das Team hinter Purview Panda",
+  "blog.published_on": "Veröffentlicht am:",
+  "podcast.published_on": "Veröffentlicht am",
+  "editors.published_at": "Veröffentlicht am",
+  "nav.login": "Anmelden",
+  "editors.actions": "Aktionen",
+  "editors.title": "Titel",
+  "editors.status": "Status", 
+  "editors.featured": "Featured"
 }

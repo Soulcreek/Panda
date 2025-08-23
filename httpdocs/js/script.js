@@ -65,8 +65,14 @@ async function openMediaLibraryModal(options) {
             card.dataset.alttext = item.alt_text || '';
             if(item.type && item.type.startsWith('image/')){
                 const img = document.createElement('img');
-                const src = item.path && item.path.startsWith('/uploads/') ? item.path : (item.path || '/uploads/'+filename);
-                img.src = src;
+                const filename = item.name || item.filename || (item.path? item.path.split('/').pop(): '');
+                // Use thumbnails with fallback to placeholder
+                const thumbnailSrc = '/uploads/thumbnails/' + filename;
+                img.src = thumbnailSrc;
+                img.onerror = function() {
+                    this.onerror = null; // Prevent infinite loop
+                    this.src = '/uploads/placeholders/placeholder.svg';
+                };
                 img.className = 'card-img-top';
                 img.style.height = '120px';
                 img.style.objectFit = 'contain';
@@ -181,6 +187,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // Prevent double-submit on media upload form(s)
+    try {
+        const mediaForms = document.querySelectorAll('#media-upload-form');
+        mediaForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const btn = form.querySelector('#mediaUploadBtn');
+                if (!btn) return; // no wired button
+                if (btn.dataset.submitted === '1') {
+                    e.preventDefault();
+                    return false;
+                }
+                // mark and show spinner
+                btn.dataset.submitted = '1';
+                btn.disabled = true;
+                const spinner = btn.querySelector('.spinner-border');
+                const label = btn.querySelector('.btn-label');
+                if (spinner) spinner.classList.remove('d-none');
+                if (label) label.textContent = 'Upload läuft...';
+                // Let the form submit normally; in case of network error server will reload page
+                // If JS needs to re-enable (e.g., on AJAX), you'd call btn.dataset.submitted='0' and hide spinner
+            });
+        });
+    } catch (e) { console.warn('Media form binding failed', e); }
 
     // KI Content Generator
     const generateBtn = document.getElementById('generate-content-btn');

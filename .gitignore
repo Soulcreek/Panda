@@ -6,3 +6,6 @@ node_modules
 
 # Ignoriere Systemdateien
 .DS_Store
+
+# Deployment config (contains FTP credentials) - do not commit
+_deployment-system/deployment-config.env

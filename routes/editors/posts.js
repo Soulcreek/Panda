@@ -71,7 +71,13 @@ router.get('/posts/new', isEditor, async (req,res)=>{
   try {
     const [media] = await pool.query('SELECT * FROM media ORDER BY uploaded_at DESC');
     let tagsList=[], mediaCats=[], seoPrefix='';
-    try { const [cfg] = await pool.query('SELECT prompts FROM ai_config WHERE id=1'); if(cfg.length && cfg[0].prompts){ const p=JSON.parse(cfg[0].prompts||'{}'); if(p.blog_tags) tagsList = p.blog_tags.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.media_categories) mediaCats = p.media_categories.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.seo_title_prefix) seoPrefix=p.seo_title_prefix; } } catch(_){ }
+    try {
+      const [catsRows] = await pool.query('SELECT slug FROM media_categories WHERE site_key=? ORDER BY label ASC', [req.siteKey]);
+      if(Array.isArray(catsRows) && catsRows.length){ mediaCats = catsRows.map(r=> r.slug ); }
+    } catch(e){ /* ignore and fallback below */ }
+    if(!mediaCats.length){
+      try { const [cfg] = await pool.query('SELECT prompts FROM ai_config WHERE id=1'); if(cfg.length && cfg[0].prompts){ const p=JSON.parse(cfg[0].prompts||'{}'); if(p.blog_tags) tagsList = p.blog_tags.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.media_categories) mediaCats = p.media_categories.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.seo_title_prefix) seoPrefix=p.seo_title_prefix; } } catch(_){ }
+    }
     res.render('editors_edit_post',{ title:'Neuer Beitrag', post:null, media, tagsList, mediaCats, seoPrefix }); }
   catch(e){ res.status(500).send('Editor Fehler'); }
 });
@@ -100,7 +106,12 @@ router.post('/posts/new', isEditor, async (req,res)=>{
   }
 });
 router.get('/posts/edit/:id', isEditor, async (req,res)=>{
-  try { const [rows]=await pool.query('SELECT p.*, m.path featured_image_path FROM posts p LEFT JOIN media m ON p.featured_image_id=m.id WHERE p.id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Nicht gefunden'); const [media]=await pool.query('SELECT * FROM media ORDER BY uploaded_at DESC'); let tagsList=[], mediaCats=[], seoPrefix=''; try { const [cfg] = await pool.query('SELECT prompts FROM ai_config WHERE id=1'); if(cfg.length && cfg[0].prompts){ const p=JSON.parse(cfg[0].prompts||'{}'); if(p.blog_tags) tagsList = p.blog_tags.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.media_categories) mediaCats = p.media_categories.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.seo_title_prefix) seoPrefix=p.seo_title_prefix; } } catch(_){ }
+  try { const [rows]=await pool.query('SELECT p.*, m.path featured_image_path FROM posts p LEFT JOIN media m ON p.featured_image_id=m.id WHERE p.id=?',[req.params.id]); if(!rows.length) return res.status(404).send('Nicht gefunden'); const [media]=await pool.query('SELECT * FROM media ORDER BY uploaded_at DESC'); let tagsList=[], mediaCats=[], seoPrefix='';
+    try {
+      const [catsRows] = await pool.query('SELECT slug FROM media_categories WHERE site_key=? ORDER BY label ASC', [req.siteKey]);
+      if(Array.isArray(catsRows) && catsRows.length){ mediaCats = catsRows.map(r=> r.slug ); }
+    } catch(e){ }
+    if(!mediaCats.length){ try { const [cfg] = await pool.query('SELECT prompts FROM ai_config WHERE id=1'); if(cfg.length && cfg[0].prompts){ const p=JSON.parse(cfg[0].prompts||'{}'); if(p.blog_tags) tagsList = p.blog_tags.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.media_categories) mediaCats = p.media_categories.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50); if(p.seo_title_prefix) seoPrefix=p.seo_title_prefix; } } catch(_){ } }
     res.render('editors_edit_post',{ title:'Beitrag bearbeiten', post:rows[0], media, tagsList, mediaCats, seoPrefix }); }
   catch(e){ res.status(500).send('Editor Fehler'); }
 });

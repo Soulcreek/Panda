@@ -34,7 +34,7 @@
       </div>
     </aside>
   <% } %>
-  <div class="my-4"><a href="/blog" class="btn btn-outline-secondary btn-sm">Zurück zum Blog</a></div>
+  <div class="my-4"><a href="<%= localizedUrl('/blog') %>" class="btn btn-outline-secondary btn-sm"><%= t('blog.back_to_blog') || 'Zurück zum Blog' %></a></div>
 </main>
 <!-- Server-side SEO meta tags now rendered via partials/seo_meta.ejs -->
 <%- include('partials/footer') %>

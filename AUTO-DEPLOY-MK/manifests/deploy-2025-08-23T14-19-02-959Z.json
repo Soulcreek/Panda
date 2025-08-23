@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T14:19:02.959Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "duplicated mapping key (119:1)\n\n 116 |       fileTemplate: \"deploy-ver ...\n 117 |       urlTemplate: \"https://{do ...\n 118 | \n 119 | defaults:\n-------^\n 120 |   excludes:\n 121 |     - \"node_modules/**\""
+}

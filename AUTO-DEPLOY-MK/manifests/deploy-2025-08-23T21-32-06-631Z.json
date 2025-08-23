@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T21:32:06.631Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "bad indentation of a mapping entry (35:5)\n\n 32 |     method: ftp\n 33 |   # Use the explicit web root; set  ...\n 34 |   remoteRoot: \"/httpdocs\"\n 35 |     domain: \"purviewpanda.de\"\n----------^\n 36 |     ftp:\n 37 |       host: \"ftp.purviewpanda.de\""
+}

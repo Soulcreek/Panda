@@ -1,12 +1,12 @@
 <%- include('partials/header') %>
 
-<!-- Wrapper-Div mit der korrekten CSS-Klasse aus Ihrer style.css -->
-<section class="pandas-way-hero-section position-relative overflow-hidden new-hero-pw">
+<!-- Wrapper-Div using shared compact public hero style -->
+<section class="site-hero--public site-hero--compact position-relative overflow-hidden new-hero-pw">
     <div class="hero-overlay"></div>
-    <div class="container py-5 text-center position-relative" data-aos="fade-down">
-        <h1 class="display-5 fw-bold mb-3">
+    <div class="container py-4 text-center position-relative" data-aos="fade-down">
+        <h1 class="display-5 fw-bold mb-2">
             <span class="d-block">Learn IT – The Panda's Way</span>
-            <small class="d-block fw-normal mt-2 h5 text-light opacity-75">Jetzt lernen – Entdecke den Weg des Pandas</small>
+            <small class="d-block fw-normal mt-1 h6 text-light opacity-85">Jetzt lernen – Entdecke den Weg des Pandas</small>
         </h1>
         <p class="lead mb-0 fst-italic hero-subtitle">Von ersten Grundlagen bis strategischer Tiefe: Schritt für Schritt, klar strukturiert, praxisnah & verständlich.</p>
     </div>
@@ -15,9 +15,9 @@
 
 <div class="container my-5">
         <div class="row g-4 mb-4 path-selector" id="pathSelector" data-default="2">
-                <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="card path-card h-100 border-0 shadow-sm" data-level="1" data-aos="zoom-in">
-                                <img src="/uploads/1755549490973-way_level1.jpg" class="card-img-top" alt="Level 1 Bild" loading="lazy">
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card path-card h-100 border-0 shadow-sm" data-level="1" data-aos="zoom-in">
+                <img src="https://purviewpanda.de/uploads/1755977752769-957223.jpg" class="card-img-top" alt="Level 1 Bild" loading="lazy">
                                 <div class="card-body">
                                         <h5 class="card-title mb-1">Level 1</h5>
                                         <p class="small text-muted mb-2">Einfach & spielerisch</p>
@@ -27,7 +27,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card path-card h-100 border-primary shadow path-active" data-level="2" data-aos="zoom-in" data-aos-delay="50">
-                                <img src="/uploads/1755549490974-way_level2.jpg" class="card-img-top" alt="Level 2 Bild" loading="lazy">
+                                <img src="https://purviewpanda.de/uploads/1755977752770-856056.jpg" class="card-img-top" alt="Level 2 Bild" loading="lazy">
                                 <div class="card-body">
                                         <h5 class="card-title mb-1">Level 2</h5>
                                         <p class="small text-muted mb-2">Fundierte Basis</p>
@@ -37,7 +37,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card path-card h-100 border-0 shadow-sm" data-level="3" data-aos="zoom-in" data-aos-delay="100">
-                                <img src="/uploads/1755549490970-way_level3.jpg" class="card-img-top" alt="Level 3 Bild" loading="lazy">
+                                <img src="https://purviewpanda.de/uploads/1755977752769-452093.jpg" class="card-img-top" alt="Level 3 Bild" loading="lazy">
                                 <div class="card-body">
                                         <h5 class="card-title mb-1">Level 3</h5>
                                         <p class="small text-muted mb-2">Aufstrebend Technisch</p>
@@ -47,7 +47,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card path-card h-100 border-0 shadow-sm" data-level="4" data-aos="zoom-in" data-aos-delay="150">
-                                <img src="/uploads/1755549490976-way_level4-1.jpg" class="card-img-top" alt="Level 4 Bild" loading="lazy">
+                                <img src="https://purviewpanda.de/uploads/1755977752770-18101.jpg" class="card-img-top" alt="Level 4 Bild" loading="lazy">
                                 <div class="card-body">
                                         <h5 class="card-title mb-1">Level 4</h5>
                                         <p class="small text-muted mb-2">Experten Tiefe</p>
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const bandEffect = (i)=> ['fade-up','fade-right','fade-left','zoom-in','flip-left','zoom-in-up','flip-right','fade-up'][i%8];
 
     const contentByLevel = {
-        1:{
+    1:{
             title:'Level 1 – Bilder & einfache Worte',
             cls:'lvl-1',
             styleNote:'Viele Bilder, sehr kurze Sätze.',
@@ -139,9 +139,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 {k:'glossary', title:'Mini Glossar', html:'<div class="mini-glossar"><span>Daten</span><span>Backup</span><span>Passwort</span><span>Teilen</span><span>Sicher</span></div>'},
                 {k:'selfcheck', title:'Selbst-Check', html:'Hast du eine Kopie deiner wichtigsten Datei? Ist dein Telefon gesperrt?'}
             ],
-            images:['/uploads/1755284724625-Panda_Banner2.png','/uploads/1755282239562-Panda_Cloud6.png']
+            images:['https://purviewpanda.de/uploads/1755977752769-957223.jpg']
         },
-        2:{
+    2:{
             title:'Level 2 – Struktur & kurze Sätze',
             cls:'lvl-2',
             styleNote:'Einstieg mit etwas mehr Kontext.',
@@ -154,9 +154,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 {k:'glossary', title:'Begriffe', html:'<div class="mini-glossar"><span>Inventory</span><span>Klassifizierung</span><span>DLP</span><span>Label</span><span>Policy</span><span>Anomalie</span></div>'},
                 {k:'selfcheck', title:'Quick Check', html:'Weißt du: (1) Wo sensible Daten liegen? (2) Wer hat Zugriff? (3) Gibt es ein Alarm-Konzept?'}
             ],
-            images:['/uploads/1755284771544-Panda_Shield.png']
+            images:['https://purviewpanda.de/uploads/1755977752770-856056.jpg']
         },
-        3:{
+    3:{
             title:'Level 3 – Technische Perspektive',
             cls:'lvl-3',
             styleNote:'Mehr Tiefe & Pattern Sprache.',
@@ -169,9 +169,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 {k:'glossary', title:'Glossar', html:'<div class="mini-glossar"><span>Lineage</span><span>UEBA</span><span>Runbook</span><span>JIT</span><span>Playbook</span><span>Risk Score</span></div>'},
                 {k:'selfcheck', title:'Assessment Fragen', html:'Wie schnell identifizierst du Exfiltration? Anteil klassifizierter Assets? MTTR für Datenvorfall?'}
             ],
-            images:['/uploads/1755282215516-Lock.png']
+            images:['https://purviewpanda.de/uploads/1755977752769-452093.jpg']
         },
-        4:{
+    4:{
             title:'Level 4 – Strategische Tiefe',
             cls:'lvl-4',
             styleNote:'Narrativ + strategische Metriken.',
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 {k:'glossary', title:'Begriffe', html:'<div class="mini-glossar"><span>KRI</span><span>MTTD</span><span>Drift</span><span>Baseline</span><span>Coverage</span><span>Exfiltration</span></div>'},
                 {k:'selfcheck', title:'Strategic Review', html:'Gibt es eine formale Maturity-Progression? Existiert ein KPI/KRI Quartalsreport? Anteil automatisierter Policy Deployments?'}
             ],
-            images:['/uploads/1755284771544-Panda_Shield.png']
+            images:['https://purviewpanda.de/uploads/1755977752770-18101.jpg']
         }
     };
 

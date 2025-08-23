@@ -110,8 +110,17 @@
     }
     if(cfg.level_count>0){
       if(cfg.design_theme==='glass') cont.classList.add('glass-nav');
+      // Fallback thumbnails for public Pandas Way levels (use uploaded icons when DB has none)
+      var fallbackLevelThumbs = {
+        1: 'https://purviewpanda.de/uploads/1755977752769-957223.jpg',
+        2: 'https://purviewpanda.de/uploads/1755977752770-856056.jpg',
+        3: 'https://purviewpanda.de/uploads/1755977752769-452093.jpg',
+        4: 'https://purviewpanda.de/uploads/1755977752770-18101.jpg'
+      };
       for(var i=1;i<=cfg.level_count;i++){
   var meta = levels.find(l=>l.level_index===i) || { title:'Level '+i };
+  // inject fallback image if missing and available
+  if((!meta.image_path || meta.image_path==='') && fallbackLevelThumbs[i]){ meta.image_path = fallbackLevelThumbs[i]; }
   var btn=document.createElement('button'); btn.type='button'; btn.className='alt5-level-btn'; btn.dataset.level=i; btn.setAttribute('aria-pressed','false');
   var imgPart = meta && meta.image_path ? '<span class="alt5-level-thumb-wrap"><img src="'+meta.image_path+'" alt="L'+i+'" class="alt5-level-thumb" loading="lazy"></span>' : '';
   var iconPart = (!imgPart && meta && meta.icon) ? '<i class="bi '+meta.icon+' me-1"></i>' : '';

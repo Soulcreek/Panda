@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T20:48:46.986Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "duplicated mapping key (38:1)\n\n 35 | # - FTP_USER: FTP username (e.g ...\n 36 | # - FTP_PASSWORD: FTP password\n 37 | # Purview Panda deployment conf ...\n 38 | defaults:\n------^\n 39 |   verification:\n 40 |     timeout: 30000"
+}

@@ -1,0 +1,238 @@
+{
+  "timestamp": "2025-08-23T14:20:34.415Z",
+  "project": "web",
+  "target": "production",
+  "parts": [
+    "default"
+  ],
+  "files": [
+    {
+      "relativePath": "app.js",
+      "remotePath": "/app.js",
+      "size": 390,
+      "part": "default"
+    },
+    {
+      "relativePath": "asset-manifest.json",
+      "remotePath": "/asset-manifest.json",
+      "size": 369,
+      "part": "default"
+    },
+    {
+      "relativePath": "auth-google.php",
+      "remotePath": "/auth-google.php",
+      "size": 4028,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755958764729.html",
+      "remotePath": "/deploy-verify-1755958764729.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "index.html",
+      "remotePath": "/index.html",
+      "size": 398,
+      "part": "default"
+    },
+    {
+      "relativePath": "manifest.json",
+      "remotePath": "/manifest.json",
+      "size": 730,
+      "part": "default"
+    },
+    {
+      "relativePath": "new-app.html",
+      "remotePath": "/new-app.html",
+      "size": 9534,
+      "part": "default"
+    },
+    {
+      "relativePath": "package-lock.json",
+      "remotePath": "/package-lock.json",
+      "size": 65046,
+      "part": "default"
+    },
+    {
+      "relativePath": "package-production.json",
+      "remotePath": "/package-production.json",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "package.json",
+      "remotePath": "/package.json",
+      "size": 1058,
+      "part": "default"
+    },
+    {
+      "relativePath": "quick-test.js",
+      "remotePath": "/quick-test.js",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "register.php",
+      "remotePath": "/register.php",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "setup-extended-questions.js",
+      "remotePath": "/setup-extended-questions.js",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "simple-login.html",
+      "remotePath": "/simple-login.html",
+      "size": 15303,
+      "part": "default"
+    },
+    {
+      "relativePath": "sw.js",
+      "remotePath": "/sw.js",
+      "size": 3351,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-db-connection.js",
+      "remotePath": "/test-db-connection.js",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-db-connection.php",
+      "remotePath": "/test-db-connection.php",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-db-switcher.js",
+      "remotePath": "/test-db-switcher.js",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-mysql-direct.js",
+      "remotePath": "/test-mysql-direct.js",
+      "size": 0,
+      "part": "default"
+    },
+    {
+      "relativePath": "api\\DO-NOT-USE.txt",
+      "remotePath": "/api/DO-NOT-USE.txt",
+      "size": 854,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\asset-manifest.json",
+      "remotePath": "/httpdocs/asset-manifest.json",
+      "size": 369,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\cache-clear.html",
+      "remotePath": "/httpdocs/cache-clear.html",
+      "size": 5090,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\deployment-20250823-142433.html",
+      "remotePath": "/httpdocs/deployment-20250823-142433.html",
+      "size": 486,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\deployment-info.json",
+      "remotePath": "/httpdocs/deployment-info.json",
+      "size": 7318,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\deployment.html",
+      "remotePath": "/httpdocs/deployment.html",
+      "size": 1201,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\favicon.ico",
+      "remotePath": "/httpdocs/favicon.ico",
+      "size": 3870,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\index.html",
+      "remotePath": "/httpdocs/index.html",
+      "size": 1712,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\logo192.png",
+      "remotePath": "/httpdocs/logo192.png",
+      "size": 5347,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\logo512.png",
+      "remotePath": "/httpdocs/logo512.png",
+      "size": 9664,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\manifest.json",
+      "remotePath": "/httpdocs/manifest.json",
+      "size": 730,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\robots.txt",
+      "remotePath": "/httpdocs/robots.txt",
+      "size": 67,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\sw.js",
+      "remotePath": "/httpdocs/sw.js",
+      "size": 2257,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\static\\css\\main.8c92987d.css",
+      "remotePath": "/httpdocs/static/css/main.8c92987d.css",
+      "size": 1228,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\static\\css\\main.8c92987d.css.map",
+      "remotePath": "/httpdocs/static/css/main.8c92987d.css.map",
+      "size": 2601,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\static\\js\\main.cae13afe.js",
+      "remotePath": "/httpdocs/static/js/main.cae13afe.js",
+      "size": 340655,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\static\\js\\main.cae13afe.js.LICENSE.txt",
+      "remotePath": "/httpdocs/static/js/main.cae13afe.js.LICENSE.txt",
+      "size": 971,
+      "part": "default"
+    },
+    {
+      "relativePath": "httpdocs\\static\\js\\main.cae13afe.js.map",
+      "remotePath": "/httpdocs/static/js/main.cae13afe.js.map",
+      "size": 852677,
+      "part": "default"
+    }
+  ],
+  "verification": {
+    "url": "https://11seconds.de/deploy-verify-1755958834501.html",
+    "success": false
+  },
+  "success": false,
+  "error": "Deployment verification failed"
+}

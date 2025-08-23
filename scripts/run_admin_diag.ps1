@@ -1,9 +1,9 @@
 # run_admin_diag.ps1
 # Simple PowerShell helper to call admin diagnostic endpoints and save JSON output.
-# Usage: .\scripts\run_admin_diag.ps1 -Host https://example.com -OutDir tmp
+# Usage: .\scripts\run_admin_diag.ps1 -HostUrl https://example.com -OutDir tmp
 param(
     [Parameter(Mandatory=$true)]
-    [string]$Host,
+    [string]$HostUrl,
 
     [string]$OutDir = "tmp",
 
@@ -29,7 +29,7 @@ $endpoints = @(
 )
 
 foreach ($ep in $endpoints) {
-    $url = ($Host.TrimEnd('/')) + $ep.path
+    $url = ($HostUrl.TrimEnd('/')) + $ep.path
     try {
     Write-Host ("GET " + $url)
         if ($headers.Count -gt 0) {

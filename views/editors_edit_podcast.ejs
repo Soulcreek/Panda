@@ -13,7 +13,7 @@
       <div class="col-md-6"><label class="form-label">SEO Titel</label><input name="seo_title" id="seo_title" class="form-control" value="<%= podcast?(podcast.seo_title||''):'' %>"></div>
       <div class="col-md-6"><label class="form-label">SEO Beschreibung</label><input name="seo_description" id="seo_description" class="form-control" value="<%= podcast?(podcast.seo_description||''):'' %>"></div>
       <div class="col-md-12"><label class="form-label">Meta Keywords</label><input name="meta_keywords" id="meta_keywords" class="form-control" value="<%= podcast?(podcast.meta_keywords||''):'' %>"></div>
-      <div class="col-md-6"><label class="form-label">Veröffentlicht am</label><input type="datetime-local" name="published_at" class="form-control" value="<%= podcast && podcast.published_at ? new Date(podcast.published_at).toISOString().slice(0,16):'' %>"></div>
+      <div class="col-md-6"><label class="form-label"><%= t('editors.published_at') %></label><input type="datetime-local" name="published_at" class="form-control" value="<%= podcast && podcast.published_at ? new Date(podcast.published_at).toISOString().slice(0,16):'' %>"></div>
     </div></div>
     <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Speichern</button><a href="/editors/podcasts" class="btn btn-secondary">Abbrechen</a></div>
   </form>

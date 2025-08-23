@@ -1,0 +1,21 @@
+{
+  "name": "mk-deployment-cli",
+  "version": "1.0.0",
+  "description": "MK Robust deployment CLI for 11Seconds project",
+  "main": "mk_deploy-cli.js",
+  "scripts": {
+    "test": "node mk_deploy-cli.js --dry-run",
+    "deploy-live": "node mk_deploy-cli.js --project web --target production --parts default",
+    "deploy-local": "node mk_deploy-cli.js --project web --target local --parts default"
+  },
+  "dependencies": {
+    "basic-ftp": "^5.0.3",
+    "js-yaml": "^4.1.0",
+    "node-fetch": "^2.6.7",
+    "fast-glob": "^3.3.1",
+    "commander": "^9.4.1"
+  },
+  "keywords": ["deployment", "ftp", "build", "automation", "mk"],
+  "author": "11Seconds MK",
+  "license": "MIT"
+}

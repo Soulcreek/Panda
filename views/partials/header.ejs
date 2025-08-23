@@ -20,6 +20,9 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/util.css"><!-- utilities -->
+    <% if (typeof __wipView !== 'undefined' && __wipView) { %>
+    <link rel="stylesheet" href="/css/maintenance.css">
+    <% } %>
     <% if (typeof csrfToken !== 'undefined' && csrfToken) { %><meta name="csrf-token" content="<%= csrfToken %>"><% } %>
     <script nonce="<%= cspNonce %>" src="/js/inline/bootstrap_start.js"></script>
 </head>
@@ -30,7 +33,7 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="/uploads/1755632270498-Logo_dark.png" alt="<%= t('site.title') %>" height="48" class="d-inline-block align-text-top" id="siteLogo">
+                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="https://purviewpanda.de/uploads/1755977555447-Logo_dark-1.png" alt="<%= t('site.title') %>" height="36" class="d-inline-block align-text-top" id="siteLogo">
                 </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -38,11 +41,11 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
         <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto align-items-lg-center">
                 <% const __cp = (typeof currentPath === 'undefined' ? '' : currentPath); %>
-                <li class="nav-item"><a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="/blog"><%= t('nav.blog') %></a></li>
-                <li class="nav-item"><a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="/pandas-way"><%= t('nav.pandas_way') %></a></li>
-                <li class="nav-item"><a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="/podcasts"><%= t('nav.podcasts') %></a></li>
-                <li class="nav-item"><a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="/purview" title="<%= t('nav.purview.title') %>" aria-label="<%= t('nav.purview.title') %>"><%= t('nav.purview') %></a></li>
-                <li class="nav-item"><a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="/autor"><%= t('nav.author') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/blog' ? 'active' : '' %>" href="<%= localizedUrl('/blog') %>"><%= t('nav.blog') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/pandas-way' ? 'active' : '' %>" href="<%= localizedUrl('/pandas-way') %>"><%= t('nav.pandas_way') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp.startsWith('/podcasts') ? 'active' : '' %>" href="<%= localizedUrl('/podcasts') %>"><%= t('nav.podcasts') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/purview' ? 'active' : '' %>" href="<%= localizedUrl('/purview') %>" title="<%= t('nav.purview.title') %>" aria-label="<%= t('nav.purview.title') %>"><%= t('nav.purview') %></a></li>
+                <li class="nav-item"><a class="nav-link <%= __cp === '/autor' ? 'active' : '' %>" href="<%= localizedUrl('/autor') %>"><%= t('nav.author') %></a></li>
                 <% if (isEditor) { %>
                     <% if (isAdmin) { %>
                         <li class="nav-item">
@@ -58,8 +61,8 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                         <i class="bi bi-moon-stars" id="themeToggleIcon"></i>
                     </button>
                 </li>
-                                <li class="nav-item ms-lg-3">
-                        <form action="/search" method="GET" class="d-flex" role="search" id="siteSearchForm">
+                                <li class="nav-item ms-lg-3 shrinkable">
+                                    <form action="/search" method="GET" class="d-flex" role="search" id="siteSearchForm">
                             <input class="form-control form-control-sm" type="search" placeholder="<%= t('search.placeholder') %>" aria-label="Search" name="q" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
                             <button class="btn btn-sm btn-outline-primary ms-2" type="submit"><i class="bi bi-search"></i></button>
                         </form>
@@ -69,12 +72,12 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
                             <%= __locale.toUpperCase() %>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="langSwitch">
-                            <li><a class="dropdown-item" href="?lang=de">DE</a></li>
-                            <li><a class="dropdown-item" href="?lang=en">EN</a></li>
+                            <li><a class="dropdown-item" href="<%= localizedUrl(__cp || '/', 'de') %>">DE</a></li>
+                            <li><a class="dropdown-item" href="<%= localizedUrl(__cp || '/', 'en') %>">EN</a></li>
                         </ul>
                     </li>
                     <% if (!isEditor && !isAdmin) { %>
-                    <li class="nav-item ms-lg-2">
+                    <li class="nav-item ms-lg-2 shrinkable">
                         <a class="btn btn-sm btn-outline-success" href="/login"><i class="bi bi-box-arrow-in-right"></i> <%= t('nav.login') || 'Login' %></a>
                     </li>
                     <% } %>
@@ -84,6 +87,21 @@ var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 </nav>
 <script nonce="<%= cspNonce %>" src="/js/inline/deeplinks.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/inline/logo_swap.js"></script>
+<script nonce="<%= cspNonce %>">/* Early theme-toggle ARIA sync: set button state/icon quickly before full script loads */
+;(function(){
+    try{
+        var btn = document.getElementById('themeToggleBtn');
+        var icon = document.getElementById('themeToggleIcon');
+        if(btn){
+            var isDark = document.documentElement.classList.contains('dark-mode');
+            btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            if(icon){
+                if(isDark){ icon.classList.remove('bi-moon-stars'); icon.classList.add('bi-sun'); }
+                else { icon.classList.add('bi-moon-stars'); icon.classList.remove('bi-sun'); }
+            }
+        }
+    }catch(e){ /* silent */ }
+})();</script>
 <script nonce="<%= cspNonce %>" src="/js/inline/sw_register.js"></script>
 <script nonce="<%= cspNonce %>" src="/js/purview-nav.js"></script>
 <script nonce="<%= cspNonce %>">
@@ -91,4 +109,40 @@ document.getElementById('siteSearchForm')?.addEventListener('submit', function(e
     const v=(this.q.value||'').trim();
     if(v.length<=1){ e.preventDefault(); }
 });
+
+// Shrinking Navigation on Scroll (class-driven)
+const navbar = document.querySelector('.navbar');
+const navbarBrand = document.querySelector('.navbar-brand img');
+const shrinkables = document.querySelectorAll('.shrinkable');
+
+let lastScrollY = 0;
+const shrinkThreshold = 100;
+
+function updateNavbar() {
+    const scrollY = window.scrollY;
+    if (!navbar) return;
+
+    if (scrollY > shrinkThreshold) {
+        navbar.classList.add('navbar--shrink');
+    } else {
+        navbar.classList.remove('navbar--shrink');
+    }
+
+    lastScrollY = scrollY;
+}
+
+// Throttled scroll handler
+let ticking = false;
+window.addEventListener('scroll', () => {
+    if (!ticking) {
+        requestAnimationFrame(() => {
+            updateNavbar();
+            ticking = false;
+        });
+        ticking = true;
+    }
+});
+
+// initialise once
+updateNavbar();
 </script>

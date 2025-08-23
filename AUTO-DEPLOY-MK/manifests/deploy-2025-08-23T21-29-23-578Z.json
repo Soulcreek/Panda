@@ -1,0 +1,271 @@
+{
+  "timestamp": "2025-08-23T21:29:23.578Z",
+  "project": "web",
+  "target": "production",
+  "parts": [
+    "default"
+  ],
+  "files": [
+    {
+      "relativePath": "deploy-verify-1755982850338.html",
+      "remotePath": "/deploy-verify-1755982850338.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755983248112.html",
+      "remotePath": "/deploy-verify-1755983248112.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755983695064.html",
+      "remotePath": "/deploy-verify-1755983695064.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755983976426.html",
+      "remotePath": "/deploy-verify-1755983976426.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755984031544.html",
+      "remotePath": "/deploy-verify-1755984031544.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "deploy-verify-1755984333241.html",
+      "remotePath": "/deploy-verify-1755984333241.html",
+      "size": 279,
+      "part": "default"
+    },
+    {
+      "relativePath": "offline.html",
+      "remotePath": "/offline.html",
+      "size": 466,
+      "part": "default"
+    },
+    {
+      "relativePath": "sw.js",
+      "remotePath": "/sw.js",
+      "size": 2335,
+      "part": "default"
+    },
+    {
+      "relativePath": "audio\\DSD-Warum1.m4a",
+      "remotePath": "/audio/DSD-Warum1.m4a",
+      "size": 173744,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\admin_nav_extra.css",
+      "remotePath": "/css/admin_nav_extra.css",
+      "size": 375,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\admin_nav_extra.min.css",
+      "remotePath": "/css/admin_nav_extra.min.css",
+      "size": 355,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\advanced_pages.css",
+      "remotePath": "/css/advanced_pages.css",
+      "size": 7678,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\advanced_pages.min.css",
+      "remotePath": "/css/advanced_pages.min.css",
+      "size": 6735,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\editors_nav_extra.css",
+      "remotePath": "/css/editors_nav_extra.css",
+      "size": 256,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\editors_nav_extra.min.css",
+      "remotePath": "/css/editors_nav_extra.min.css",
+      "size": 246,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\maintenance.css",
+      "remotePath": "/css/maintenance.css",
+      "size": 496,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\style.css",
+      "remotePath": "/css/style.css",
+      "size": 20074,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\style.min.css",
+      "remotePath": "/css/style.min.css",
+      "size": 13290,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\util.css",
+      "remotePath": "/css/util.css",
+      "size": 5496,
+      "part": "default"
+    },
+    {
+      "relativePath": "css\\util.min.css",
+      "remotePath": "/css/util.min.css",
+      "size": 3703,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\a11y.js",
+      "remotePath": "/js/a11y.js",
+      "size": 2920,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\a11y.min.js",
+      "remotePath": "/js/a11y.min.js",
+      "size": 2199,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\advanced_pages_builder.js",
+      "remotePath": "/js/advanced_pages_builder.js",
+      "size": 28306,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\advanced_pages_builder.min.js",
+      "remotePath": "/js/advanced_pages_builder.min.js",
+      "size": 26238,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\api_helper.js",
+      "remotePath": "/js/api_helper.js",
+      "size": 4750,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\api_helper.min.js",
+      "remotePath": "/js/api_helper.min.js",
+      "size": 3370,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\pickers.js",
+      "remotePath": "/js/pickers.js",
+      "size": 5836,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\pickers.min.js",
+      "remotePath": "/js/pickers.min.js",
+      "size": 5268,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\purview-nav.js",
+      "remotePath": "/js/purview-nav.js",
+      "size": 464,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\purview-nav.min.js",
+      "remotePath": "/js/purview-nav.min.js",
+      "size": 423,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\purview.js",
+      "remotePath": "/js/purview.js",
+      "size": 852,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\purview.min.js",
+      "remotePath": "/js/purview.min.js",
+      "size": 720,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\script.js",
+      "remotePath": "/js/script.js",
+      "size": 30786,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\script.min.js",
+      "remotePath": "/js/script.min.js",
+      "size": 20141,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\admin_nav_active.js",
+      "remotePath": "/js/inline/admin_nav_active.js",
+      "size": 370,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\aos_init.js",
+      "remotePath": "/js/inline/aos_init.js",
+      "size": 97,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\bootstrap_start.js",
+      "remotePath": "/js/inline/bootstrap_start.js",
+      "size": 2382,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\db_health_admin.js",
+      "remotePath": "/js/inline/db_health_admin.js",
+      "size": 1028,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\db_health_editors.js",
+      "remotePath": "/js/inline/db_health_editors.js",
+      "size": 1157,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\deeplinks.js",
+      "remotePath": "/js/inline/deeplinks.js",
+      "size": 310,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\editors_nav_active.js",
+      "remotePath": "/js/inline/editors_nav_active.js",
+      "size": 197,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\logo_swap.js",
+      "remotePath": "/js/inline/logo_swap.js",
+      "size": 482,
+      "part": "default"
+    },
+    {
+      "relativePath": "js\\inline\\sw_register.js",
+      "remotePath": "/js/inline/sw_register.js",
+      "size": 265,
+      "part": "default"
+    }
+  ],
+  "verification": null,
+  "success": false,
+  "error": "FTP connection test failed"
+}

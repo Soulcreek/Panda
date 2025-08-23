@@ -66,6 +66,38 @@ router.get(['/tools','/tools/raw','/tools/tables'], isAuth, async (req,res)=>{
 	}
 });
 
+// Quick DEBUG endpoint to see what's wrong
+router.get('/tools/debug-json', isAuth, async (req,res)=>{
+	const errors = [];
+	const note = (msg) => { console.log('[DEBUG_JSON]', msg); errors.push(msg); };
+	
+	try {
+		note('Testing basic DB connection...');
+		await pool.query('SELECT 1');
+		note('✅ DB connection OK');
+		
+		note('Testing posts query...');
+		const [posts] = await pool.query(`SELECT id,title,COALESCE(is_deleted,0) as is_deleted,COALESCE(is_featured,0) as is_featured,COALESCE(status='published',0) as is_visible,published_at FROM posts ORDER BY id DESC LIMIT 5`);
+		note(`✅ Posts query OK: ${posts.length} rows`);
+		
+		note('Testing podcasts query...');
+		const [podcasts] = await pool.query(`SELECT id,title,published_at FROM podcasts ORDER BY id DESC LIMIT 5`);
+		note(`✅ Podcasts query OK: ${podcasts.length} rows`);
+		
+		return res.json({ 
+			success: true, 
+			timestamp: new Date().toISOString(), 
+			posts_count: posts.length, 
+			podcasts_count: podcasts.length,
+			sample_post: posts[0] || null,
+			errors 
+		});
+	} catch(e) {
+		note(`❌ ERROR: ${e.message}`);
+		return res.json({ success: false, error: e.message, errors });
+	}
+});
+
 router.get('/tools/diag', isAuth, async (req,res)=>{
 	const debug = process.env.ADMIN_TOOLS_DEBUG === 'true' || true;
 	console.log('[ADMIN_DIAG] Starting diagnostic...');
@@ -196,6 +228,22 @@ router.get('/tools/diag', isAuth, async (req,res)=>{
 	} catch(e){
 		console.error('Admin Tools Diag Error', e);
 		return res.status(500).json({ error: e.message, env_DB_NAME: process.env.DB_NAME || null, debug });
+	}
+});
+
+// Simple filename-based alt-text fallback endpoint (used by client when uploading new files)
+router.post('/generate-alt-text', isAuth, async (req,res)=>{
+	try {
+		const filename = (req.body && req.body.filename) ? String(req.body.filename) : '';
+		if(!filename) return res.status(400).json({ error:'Filename required' });
+		// Heuristic: use filename without extension and replace separators with spaces
+		const base = filename.replace(/[-_]/g,' ').replace(/\.[a-zA-Z0-9]+$/,'').trim();
+		const alt = 'Bild: ' + (base.substring(0,120) || 'Unbenannt');
+		const description = 'Automatisch erstellte Beschreibung für ' + (base.substring(0,200) || 'die Datei');
+		return res.json({ alt, description, success:true });
+	} catch(e){
+		console.error('Generate alt-text fallback error', e);
+		return res.status(500).json({ error:'internal' });
 	}
 });
 

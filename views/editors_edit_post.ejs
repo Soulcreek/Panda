@@ -296,7 +296,7 @@ function syncEditors(){
   }
   function insertImage(path){ // active tab
     const activePane=document.querySelector('.tab-pane.active'); const isDe=activePane && activePane.id==='lang-de'; const q = isDe ? window.__quill_de : window.__quill_en; if(q){ const r=q.getSelection(true)||{index:q.getLength()}; q.insertEmbed(r.index,'image',path,'user'); q.setSelection(r.index+1,0);} }
-  // Featured picker mode
+  // Featured picker mode (inline fallback)
   let pickFeatured = false; const chooseBtn = document.getElementById('btnPickFeatured'); const clearBtn = document.getElementById('btnClearFeatured');
   function updateChooseBtn(state){ if(!chooseBtn) return; if(state){ chooseBtn.classList.remove('btn-outline-secondary'); chooseBtn.classList.add('btn-success'); chooseBtn.textContent='Bild wählen: aktiv'; }
     else { chooseBtn.classList.remove('btn-success'); chooseBtn.classList.add('btn-outline-secondary'); chooseBtn.textContent='Wählen'; } }
@@ -336,6 +336,38 @@ function syncEditors(){
   const toggleBtn=document.getElementById('aiToggleRaw'); const rawWrap=document.getElementById('aiRawWrapper');
   if(toggleBtn && rawWrap){ toggleBtn.addEventListener('click',()=>{ const isOpen=rawWrap.classList.contains('show'); if(!isOpen){ rawWrap.classList.add('show'); toggleBtn.textContent='Raw ▲'; } else { rawWrap.classList.remove('show'); toggleBtn.textContent='Raw ▼'; } }); }
   const copyBtn=document.getElementById('aiCopyRaw'); if(copyBtn){ copyBtn.addEventListener('click',()=>{ if(!__lastAiRaw) return; navigator.clipboard.writeText(__lastAiRaw).then(()=>{ const orig=copyBtn.textContent; copyBtn.textContent='Kopiert'; copyBtn.classList.add('btn-success'); setTimeout(()=>{ copyBtn.textContent=orig; copyBtn.classList.remove('btn-success'); },1200); }); }); }
+})();
+</script>
+<script nonce="<%= cspNonce %>">
+// Additional editor enhancements: modal picker and dynamic categories
+(function(){
+  try{
+    const chooseBtn = document.getElementById('btnPickFeatured');
+    if(chooseBtn && typeof openMediaLibraryModal === 'function'){
+      chooseBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        openMediaLibraryModal({ filter:null, returnObject:true, callback:function(media){
+          if(!media) return;
+          var path = media.path || (media.filename?('/uploads/'+media.filename): (media.name?('/uploads/'+media.name):''));
+          var id = media.id || '';
+          var hidden = document.getElementById('featured_image_id');
+          var prev = document.getElementById('featuredPreview');
+          if(hidden) hidden.value = id;
+          if(prev) prev.innerHTML = path ? '<img src="'+path+'" class="w-100 h-100 object-fit-cover" alt="Featured">' : '<span class="text-muted small">Kein Bild gewählt</span>';
+        }});
+      });
+    }
+    // fetch categories and replace mediaCatsBtns contents if possible
+    (async function(){
+      const catsWrap = document.getElementById('mediaCatsBtns'); if(!catsWrap) return;
+      try{ const resp = await fetch('/editors/api/media-categories'); if(!resp.ok) return; const json = await resp.json(); const cats = (json && json.categories) ? json.categories : [];
+        var html = '<button type="button" class="btn btn-sm btn-outline-primary active" data-cat="all">Alle</button>';
+        cats.slice(0,12).forEach(function(c){ html += '<button type="button" class="btn btn-sm btn-outline-secondary" data-cat="'+ (c.slug||'') +'">'+ (c.label||'') +'</button>'; });
+        html += '<button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefreshMedia"><i class="bi bi-arrow-clockwise"></i></button>';
+        catsWrap.innerHTML = html;
+      }catch(e){ /* noop */ }
+    })();
+  }catch(e){ console.warn('editor extra init failed', e); }
 })();
 </script>
 <style nonce="<%= cspNonce %>">

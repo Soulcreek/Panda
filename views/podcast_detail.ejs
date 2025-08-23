@@ -10,7 +10,7 @@
   <div class="row">
     <div class="col-lg-8 mx-auto" data-aos="fade-up">
   <h1 class="mb-3"><%= episode.title %></h1>
-      <p class="text-muted">Veröffentlicht am <%= new Date(episode.published_at).toLocaleDateString('de-DE') %></p>
+      <p class="text-muted"><%= t('podcast.published_on') %> <%= new Date(episode.published_at).toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE') %></p>
       <div class="mb-4">
         <audio controls preload="none" class="w-100">
           <source src="<%= episode.audio_url %>" type="audio/mpeg" />
@@ -21,7 +21,7 @@
         <p><%= episode.description %></p>
       </div>
       <div class="mt-5">
-        <a href="/podcasts" class="btn btn-outline-secondary">Zurück zur Übersicht</a>
+        <a href="<%= localizedUrl('/podcasts') %>" class="btn btn-outline-secondary"><%= t('podcast.back_to_overview') || 'Zurück zur Übersicht' %></a>
       </div>
     </div>
   </div>

@@ -42,7 +42,7 @@
                                 <label class="form-label mb-0">SEO / ALT</label>
                                 <button type="button" id="generate-alt-text-btn" class="btn btn-sm btn-outline-secondary" disabled data-state="idle">
                                     <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                                    <span class="label-idle">Auto</span>
+                                    <span class="label-idle">ALT generieren</span>
                                     <span class="label-working d-none">Generiere...</span>
                                     <span class="label-done d-none">Fertig</span>
                                 </button>
@@ -55,7 +55,10 @@
                             <textarea class="form-control" name="description" id="mediaDescription" rows="2" placeholder="Kurzbeschreibung (optional)"></textarea>
                         </div>
                         <div class="col-12 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Hochladen</button>
+                            <button id="mediaUploadBtn" type="submit" class="btn btn-primary">
+                                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                                <span class="btn-label">Dateien hochladen</span>
+                            </button>
                             <button type="reset" class="btn btn-outline-secondary">Zurücksetzen</button>
                         </div>
                     </div>
@@ -86,27 +89,27 @@
                 <% files.forEach(file => { %>
                     <div class="col media-grid-item" data-category="<%= file.category || '' %>">
                         <div class="card h-100">
-                            <a href="/admin/media/edit/<%= file.id %>" class="text-decoration-none text-dark">
-                                <% if (file.type && file.type.startsWith('image/')) { %>
+                            <% if (file.type && file.type.startsWith('image/')) { %>
+                                <a href="/admin/media/edit/<%= file.id %>" class="text-decoration-none text-dark">
                                     <img src="/uploads/<%= file.name %>" class="card-img-top ar-1 of-cover" alt="<%= file.name %>">
-                                <% } else if (file.type && file.type.startsWith('audio/')) { %>
-                                    <div class="d-flex flex-column justify-content-center align-items-center bg-dark text-white ar-1">
-                                        <i class="bi bi-music-note-beamed fs-2"></i>
-                                        <small>Audio</small>
-                                    </div>
-                                <% } else { %>
-                                    <div class="d-flex justify-content-center align-items-center bg-light ar-1">
-                                        <i class="bi bi-file-earmark-text fs-2"></i>
-                                    </div>
-                                <% } %>
-                                <div class="card-body p-2">
-                                    <p class="card-text small text-truncate mb-1"><%= file.name %></p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <% if (file.category) { %><span class="badge bg-secondary small"><%= file.category %></span><% } else { %><span></span><% } %>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary copy-media-link-btn" data-link="/uploads/<%= file.name %>">Link</button>
-                                    </div>
+                                </a>
+                            <% } else if (file.type && file.type.startsWith('audio/')) { %>
+                                <div class="d-flex flex-column justify-content-center align-items-center bg-dark text-white ar-1">
+                                    <i class="bi bi-music-note-beamed fs-2"></i>
+                                    <small>Audio</small>
                                 </div>
-                            </a>
+                            <% } else { %>
+                                <div class="d-flex justify-content-center align-items-center bg-light ar-1">
+                                    <i class="bi bi-file-earmark-text fs-2"></i>
+                                </div>
+                            <% } %>
+                            <div class="card-body p-2">
+                                <p class="card-text small text-truncate mb-1"><%= file.name %></p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <% if (file.category) { %><span class="badge bg-secondary small"><%= file.category %></span><% } else { %><span></span><% } %>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-media-link-btn" data-link="/uploads/<%= file.name %>">Link</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 <% }); %>

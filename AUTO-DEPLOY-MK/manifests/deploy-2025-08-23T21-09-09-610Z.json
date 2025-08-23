@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T21:09:09.610Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "bad indentation of a mapping entry (54:9)\n\n 51 |     verify:\n 52 |       enabled: true\n 53 |       fileTemplate: \"deploy-verify-{tim ...\n 54 |         - \"assets/images/**\"\n--------------^\n 55 |         - \"assets/img/**\"\n 56 |         - \"httpdocs/img/**\""
+}

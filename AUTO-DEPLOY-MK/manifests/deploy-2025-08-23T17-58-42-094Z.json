@@ -1,0 +1,349 @@
+{
+  "timestamp": "2025-08-23T17:58:42.094Z",
+  "project": "admin",
+  "target": "admin-direct",
+  "parts": [
+    "default"
+  ],
+  "files": [
+    {
+      "relativePath": "apache-subdomain-config.conf",
+      "remotePath": "/admin/apache-subdomain-config.conf",
+      "size": 1912,
+      "part": "default"
+    },
+    {
+      "relativePath": "backup.php",
+      "remotePath": "/admin/backup.php",
+      "size": 16857,
+      "part": "default"
+    },
+    {
+      "relativePath": "check-schema.php",
+      "remotePath": "/admin/check-schema.php",
+      "size": 1389,
+      "part": "default"
+    },
+    {
+      "relativePath": "dashboard-new.php",
+      "remotePath": "/admin/dashboard-new.php",
+      "size": 8541,
+      "part": "default"
+    },
+    {
+      "relativePath": "dashboard.php",
+      "remotePath": "/admin/dashboard.php",
+      "size": 20970,
+      "part": "default"
+    },
+    {
+      "relativePath": "database-schema.sql",
+      "remotePath": "/admin/database-schema.sql",
+      "size": 4086,
+      "part": "default"
+    },
+    {
+      "relativePath": "db-status.php",
+      "remotePath": "/admin/db-status.php",
+      "size": 1540,
+      "part": "default"
+    },
+    {
+      "relativePath": "debug.php",
+      "remotePath": "/admin/debug.php",
+      "size": 2001,
+      "part": "default"
+    },
+    {
+      "relativePath": "diagnose.php",
+      "remotePath": "/admin/diagnose.php",
+      "size": 2806,
+      "part": "default"
+    },
+    {
+      "relativePath": "enable-mysql.php",
+      "remotePath": "/admin/enable-mysql.php",
+      "size": 1580,
+      "part": "default"
+    },
+    {
+      "relativePath": "error-check.php",
+      "remotePath": "/admin/error-check.php",
+      "size": 1672,
+      "part": "default"
+    },
+    {
+      "relativePath": "fix-fks-old.php",
+      "remotePath": "/admin/fix-fks-old.php",
+      "size": 2559,
+      "part": "default"
+    },
+    {
+      "relativePath": "google-auth.php",
+      "remotePath": "/admin/google-auth.php",
+      "size": 2254,
+      "part": "default"
+    },
+    {
+      "relativePath": "hybrid-debug.php",
+      "remotePath": "/admin/hybrid-debug.php",
+      "size": 2911,
+      "part": "default"
+    },
+    {
+      "relativePath": "index.php",
+      "remotePath": "/admin/index.php",
+      "size": 7017,
+      "part": "default"
+    },
+    {
+      "relativePath": "init-database.php",
+      "remotePath": "/admin/init-database.php",
+      "size": 717,
+      "part": "default"
+    },
+    {
+      "relativePath": "init-now.php",
+      "remotePath": "/admin/init-now.php",
+      "size": 7715,
+      "part": "default"
+    },
+    {
+      "relativePath": "media-management.php",
+      "remotePath": "/admin/media-management.php",
+      "size": 31606,
+      "part": "default"
+    },
+    {
+      "relativePath": "migrate-users-atomic.php",
+      "remotePath": "/admin/migrate-users-atomic.php",
+      "size": 7549,
+      "part": "default"
+    },
+    {
+      "relativePath": "migrate-users.php",
+      "remotePath": "/admin/migrate-users.php",
+      "size": 12741,
+      "part": "default"
+    },
+    {
+      "relativePath": "query-test.php",
+      "remotePath": "/admin/query-test.php",
+      "size": 2811,
+      "part": "default"
+    },
+    {
+      "relativePath": "question-debug.php",
+      "remotePath": "/admin/question-debug.php",
+      "size": 1869,
+      "part": "default"
+    },
+    {
+      "relativePath": "question-generator.php",
+      "remotePath": "/admin/question-generator.php",
+      "size": 29167,
+      "part": "default"
+    },
+    {
+      "relativePath": "question-management.php",
+      "remotePath": "/admin/question-management.php",
+      "size": 26778,
+      "part": "default"
+    },
+    {
+      "relativePath": "recreate-fks.php",
+      "remotePath": "/admin/recreate-fks.php",
+      "size": 2217,
+      "part": "default"
+    },
+    {
+      "relativePath": "security-dashboard.php",
+      "remotePath": "/admin/security-dashboard.php",
+      "size": 20552,
+      "part": "default"
+    },
+    {
+      "relativePath": "settings.php",
+      "remotePath": "/admin/settings.php",
+      "size": 20303,
+      "part": "default"
+    },
+    {
+      "relativePath": "setup-database.php",
+      "remotePath": "/admin/setup-database.php",
+      "size": 7936,
+      "part": "default"
+    },
+    {
+      "relativePath": "show-create.php",
+      "remotePath": "/admin/show-create.php",
+      "size": 1047,
+      "part": "default"
+    },
+    {
+      "relativePath": "simple-test.php",
+      "remotePath": "/admin/simple-test.php",
+      "size": 1274,
+      "part": "default"
+    },
+    {
+      "relativePath": "smoke-test.php",
+      "remotePath": "/admin/smoke-test.php",
+      "size": 3012,
+      "part": "default"
+    },
+    {
+      "relativePath": "sql-test.php",
+      "remotePath": "/admin/sql-test.php",
+      "size": 1348,
+      "part": "default"
+    },
+    {
+      "relativePath": "statistics.php",
+      "remotePath": "/admin/statistics.php",
+      "size": 10117,
+      "part": "default"
+    },
+    {
+      "relativePath": "stats-test.php",
+      "remotePath": "/admin/stats-test.php",
+      "size": 884,
+      "part": "default"
+    },
+    {
+      "relativePath": "status.php",
+      "remotePath": "/admin/status.php",
+      "size": 760,
+      "part": "default"
+    },
+    {
+      "relativePath": "table-analysis.php",
+      "remotePath": "/admin/table-analysis.php",
+      "size": 2105,
+      "part": "default"
+    },
+    {
+      "relativePath": "table-check.php",
+      "remotePath": "/admin/table-check.php",
+      "size": 1948,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-db.php",
+      "remotePath": "/admin/test-db.php",
+      "size": 726,
+      "part": "default"
+    },
+    {
+      "relativePath": "test-stats.php",
+      "remotePath": "/admin/test-stats.php",
+      "size": 2325,
+      "part": "default"
+    },
+    {
+      "relativePath": "test.php",
+      "remotePath": "/admin/test.php",
+      "size": 205,
+      "part": "default"
+    },
+    {
+      "relativePath": "user-management-enhanced.php",
+      "remotePath": "/admin/user-management-enhanced.php",
+      "size": 35215,
+      "part": "default"
+    },
+    {
+      "relativePath": "user-management.php",
+      "remotePath": "/admin/user-management.php",
+      "size": 17565,
+      "part": "default"
+    },
+    {
+      "relativePath": "data\\auth-config.json",
+      "remotePath": "/admin/data/auth-config.json",
+      "size": 1442,
+      "part": "default"
+    },
+    {
+      "relativePath": "data\\db-config.json",
+      "remotePath": "/admin/data/db-config.json",
+      "size": 319,
+      "part": "default"
+    },
+    {
+      "relativePath": "data\\hybrid.log",
+      "remotePath": "/admin/data/hybrid.log",
+      "size": 197,
+      "part": "default"
+    },
+    {
+      "relativePath": "data\\migration-token.json",
+      "remotePath": "/admin/data/migration-token.json",
+      "size": 94,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\AuthManager.php",
+      "remotePath": "/admin/includes/AuthManager.php",
+      "size": 22311,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\DatabaseManager.php",
+      "remotePath": "/admin/includes/DatabaseManager.php",
+      "size": 17910,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\DatabaseManagerClean.php",
+      "remotePath": "/admin/includes/DatabaseManagerClean.php",
+      "size": 11116,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\DatabaseManagerSimple.php",
+      "remotePath": "/admin/includes/DatabaseManagerSimple.php",
+      "size": 4971,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\footer.php",
+      "remotePath": "/admin/includes/footer.php",
+      "size": 883,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\GoogleAuth.php",
+      "remotePath": "/admin/includes/GoogleAuth.php",
+      "size": 7931,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\header.php",
+      "remotePath": "/admin/includes/header.php",
+      "size": 3946,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\HybridDataManager.php",
+      "remotePath": "/admin/includes/HybridDataManager.php",
+      "size": 13192,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\nav.php",
+      "remotePath": "/admin/includes/nav.php",
+      "size": 1257,
+      "part": "default"
+    },
+    {
+      "relativePath": "includes\\SubdomainConfig.php",
+      "remotePath": "/admin/includes/SubdomainConfig.php",
+      "size": 6139,
+      "part": "default"
+    }
+  ],
+  "verification": null,
+  "success": false,
+  "error": "FTP connection test failed"
+}

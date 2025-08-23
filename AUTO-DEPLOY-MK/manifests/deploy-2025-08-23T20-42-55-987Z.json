@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T20:42:55.987Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "bad indentation of a mapping entry (44:9)\n\n 41 |     domain: \"11seconds.de\"\n 42 |     ftp:\n 43 |       host: \"ftp.11seconds.de\"\n 44 |         remoteRoot: \"${FTP_REMOTE_PATH} ...\n--------------^\n 45 |         domain: \"purviewpanda.de\"\n 46 |         ftp:"
+}

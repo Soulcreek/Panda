@@ -22,6 +22,33 @@ body {
     transform: scale(1.05);
 }
 
+/* Shrinking navbar state (toggled via .navbar--shrink) */
+.navbar {
+    transition: padding 0.28s ease, background-color 0.28s ease;
+}
+.navbar--shrink {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+}
+.navbar--shrink .navbar-brand img {
+    height: 28px !important;
+    transition: height 0.28s ease;
+}
+.shrinkable {
+    transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.navbar--shrink .shrinkable {
+    opacity: 0.28;
+    pointer-events: none;
+    transform: translateY(-1px);
+}
+
+/* Ensure shrunk navbar has suitable contrast in dark mode */
+html.dark-mode .navbar.navbar--shrink {
+    background-color: rgba(20,20,20,0.98) !important;
+    border-bottom-color: rgba(40,40,40,0.9) !important;
+}
+
 /* Modern navbar brand styling */
 .navbar-brand {
     position: relative;
@@ -60,7 +87,8 @@ body {
     background-size: cover;
     background-position: center;
     color: #2c3e50;
-    padding: 120px 0;
+    /* reduced vertical padding for a smaller banner */
+    padding: 60px 0;
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -79,7 +107,8 @@ body {
 }
 
 .hero-section h1 {
-    font-size: 3.8rem;
+    /* smaller headline for a more compact hero */
+    font-size: 2.6rem;
     font-weight: 300;
     color: #2c3e50;
     position: relative;
@@ -181,11 +210,99 @@ audio {
 
 /* --- Stile für The Panda's Way (Original & Erweitert) --- */
 .pandas-way-hero-section {
-    padding: 4rem 1.5rem;
+    /* make Panda's Way hero more compact to match homepage */
+    padding: 2rem 1rem;
     color: white;
     background: linear-gradient(45deg, rgba(13, 110, 253, 0.8), rgba(13, 202, 240, 0.7));
     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
+
+/* Make hero variants and generated heroes use a smaller default height */
+.ap-hero { /* advanced pages hero */
+    min-height: 40vh !important;
+    display:flex;align-items:center;justify-content:center;
+}
+
+/* Override various alt hero variants used across views to be smaller */
+.alt-hero, .alt2-hero, .alt3-hero, .alt4-hero, .alt5-hero {
+    min-height: 40vh !important;
+    padding: 2rem 1rem !important;
+}
+
+/* Ensure .minh-55vh utility used in some templates is smaller */
+.minh-55vh { min-height: 40vh !important; }
+
+/* Make Pandas Way subtitles/titles slightly smaller for compact look */
+.pandas-way-hero-section .hero-subtitle { font-size: 1rem; max-width: 900px; margin: 0 auto; }
+.pandas-way-hero-section h1, .pandas-way-hero-section .display-5 { font-size: 2rem; }
+
+/* Responsive tweaks: further reduce on small screens */
+@media (max-width: 768px) {
+    .hero-section { padding: 36px 0; }
+    .hero-section h1 { font-size: 1.9rem; }
+    .pandas-way-hero-section { padding: 1.25rem 0.75rem; }
+    .pandas-way-hero-section h1, .pandas-way-hero-section .display-5 { font-size: 1.5rem; }
+    .alt-hero, .alt2-hero, .alt3-hero, .alt4-hero, .alt5-hero, .ap-hero { min-height: 32vh !important; padding: 1rem !important; }
+}
+
+/* Shared hero utility classes for consistent compact look */
+.site-hero--home {
+    background: linear-gradient(135deg, #e6f3fb 0%, #d6eaf8 100%); /* very light blue */
+    color: #123e70; /* dark-blue title color */
+    padding: 48px 0; /* compact */
+}
+
+.site-hero--public {
+    background: linear-gradient(135deg, #e9f5fb 0%, #dfeef9 100%); /* slightly lighter */
+    color: #0b3a66; /* slightly darker blue for titles */
+    padding: 36px 0; /* slightly smaller than home */
+}
+
+.site-hero--compact .brand-name, .site-hero--compact h1, .site-hero--compact .display-5 {
+    color: inherit; /* inherit dark-blue title color */
+}
+
+.site-hero--compact .brand-main { font-weight:600; }
+.site-hero--compact .brand-accent { font-weight:600; color:var(--panda-primary); }
+
+/* smaller sizes for the public variant */
+.site-hero--public .brand-name, .site-hero--public h1 { font-size: 1.9rem; }
+.site-hero--home .brand-name, .site-hero--home h1 { font-size: 2.2rem; }
+
+/* tighten tagline and description spacing */
+.site-hero--compact .brand-tagline, .site-hero--compact .hero-description { font-size: 0.95rem; margin-top: 0.25rem; }
+
+@media (max-width: 768px) {
+    .site-hero--home { padding: 28px 0; }
+    .site-hero--public { padding: 20px 0; }
+    .site-hero--compact .brand-name, .site-hero--compact h1 { font-size: 1.4rem !important; }
+}
+
+/* Ensure any inline/old overlays don't block the banner color for compact heroes */
+.site-hero--compact .hero-bg-overlay,
+.site-hero--compact .hero-overlay {
+    background: transparent !important;
+    z-index: 0 !important;
+}
+
+/* Bring hero content above overlays */
+.site-hero--compact .container,
+.site-hero--compact .brand-name,
+.site-hero--compact h1,
+.site-hero--compact .hero-description {
+    position: relative;
+    z-index: 2;
+}
+
+/* Make home title slightly larger again as requested */
+.site-hero--home .brand-name, .site-hero--home h1 { font-size: 2.8rem !important; }
+.site-hero--public .brand-name, .site-hero--public h1 { font-size: 2.1rem !important; }
+
+/* Header / navbar sizing: increase default header height and brand size while preserving shrink state */
+.navbar { padding-top: 1rem; padding-bottom: 1rem; }
+.navbar-brand img { height: 46px; }
+.navbar--shrink { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+.navbar--shrink .navbar-brand img { height: 30px !important; }
 
 .basics-section {
     padding: 80px 0;

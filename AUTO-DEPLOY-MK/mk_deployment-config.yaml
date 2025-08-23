@@ -1,0 +1,76 @@
+# Purview Panda mk_deployment-config.yaml
+defaults:
+  verification:
+    timeout: 30000
+    httpTimeout: 10000
+    cleanupVerificationFile: true
+    retries: 3
+    retryDelay: 2000
+  excludes:
+  - "*.tmp"
+  - "*.log"
+  - ".git/**"
+  - ".gitignore"
+  - "README.md"
+  - "node_modules/**"
+  - "assets/images/**"
+  - "assets/img/**"
+  - "httpdocs/img/**"
+  - "httpdocs/uploads/**"
+  - "img/**"
+  - "uploads/**"
+  - ".env*"
+  - "deployment-*"
+  - "AUTO-DEPLOY-MK/**"
+  - "_backup*/**"
+  - "_documentation/**"
+  - "_deployment-system/**"
+  - ".htaccess"
+
+targets:
+  production:
+    method: ftp
+    # Use the explicit web root; set FTP_REMOTE_PATH env var if you need a different path
+    remoteRoot: "/httpdocs"
+    domain: "purviewpanda.de"
+    ftp:
+      host: "${FTP_HOST}"
+      user: "${FTP_USER}"
+      password: "${FTP_PASSWORD}"
+      timeout: 30000
+
+  local:
+    method: copy
+    localPath: "./httpdocs-local"
+    domain: "localhost:5000"
+
+projects:
+  web:
+    localSource: "./httpdocs"
+    localBuild: "./httpdocs"
+    buildCommand: ""
+    parts:
+      default:
+        include:
+          - "**/*"
+        remotePath: "/"
+        webPath: "/"
+    verify:
+      enabled: true
+      fileTemplate: "deploy-verify-{timestamp}.html"
+      urlTemplate: "https://{domain}/{file}"
+
+  admin:
+    localSource: "./admin"
+    localBuild: "./admin"
+    buildCommand: ""
+    parts:
+      default:
+        include:
+          - "**/*"
+        remotePath: "/admin"
+        webPath: "/admin"
+    verify:
+      enabled: false
+
+# End of configuration

@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-23T21:00:08.311Z",
+  "project": "",
+  "target": "",
+  "parts": [],
+  "files": [],
+  "verification": null,
+  "success": false,
+  "error": "FTP credentials not configured"
+}

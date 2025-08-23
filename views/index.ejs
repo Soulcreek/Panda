@@ -1,23 +1,20 @@
 <%- include('partials/header') %>
 
 <!-- Hero Section with Dynamic Background -->
-<header class="hero-section position-relative overflow-hidden">
+<header class="hero-section site-hero--home site-hero--compact position-relative overflow-hidden">
   <div class="hero-bg-overlay"></div>
   <div class="hero-particles"></div>
   <div class="container position-relative" data-aos="fade-up">
     <div class="row align-items-center min-vh-75">
       <div class="col-lg-10 mx-auto text-center">
-        <!-- Modern Logo/Title -->
-        <div class="hero-logo mb-4">
+  <!-- Modern Logo/Title -->
+  <div class="hero-logo mb-3">
           <div class="logo-container">
             <div class="logo-icon">
               <i class="bi bi-shield-check"></i>
             </div>
             <div class="logo-text">
-              <h1 class="brand-name">
-                <span class="brand-main">Purview</span>
-                <span class="brand-accent">Panda</span>
-              </h1>
+              <h1 class="brand-name">Purview <span class="brand-accent">Panda</span></h1>
               <p class="brand-tagline">Data Governance Made Simple</p>
             </div>
           </div>
@@ -180,8 +177,8 @@
     <!-- View All Posts CTA -->
     <div class="row mt-5">
       <div class="col text-center">
-        <a href="/blog" class="btn btn-outline-primary btn-lg">
-          <i class="bi bi-grid me-2"></i>View All Posts
+        <a href="<%= localizedUrl('/blog') %>" class="btn btn-outline-primary btn-lg">
+          <i class="bi bi-grid me-2"></i><%= t('home.view_all_posts') || 'View All Posts' %>
         </a>
       </div>
     </div>
@@ -254,15 +251,15 @@
     <div class="quick-access-section">
       <div class="row g-3 justify-content-center">
         <div class="col-md-3">
-          <a href="/blog" class="btn-hero btn-primary w-100">
+          <a href="<%= localizedUrl('/blog') %>" class="btn-hero btn-primary w-100">
             <i class="bi bi-journal-text"></i>
             <span><%= t('home.hero.cta_blog') || 'Explore Blog' %></span>
           </a>
         </div>
         <div class="col-md-3">
-          <a href="/purview" class="btn-hero btn-secondary w-100">
+          <a href="<%= localizedUrl('/purview') %>" class="btn-hero btn-primary w-100">
             <i class="bi bi-lightbulb"></i>
-            <span>Knowledge Center</span>
+            <span><%= t('nav.purview') || 'Knowledge Center' %></span>
           </a>
         </div>
         <% if (isAdmin) { %>
@@ -364,7 +361,7 @@
           </div>
           <h5 class="card-title">Podcasts</h5>
           <p class="card-text">Listen to our latest episodes on technology and governance</p>
-          <a href="/podcasts" class="btn btn-modern">Listen →</a>
+          <a href="<%= localizedUrl('/podcasts') %>" class="btn btn-modern">Listen →</a>
         </div>
       </div>
       
@@ -388,7 +385,7 @@
   .hero-section {
     background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
     color: #2c3e50;
-    min-height: 80vh;
+    min-height: 35vh;
     position: relative;
   }
   
@@ -400,6 +397,12 @@
     bottom: 0;
     background: rgba(0,0,0,0.2);
     z-index: 1;
+  }
+
+  /* For compact site heroes, keep overlay transparent so gradient banner color is visible */
+  .site-hero--compact .hero-bg-overlay {
+    background: transparent !important;
+    z-index: 0 !important;
   }
   
   .hero-particles {
@@ -533,42 +536,64 @@
     text-align: left;
     transition: all 0.3s ease;
     border-radius: 12px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
   }
   
   .stat-card-modern:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.95);
     transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
   }
   
   .stat-card-modern.highlight {
-    background: rgba(255, 215, 0, 0.2);
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
     border: 1px solid rgba(255, 215, 0, 0.3);
+    color: #2c3e50;
   }
   
   .stat-icon {
     width: 50px;
     height: 50px;
-    background: rgba(255,255,255,0.2);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
     flex-shrink: 0;
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+  
+  .stat-card-modern.highlight .stat-icon {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
   }
   
   .stat-number {
     font-size: 2rem;
     font-weight: 700;
-    color: white;
+    color: #2c3e50;
     margin: 0;
   }
   
   .stat-label {
     font-size: 0.9rem;
-    opacity: 0.8;
+    color: #546e7a;
     margin: 0;
     font-weight: 500;
+  }
+  
+  .stat-card-modern.highlight .stat-number {
+    color: #2c3e50;
+  }
+  
+  .stat-card-modern.highlight .stat-label {
+    color: #2c3e50;
+    opacity: 0.8;
   }
   
   /* Modern Hero Buttons */
@@ -968,7 +993,7 @@
   /* Responsive adjustments */
   @media (max-width: 768px) {
     .hero-section {
-      min-height: 70vh;
+      min-height: 40vh;
     }
     
     .brand-name {
