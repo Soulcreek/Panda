@@ -26,76 +26,6 @@
         <p class="hero-description fs-5 mb-5 text-muted">
           <%= t('home.hero.tagline') || 'Your comprehensive platform for data governance, cybersecurity insights, and enterprise knowledge management' %>
         </p>
-        
-        <!-- Quick Stats Bar with Modern Design -->
-        <div class="stats-container mb-5">
-          <div class="row g-0 justify-content-center">
-            <div class="col-md-3">
-              <div class="stat-card-modern">
-                <div class="stat-icon">
-                  <i class="bi bi-file-text"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-number"><%= homeAnalytics.totalPosts %></div>
-                  <div class="stat-label">Articles</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="stat-card-modern">
-                <div class="stat-icon">
-                  <i class="bi bi-images"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-number"><%= homeAnalytics.totalMedia %></div>
-                  <div class="stat-label">Media</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="stat-card-modern">
-                <div class="stat-icon">
-                  <i class="bi bi-mic"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-number"><%= homeAnalytics.totalPodcasts %></div>
-                  <div class="stat-label">Podcasts</div>
-                </div>
-              </div>
-            </div>
-            <% if (homeAnalytics.publishedThisWeek > 0) { %>
-            <div class="col-md-3">
-              <div class="stat-card-modern highlight">
-                <div class="stat-icon">
-                  <i class="bi bi-star-fill"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-number"><%= homeAnalytics.publishedThisWeek %></div>
-                  <div class="stat-label">This Week</div>
-                </div>
-              </div>
-            </div>
-            <% } %>
-          </div>
-        </div>
-        
-        <!-- Enhanced CTAs -->
-        <div class="hero-actions">
-          <a href="/blog" class="btn-hero btn-primary">
-            <i class="bi bi-journal-text"></i>
-            <span><%= t('home.hero.cta_blog') || 'Explore Blog' %></span>
-          </a>
-          <a href="/purview" class="btn-hero btn-secondary">
-            <i class="bi bi-lightbulb"></i>
-            <span>Knowledge Center</span>
-          </a>
-          <% if (isAdmin) { %>
-            <a href="/admin" class="btn-hero btn-admin">
-              <i class="bi bi-gear"></i>
-              <span>Admin</span>
-            </a>
-          <% } %>
-        </div>
       </div>
     </div>
   </div>
@@ -258,6 +188,96 @@
   </div>
 </section>
 
+<!-- Site Statistics Section -->
+<section class="site-stats-section py-5">
+  <div class="container">
+    <div class="row mb-5" data-aos="fade-up">
+      <div class="col-lg-8 mx-auto text-center">
+        <h2 class="display-6 fw-bold mb-3">Site Overview</h2>
+        <p class="text-muted">Key metrics and quick access to main sections</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats Bar with Modern Design -->
+    <div class="stats-container mb-5">
+      <div class="row g-4 justify-content-center">
+        <div class="col-md-3">
+          <div class="stat-card-modern">
+            <div class="stat-icon">
+              <i class="bi bi-file-text"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number"><%= homeAnalytics.totalPosts %></div>
+              <div class="stat-label">Articles</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card-modern">
+            <div class="stat-icon">
+              <i class="bi bi-images"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number"><%= homeAnalytics.totalMedia %></div>
+              <div class="stat-label">Media</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card-modern">
+            <div class="stat-icon">
+              <i class="bi bi-mic"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number"><%= homeAnalytics.totalPodcasts %></div>
+              <div class="stat-label">Podcasts</div>
+            </div>
+          </div>
+        </div>
+        <% if (homeAnalytics.publishedThisWeek > 0) { %>
+        <div class="col-md-3">
+          <div class="stat-card-modern highlight">
+            <div class="stat-icon">
+              <i class="bi bi-star-fill"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-number"><%= homeAnalytics.publishedThisWeek %></div>
+              <div class="stat-label">This Week</div>
+            </div>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Quick Access Links -->
+    <div class="quick-access-section">
+      <div class="row g-3 justify-content-center">
+        <div class="col-md-3">
+          <a href="/blog" class="btn-hero btn-primary w-100">
+            <i class="bi bi-journal-text"></i>
+            <span><%= t('home.hero.cta_blog') || 'Explore Blog' %></span>
+          </a>
+        </div>
+        <div class="col-md-3">
+          <a href="/purview" class="btn-hero btn-secondary w-100">
+            <i class="bi bi-lightbulb"></i>
+            <span>Knowledge Center</span>
+          </a>
+        </div>
+        <% if (isAdmin) { %>
+          <div class="col-md-3">
+            <a href="/admin" class="btn-hero btn-admin w-100">
+              <i class="bi bi-gear"></i>
+              <span>Admin</span>
+            </a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Dashboard Overview for Admin Users -->
 <% if (isAdmin && homeAnalytics.recentActivity.length > 0) { %>
 <section class="dashboard-overview py-5">
@@ -366,8 +386,8 @@
 <style nonce="<%= cspNonce %>">
   /* Hero Section Enhancements */
   .hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #2c3e50;
     min-height: 80vh;
     position: relative;
   }
@@ -454,47 +474,55 @@
   
   .brand-name {
     font-size: 4rem;
-    font-weight: 800;
+    font-weight: 300;
     margin: 0;
     line-height: 1;
+    color: #2c3e50;
   }
   
   .brand-main {
-    background: linear-gradient(45deg, #ffffff, #e3f2fd);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #1976d2;
+    font-weight: 400;
   }
   
   .brand-accent {
-    background: linear-gradient(45deg, #ffd700, #ffeb3b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #1976d2;
+    font-weight: 400;
   }
   
   .brand-tagline {
     font-size: 1.1rem;
-    opacity: 0.9;
+    opacity: 0.8;
     margin: 0.5rem 0 0 0;
     font-weight: 300;
     letter-spacing: 0.5px;
+    color: #546e7a;
   }
   
   .hero-description {
     max-width: 600px;
     margin: 0 auto 3rem;
-    opacity: 0.9;
+    opacity: 0.8;
     line-height: 1.6;
+    color: #546e7a;
   }
   
   /* Modern Stats Cards */
   .stats-container {
-    background: rgba(255,255,255,0.1);
+    margin-bottom: 0;
+  }
+  
+  .site-stats-section .stats-container {
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
     padding: 2rem;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  }
+  
+  .site-stats-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   }
   
   .stat-card-modern {
