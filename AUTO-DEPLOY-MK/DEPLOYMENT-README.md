@@ -159,6 +159,24 @@ FTP_USER=your-ftp-username
 FTP_PASSWORD=your-ftp-password
 ```
 
+---
+
+## 🚦 **Port-Belegung (Gentlemen's Agreement)**
+
+Um Konflikte zu vermeiden, wenn mehrere Projekte auf demselben Entwickler-PC oder im selben Netzwerk laufen, halten wir uns an die folgende Port-Verteilung. Jedes Projekt hat einen primären Port für die Hauptanwendung und einen sekundären Port für Hilfsdienste oder alternative Konfigurationen.
+
+| Projekt-Name | Primärer Port (App) | Sekundärer Port (Service/DB) | Anmerkungen                               |
+|--------------|-----------------------|--------------------------------|-------------------------------------------|
+| **Panda**    | `3000`                | `3001`                         | Aktuelles Projekt                         |
+| **11S**      | `3010`                | `3011`                         | Projekt "11S"                             |
+| **KKI**      | `3020`                | `3021`                         | Projekt "KKI"                             |
+| *Projekt D*  | `3030`                | `3031`                         | Für zukünftige Verwendung reserviert      |
+| *Projekt E*  | `3040`                | `3041`                         | Für zukünftige Verwendung reserviert      |
+
+**Regel:** Bevor ein Port verwendet wird, prüfe, ob er in dieser Liste bereits für ein anderes aktives Projekt reserviert ist.
+
+---
+
 ## 🎮 Usage
 
 ### One-Click Live Deployment

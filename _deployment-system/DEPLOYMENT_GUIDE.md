@@ -51,6 +51,47 @@
 
 ---
 
+## 🌐 **LOKALE ENTWICKLUNG & PORT-KONVENTIONEN**
+
+### **1. Automatisierte Lokale Tests & Server-Start** 🚀
+Für die lokale Entwicklung und das Testen wurde ein leistungsstarkes Automatisierungsskript erstellt. Es vereinfacht den Start des Servers erheblich, indem es häufige Probleme automatisch löst.
+
+**Datei:** `AUTO-DEPLOY-MK/mk_deploy-local.ps1`
+**Zweck:** Sicherer und schneller Start des Node.js-Servers für lokale Tests.
+
+**Features:**
+- **Automatischer Port-Kill**: Beendet Prozesse, die den Ziel-Port blockieren.
+- **Dependency Check**: Installiert `node_modules` bei Bedarf automatisch.
+- **Automatischer Health-Check**: Wartet, bis der Server bereit ist und prüft den `/health`-Endpunkt.
+- **Live-Logs**: Zeigt Server-Logs nach erfolgreichem Start direkt im Terminal an.
+
+**Anwendung:**
+```powershell
+# Startet den Server im Development-Modus auf Port 3000
+.\AUTO-DEPLOY-MK\mk_deploy-local.ps1 -StartServer
+
+# Startet den Server im Production-Modus (nutzt .env)
+.\AUTO-DEPLOY-MK\mk_deploy-local.ps1 -StartServer -NodeEnv "production"
+
+# Server auf einem anderen Port starten
+.\AUTO-DEPLOY-MK\mk_deploy-local.ps1 -StartServer -AppPort 3001
+```
+
+### **2. Port-Belegung (Gentlemen's Agreement)** 🚦
+Um Konflikte zu vermeiden, wenn mehrere Projekte auf demselben Entwickler-PC oder im selben Netzwerk laufen, halten wir uns an die folgende Port-Verteilung. Jedes Projekt hat einen primären Port für die Hauptanwendung und einen sekundären Port für Hilfsdienste oder alternative Konfigurationen.
+
+| Projekt-Name | Primärer Port (App) | Sekundärer Port (Service/DB) | Anmerkungen                               |
+|--------------|-----------------------|--------------------------------|-------------------------------------------|
+| **Panda**    | `3000`                | `3001`                         | Aktuelles Projekt                         |
+| **11S**      | `3010`                | `3011`                         | Projekt "11S"                             |
+| **KKI**      | `3020`                | `3021`                         | Projekt "KKI"                             |
+| *Projekt D*  | `3030`                | `3031`                         | Für zukünftige Verwendung reserviert      |
+| *Projekt E*  | `3040`                | `3041`                         | Für zukünftige Verwendung reserviert      |
+
+**Regel:** Bevor ein Port verwendet wird, prüfe, ob er in dieser Liste bereits für ein anderes aktives Projekt reserviert ist.
+
+---
+
 ## 🔧 **FTP KONFIGURATION**
 
 ### **Funktionierende Credentials:**
