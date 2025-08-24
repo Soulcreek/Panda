@@ -60,6 +60,28 @@ projects:
       fileTemplate: "deploy-verify-{timestamp}.html"
       urlTemplate: "https://{domain}/{file}"
 
+  server:
+    localSource: "."
+    localBuild: "."
+    buildCommand: ""
+    parts:
+      default:
+        include:
+          - "server.js"
+          - "package.json"
+          - "db.js"
+          - "i18n.js"
+          - "migrate.js"
+          - "routes/**"
+          - "views/**"
+          - "lib/**"
+          - "locales/**"
+          - "migrations/**"
+        remotePath: "/"
+        webPath: "/"
+    verify:
+      enabled: false
+
   admin:
     localSource: "./admin"
     localBuild: "./admin"

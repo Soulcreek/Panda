@@ -6,12 +6,13 @@ if (typeof isEditor === 'undefined') { var isEditor = isAdmin; }
 if (typeof currentPath === 'undefined') { var currentPath = ''; }
 if (typeof locale === 'undefined') { var locale = 'de'; }
 var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
+if (typeof title === 'undefined') { var title = ''; }
 %>
 <html lang="<%= (typeof locale !== 'undefined' ? locale : 'de') %>" <%= (typeof userPrefs !== 'undefined' && userPrefs && userPrefs.theme==='dark') ? 'class="dark-mode"' : '' %> data-user-prefs="<%= encodeURIComponent(JSON.stringify((typeof userPrefs !== 'undefined' ? userPrefs : null)||null)) %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= t('site.title') %> - <%= title %></title>
+    <title><%= t('site.title') %><%= title ? (' - ' + title) : '' %></title>
     <% /* Include aus gleichem Verzeichnis: kein 'partials/' Präfix nötig */ %>
     <%- include('seo_meta') %>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

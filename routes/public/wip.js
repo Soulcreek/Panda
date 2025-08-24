@@ -16,7 +16,11 @@ router.use((req, res, next) => {
   const cookieHeader = req.get('Cookie') || req.get('cookie') || '';
   if (cookieHeader && /(^|;\s*)allow_wip=1($|;)/.test(cookieHeader)) return next();
   // Render a simple maintenance/preview notice
-  return res.render('maintenance', { redirectTo: '/', __wipView: true });
+  return res.render('maintenance', { 
+    title: 'Work in Progress',
+    redirectTo: '/', 
+    __wipView: true 
+  });
 });
 
 module.exports = router;
