@@ -1,5 +1,5 @@
-# PANDA DEPLOYMENT GUIDE
-*Funktionierender Prozess - Stand: August 2025*
+# [Archived] PANDA DEPLOYMENT GUIDE
+This document is deprecated. See ../../DEPLOYMENT.md for the authoritative guide.
 
 ## 🚀 **DEPLOYMENT ÜBERBLICK**
 
@@ -83,7 +83,7 @@ Um Konflikte zu vermeiden, wenn mehrere Projekte auf demselben Entwickler-PC ode
 | Projekt-Name | Primärer Port (App) | Sekundärer Port (Service/DB) | Anmerkungen                               |
 |--------------|-----------------------|--------------------------------|-------------------------------------------|
 | **Panda**    | `3000`                | `3001`                         | Aktuelles Projekt                         |
-| **11S**      | `3010`                | `3011`                         | Projekt "11S"                             |
+| *(frei)*     | `3010`                | `3011`                         | Reserviert                                 |
 | **KKI**      | `3020`                | `3021`                         | Projekt "KKI"                             |
 | *Projekt D*  | `3030`                | `3031`                         | Für zukünftige Verwendung reserviert      |
 | *Projekt E*  | `3040`                | `3041`                         | Für zukünftige Verwendung reserviert      |

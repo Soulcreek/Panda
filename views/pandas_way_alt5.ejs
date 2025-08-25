@@ -112,10 +112,10 @@
       if(cfg.design_theme==='glass') cont.classList.add('glass-nav');
       // Fallback thumbnails for public Pandas Way levels (use uploaded icons when DB has none)
       var fallbackLevelThumbs = {
-        1: 'https://purviewpanda.de/uploads/1755977752769-957223.jpg',
-        2: 'https://purviewpanda.de/uploads/1755977752770-856056.jpg',
-        3: 'https://purviewpanda.de/uploads/1755977752769-452093.jpg',
-        4: 'https://purviewpanda.de/uploads/1755977752770-18101.jpg'
+  1: '/uploads/1755977752769-957223.jpg',
+  2: '/uploads/1755977752770-856056.jpg',
+  3: '/uploads/1755977752769-452093.jpg',
+  4: '/uploads/1755977752770-18101.jpg'
       };
       for(var i=1;i<=cfg.level_count;i++){
   var meta = levels.find(l=>l.level_index===i) || { title:'Level '+i };

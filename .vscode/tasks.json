@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "mk: deploy backend core+scripts+restart",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"./AUTO-DEPLOY-MK/mk_deploy-cli.js --parts backend:core,backend:scripts,backend:restart"
+			]
+		}
+	]
+}

@@ -46,7 +46,7 @@ async function processFiles(dir, ext, minifier, label) {
     return;
   }
 
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(ext) && !f.endsWith(`.min${ext}`));
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(ext) && !f.endsWith(`.min${ext}`));
   let processed = 0;
   let totalSaved = 0;
 
@@ -54,17 +54,19 @@ async function processFiles(dir, ext, minifier, label) {
     try {
       const filePath = path.join(dir, file);
       const minPath = path.join(dir, file.replace(ext, `.min${ext}`));
-      
+
       const originalContent = fs.readFileSync(filePath, 'utf8');
       const minifiedContent = minifier(originalContent);
-      
+
       const originalSize = Buffer.byteLength(originalContent, 'utf8');
       const minifiedSize = Buffer.byteLength(minifiedContent, 'utf8');
       const saved = originalSize - minifiedSize;
-      
+
       fs.writeFileSync(minPath, minifiedContent);
-      
-      console.log(`${label}: ${file} → ${file.replace(ext, `.min${ext}`)} (${saved} bytes saved, ${Math.round(saved/originalSize*100)}%)`);
+
+      console.log(
+        `${label}: ${file} → ${file.replace(ext, `.min${ext}`)} (${saved} bytes saved, ${Math.round((saved / originalSize) * 100)}%)`
+      );
       processed++;
       totalSaved += saved;
     } catch (e) {
@@ -75,13 +77,13 @@ async function processFiles(dir, ext, minifier, label) {
   console.log(`${label} optimization: ${processed} files, ${totalSaved} total bytes saved\n`);
 }
 
-(async function() {
+(async function () {
   console.log('🔧 Starting asset optimization...\n');
-  
+
   try {
     await processFiles(cssDir, '.css', minifyCSS, 'CSS');
     await processFiles(jsDir, '.js', minifyJS, 'JavaScript');
-    
+
     console.log('✅ Asset optimization completed!');
     console.log('💡 Tip: Update HTML templates to use .min.css and .min.js files for production.');
   } catch (e) {

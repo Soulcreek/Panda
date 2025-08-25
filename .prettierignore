@@ -1,0 +1,9 @@
+# Ignore built/public and non-source assets
+httpdocs/
+docs/archive/
+AUTO-DEPLOY-MK/manifests/
+node_modules/
+*.min.js
+
+# Generated logs
+**/_moved_log.txt

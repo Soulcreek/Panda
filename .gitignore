@@ -1,11 +1,16 @@
-# Ignoriere sensible Umgebungsvariablen
+docs/archive/
+_deployment-system/archive/
+AUTO-DEPLOY-MK/manifests/
 .env
+node_modules/
+.local-node/
 
-# Ignoriere den node_modules Ordner
-node_modules
-
-# Ignoriere Systemdateien
-.DS_Store
 
 # Deployment config (contains FTP credentials) - do not commit
 _deployment-system/deployment-config.env
+
+# Generated deployment verification pages (not needed in git)
+httpdocs/deploy-verify-*.html
+
+# System files
+.DS_Store

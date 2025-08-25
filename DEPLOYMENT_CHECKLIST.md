@@ -1,4 +1,5 @@
-# Deployment Checkliste - Purview Panda v2.0
+# [Archived] Deployment Checkliste - Purview Panda v2.0
+This checklist is deprecated. See DEPLOYMENT.md (Chapter 0 and Quality gates) for the maintained process.
 
 ## Pre-Deployment Verification
 

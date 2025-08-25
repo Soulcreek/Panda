@@ -1,22 +1,424 @@
 const express = require('express');
 const router = express.Router();
 const { pool, isEditor } = require('./_shared');
-const { ensureAdvancedPagesTables, safeSlug, ensureUniqueSlug, renderAdvancedLayout } = require('../../lib/advancedPagesUtil');
+const {
+  ensureAdvancedPagesTables,
+  safeSlug,
+  ensureUniqueSlug,
+  renderAdvancedLayout,
+} = require('../../lib/advancedPagesUtil');
 
 // CRUD
-router.get('/advanced-pages', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [pages]=await pool.query('SELECT * FROM advanced_pages WHERE is_template=0 AND site_key=? ORDER BY updated_at DESC LIMIT 200',[req.siteKey]); const [templates]=await pool.query('SELECT * FROM advanced_pages WHERE is_template=1 AND site_key=? ORDER BY updated_at DESC LIMIT 100',[req.siteKey]); res.render('editors_advanced_pages_list',{ title:'Advanced Pages', pages, templates }); } catch(e){ res.status(500).send('Advanced Pages Fehler'); } });
-router.get('/advanced-pages/new', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [posts]=await pool.query('SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 300',[req.siteKey]); const [podcasts]=await pool.query('SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 300',[req.siteKey]); res.render('editors_advanced_pages_edit',{ title:'Neue Advanced Page', page:null, layoutJSON: JSON.stringify({version:2,rows:[]}), posts, podcasts }); } catch(e){ res.status(500).send('Load Fehler'); } });
-router.get('/advanced-pages/edit/:id', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [[page]] = await pool.query('SELECT * FROM advanced_pages WHERE id=? AND site_key=?',[req.params.id, req.siteKey]); if(!page) return res.status(404).send('Nicht gefunden'); const [posts]=await pool.query('SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 300',[req.siteKey]); const [podcasts]=await pool.query('SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 300',[req.siteKey]); res.render('editors_advanced_pages_edit',{ title:'Advanced Page bearbeiten', page, layoutJSON: page.layout_json || JSON.stringify({version:2,rows:[]}), posts, podcasts }); } catch(e){ res.status(500).send('Load Fehler'); } });
-router.post('/advanced-pages/save', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const { id, title, slug, layout_json, make_template, status, seo_title, seo_description, meta_keywords, meta_image }=req.body; let parsed; try { parsed=JSON.parse(layout_json||'{}'); } catch(_){ parsed={version:2,rows:[]}; } let s=await ensureUniqueSlug(safeSlug(slug||title||'page'), id||0, req.siteKey); const postIds=new Set(); const podIds=new Set(); if(parsed.rows) for(const r of parsed.rows) for(const c of (r.columns||[]) ) for(const b of (c.blocks||[])){ if(b.postId) postIds.add(b.postId); if(b.podcastId) podIds.add(b.podcastId); } let postsMap={}; if(postIds.size){ const [prs]=await pool.query('SELECT id,title,slug,whatsnew FROM posts WHERE id IN ('+Array.from(postIds).map(()=>'?').join(',')+') AND site_key=?',[...Array.from(postIds), req.siteKey]); postsMap=prs.reduce((a,p)=>{a[p.id]=p;return a;},{}); } let podcastsMap={}; if(podIds.size){ const [pods]=await pool.query('SELECT id,title,description FROM podcasts WHERE id IN ('+Array.from(podIds).map(()=>'?').join(',')+') AND site_key=?',[...Array.from(podIds), req.siteKey]); podcastsMap=pods.reduce((a,p)=>{a[p.id]=p;return a;},{}); } const rendered=renderAdvancedLayout(parsed,{posts:postsMap,podcasts:podcastsMap}); const newStatus=(status==='published')?'published':'draft'; if(id){ await pool.query('UPDATE advanced_pages SET title=?, slug=?, layout_json=?, rendered_html=?, is_template=?, status=?, seo_title=?, seo_description=?, meta_keywords=?, meta_image=? WHERE id=? AND site_key=?',[title,s,layout_json,rendered,make_template?1:0,newStatus,seo_title||null,seo_description||null,meta_keywords||null,meta_image||null,id, req.siteKey]); } else { await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, status, seo_title, seo_description, meta_keywords, meta_image, site_key) VALUES (?,?,?,?,?,?,?,?,?,?,?)',[title,s,layout_json,rendered,make_template?1:0,newStatus,seo_title||null,seo_description||null,meta_keywords||null,meta_image||null, req.siteKey]); } res.redirect('/editors/advanced-pages'); } catch(e){ console.error('Save Adv Fehler', e); res.status(500).send('Speichern Fehler'); } });
-router.post('/advanced-pages/delete/:id', isEditor, async (req,res)=>{ try { await ensureAdvancedPagesTables(); await pool.query('DELETE FROM advanced_pages WHERE id=? AND site_key=?',[req.params.id, req.siteKey]); res.redirect('/editors/advanced-pages'); } catch(e){ res.status(500).send('Delete Fehler'); } });
-router.get('/advanced-pages/preview/:id', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [[page]]=await pool.query('SELECT * FROM advanced_pages WHERE id=? AND site_key=?',[req.params.id, req.siteKey]); if(!page) return res.status(404).send('Nicht gefunden'); res.render('editors_advanced_pages_preview',{ title:'Preview', page }); } catch(e){ res.status(500).send('Preview Fehler'); } });
-router.post('/advanced-pages/from-template/:id', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [[tpl]]=await pool.query('SELECT * FROM advanced_pages WHERE id=? AND is_template=1 AND site_key=?',[req.params.id, req.siteKey]); if(!tpl) return res.status(404).send('Template fehlt'); await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, site_key) VALUES (?,?,?,?,0,?)',[ tpl.title+' Copy', await ensureUniqueSlug(safeSlug(tpl.slug+'-copy'), 0, req.siteKey), tpl.layout_json, tpl.rendered_html, req.siteKey ]); res.redirect('/editors/advanced-pages'); } catch(e){ res.status(500).send('Template Copy Fehler'); } });
-router.get('/api/posts/simple', isEditor, async (req,res)=>{ try { const [rows]=await pool.query('SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 200',[req.siteKey]); res.json(rows.map(r=>({ id:r.id,title:r.title,slug:r.slug,excerpt:r.whatsnew }))); } catch(e){ res.apiError(500,{ error:'Posts Liste Fehler', code:'POSTS_SIMPLE', detail:e.message }); } });
-router.get('/api/podcasts/simple', isEditor, async (req,res)=>{ try { const [rows]=await pool.query('SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 200',[req.siteKey]); res.json(rows); } catch(e){ res.apiError(500,{ error:'Podcasts Liste Fehler', code:'PODCASTS_SIMPLE', detail:e.message }); } });
+router.get('/advanced-pages', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [pages] = await pool.query(
+      'SELECT * FROM advanced_pages WHERE is_template=0 AND site_key=? ORDER BY updated_at DESC LIMIT 200',
+      [req.siteKey]
+    );
+    const [templates] = await pool.query(
+      'SELECT * FROM advanced_pages WHERE is_template=1 AND site_key=? ORDER BY updated_at DESC LIMIT 100',
+      [req.siteKey]
+    );
+    res.render('editors_advanced_pages_list', { title: 'Advanced Pages', pages, templates });
+  } catch (e) {
+    res.status(500).send('Advanced Pages Fehler');
+  }
+});
+router.get('/advanced-pages/new', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [posts] = await pool.query(
+      'SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 300',
+      [req.siteKey]
+    );
+    const [podcasts] = await pool.query(
+      'SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 300',
+      [req.siteKey]
+    );
+    res.render('editors_advanced_pages_edit', {
+      title: 'Neue Advanced Page',
+      page: null,
+      layoutJSON: JSON.stringify({ version: 2, rows: [] }),
+      posts,
+      podcasts,
+    });
+  } catch (e) {
+    res.status(500).send('Load Fehler');
+  }
+});
+router.get('/advanced-pages/edit/:id', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [[page]] = await pool.query('SELECT * FROM advanced_pages WHERE id=? AND site_key=?', [
+      req.params.id,
+      req.siteKey,
+    ]);
+    if (!page) return res.status(404).send('Nicht gefunden');
+    const [posts] = await pool.query(
+      'SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 300',
+      [req.siteKey]
+    );
+    const [podcasts] = await pool.query(
+      'SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 300',
+      [req.siteKey]
+    );
+    res.render('editors_advanced_pages_edit', {
+      title: 'Advanced Page bearbeiten',
+      page,
+      layoutJSON: page.layout_json || JSON.stringify({ version: 2, rows: [] }),
+      posts,
+      podcasts,
+    });
+  } catch (e) {
+    res.status(500).send('Load Fehler');
+  }
+});
+router.post('/advanced-pages/save', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const {
+      id,
+      title,
+      slug,
+      layout_json,
+      make_template,
+      status,
+      seo_title,
+      seo_description,
+      meta_keywords,
+      meta_image,
+    } = req.body;
+    let parsed;
+    try {
+      parsed = JSON.parse(layout_json || '{}');
+    } catch (_) {
+      parsed = { version: 2, rows: [] };
+    }
+    const s = await ensureUniqueSlug(safeSlug(slug || title || 'page'), id || 0, req.siteKey);
+    const postIds = new Set();
+    const podIds = new Set();
+    if (parsed.rows)
+      for (const r of parsed.rows)
+        for (const c of r.columns || [])
+          for (const b of c.blocks || []) {
+            if (b.postId) postIds.add(b.postId);
+            if (b.podcastId) podIds.add(b.podcastId);
+          }
+    let postsMap = {};
+    if (postIds.size) {
+      const [prs] = await pool.query(
+        'SELECT id,title,slug,whatsnew FROM posts WHERE id IN (' +
+          Array.from(postIds)
+            .map(() => '?')
+            .join(',') +
+          ') AND site_key=?',
+        [...Array.from(postIds), req.siteKey]
+      );
+      postsMap = prs.reduce((a, p) => {
+        a[p.id] = p;
+        return a;
+      }, {});
+    }
+    let podcastsMap = {};
+    if (podIds.size) {
+      const [pods] = await pool.query(
+        'SELECT id,title,description FROM podcasts WHERE id IN (' +
+          Array.from(podIds)
+            .map(() => '?')
+            .join(',') +
+          ') AND site_key=?',
+        [...Array.from(podIds), req.siteKey]
+      );
+      podcastsMap = pods.reduce((a, p) => {
+        a[p.id] = p;
+        return a;
+      }, {});
+    }
+    const rendered = renderAdvancedLayout(parsed, { posts: postsMap, podcasts: podcastsMap });
+    const newStatus = status === 'published' ? 'published' : 'draft';
+    if (id) {
+      await pool.query(
+        'UPDATE advanced_pages SET title=?, slug=?, layout_json=?, rendered_html=?, is_template=?, status=?, seo_title=?, seo_description=?, meta_keywords=?, meta_image=? WHERE id=? AND site_key=?',
+        [
+          title,
+          s,
+          layout_json,
+          rendered,
+          make_template ? 1 : 0,
+          newStatus,
+          seo_title || null,
+          seo_description || null,
+          meta_keywords || null,
+          meta_image || null,
+          id,
+          req.siteKey,
+        ]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, status, seo_title, seo_description, meta_keywords, meta_image, site_key) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        [
+          title,
+          s,
+          layout_json,
+          rendered,
+          make_template ? 1 : 0,
+          newStatus,
+          seo_title || null,
+          seo_description || null,
+          meta_keywords || null,
+          meta_image || null,
+          req.siteKey,
+        ]
+      );
+    }
+    res.redirect('/editors/advanced-pages');
+  } catch (e) {
+    console.error('Save Adv Fehler', e);
+    res.status(500).send('Speichern Fehler');
+  }
+});
+router.post('/advanced-pages/delete/:id', isEditor, async (req, res) => {
+  try {
+    await ensureAdvancedPagesTables();
+    await pool.query('DELETE FROM advanced_pages WHERE id=? AND site_key=?', [
+      req.params.id,
+      req.siteKey,
+    ]);
+    res.redirect('/editors/advanced-pages');
+  } catch (e) {
+    res.status(500).send('Delete Fehler');
+  }
+});
+router.get('/advanced-pages/preview/:id', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [[page]] = await pool.query('SELECT * FROM advanced_pages WHERE id=? AND site_key=?', [
+      req.params.id,
+      req.siteKey,
+    ]);
+    if (!page) return res.status(404).send('Nicht gefunden');
+    res.render('editors_advanced_pages_preview', { title: 'Preview', page });
+  } catch (e) {
+    res.status(500).send('Preview Fehler');
+  }
+});
+router.post('/advanced-pages/from-template/:id', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [[tpl]] = await pool.query(
+      'SELECT * FROM advanced_pages WHERE id=? AND is_template=1 AND site_key=?',
+      [req.params.id, req.siteKey]
+    );
+    if (!tpl) return res.status(404).send('Template fehlt');
+    await pool.query(
+      'INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, site_key) VALUES (?,?,?,?,0,?)',
+      [
+        tpl.title + ' Copy',
+        await ensureUniqueSlug(safeSlug(tpl.slug + '-copy'), 0, req.siteKey),
+        tpl.layout_json,
+        tpl.rendered_html,
+        req.siteKey,
+      ]
+    );
+    res.redirect('/editors/advanced-pages');
+  } catch (e) {
+    res.status(500).send('Template Copy Fehler');
+  }
+});
+router.get('/api/posts/simple', isEditor, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id,title,slug,whatsnew FROM posts WHERE site_key=? ORDER BY updated_at DESC LIMIT 200',
+      [req.siteKey]
+    );
+    res.json(rows.map((r) => ({ id: r.id, title: r.title, slug: r.slug, excerpt: r.whatsnew })));
+  } catch (e) {
+    res.apiError(500, { error: 'Posts Liste Fehler', code: 'POSTS_SIMPLE', detail: e.message });
+  }
+});
+router.get('/api/podcasts/simple', isEditor, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id,title,description FROM podcasts WHERE site_key=? ORDER BY published_at DESC LIMIT 200',
+      [req.siteKey]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.apiError(500, {
+      error: 'Podcasts Liste Fehler',
+      code: 'PODCASTS_SIMPLE',
+      detail: e.message,
+    });
+  }
+});
 
 // Generator endpoints (stub)
-router.post('/advanced-pages/generate', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); const { topic, intent, sections, styleProfile, maxPosts, templateId, dryRun }=req.body; try { let selectedPosts=[]; try { const [posts]=await pool.query('SELECT id,title,slug,whatsnew FROM posts WHERE status="published" AND site_key=? ORDER BY COALESCE(published_at,created_at) DESC LIMIT ?', [req.siteKey, Math.min(parseInt(maxPosts||'3',10)||3,12)]); selectedPosts=posts; } catch(_){ } const sectionsArr=(sections||'').split(',').map(s=>s.trim()).filter(Boolean); const layout={version:2,rows:[]}; if(sectionsArr.includes('hero')) layout.rows.push({ preset:'full', columns:[ { width:12, blocks:[ { id:'b'+Date.now(), type:'hero', title: topic||'Hero', subtitle:intent||'', image:'', overlayOpacity:0.5, height:'60vh', align:'center' } ] } ] }); if(sectionsArr.includes('posts')){ const cols=selectedPosts.slice(0,3).map(p=>({ width:4, blocks:[ { id:'b'+(Date.now()+p.id), type:'post-link', postId:p.id, title:p.title, slug:p.slug, excerpt:p.whatsnew||'' } ] })); if(cols.length) layout.rows.push({ preset:'three', columns: cols }); } if(sectionsArr.includes('cta')) layout.rows.push({ preset:'full', columns:[ { width:12, blocks:[ { id:'b'+(Date.now()+999), type:'text', html:'<div class="text-center py-5"><a class="btn btn-primary btn-lg" href="#">Call To Action</a></div>' } ] } ] }); const diagnostics={ topic,intent,sections:sectionsArr,styleProfile,postsUsed:selectedPosts.map(p=>p.id) }; const research={ summary:'(Stub) Research summary not implemented', articles:selectedPosts.map(p=>({ title:p.title, link:'/blog/'+p.slug })) }; if(dryRun){ return res.json({ ok:true, layout, diagnostics, research }); } await pool.query('INSERT INTO advanced_page_generation_logs (topic,intent,sections,style_profile,diagnostics,layout_json,research_json,site_key) VALUES (?,?,?,?,?,?,?,?)',[topic||'', intent||'', (sectionsArr.join(',')||''), styleProfile||'', JSON.stringify(diagnostics), JSON.stringify(layout), JSON.stringify(research), req.siteKey]); if(!templateId){ await pool.query('INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, site_key) VALUES (?,?,?,?,0,?)', [ topic||'Generated Page', await ensureUniqueSlug(safeSlug(topic||'generated-page'), 0, req.siteKey), JSON.stringify(layout), renderAdvancedLayout(layout,{}), 0, req.siteKey ]); } res.json({ ok:true, layout, diagnostics }); } catch(e){ console.error('Generate Adv Fehler', e); res.apiError(500,{ error:'Generierung fehlgeschlagen', code:'ADV_GEN_FAIL', detail:e.message }); } });
-router.get('/advanced-pages/generation', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const limit=Math.min(parseInt(req.query.limit||'20',10)||20,100); const [rows]=await pool.query('SELECT id,topic,intent,sections,created_at FROM advanced_page_generation_logs WHERE site_key=? ORDER BY id DESC LIMIT '+limit,[req.siteKey]); res.json(rows); } catch(e){ res.apiError(500,{ error:'Generierungs Logs Fehler', code:'ADV_GEN_LIST', detail:e.message }); } });
-router.get('/advanced-pages/generation/:id', isEditor, async (req,res)=>{ await ensureAdvancedPagesTables(); try { const [[row]]=await pool.query('SELECT * FROM advanced_page_generation_logs WHERE id=? AND site_key=?',[req.params.id, req.siteKey]); if(!row) return res.apiError(404,{ error:'Eintrag nicht gefunden', code:'ADV_GEN_NOT_FOUND' }); res.json({ id:row.id, topic:row.topic, intent:row.intent, sections:row.sections, diagnostics: JSON.parse(row.diagnostics||'{}'), layout: JSON.parse(row.layout_json||'{}'), research: JSON.parse(row.research_json||'{}'), created_at: row.created_at }); } catch(e){ res.apiError(500,{ error:'Generierungs Eintrag Fehler', code:'ADV_GEN_GET', detail:e.message }); } });
+router.post('/advanced-pages/generate', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  const { topic, intent, sections, styleProfile, maxPosts, templateId, dryRun } = req.body;
+  try {
+    let selectedPosts = [];
+    try {
+      const [posts] = await pool.query(
+        'SELECT id,title,slug,whatsnew FROM posts WHERE status="published" AND site_key=? ORDER BY COALESCE(published_at,created_at) DESC LIMIT ?',
+        [req.siteKey, Math.min(parseInt(maxPosts || '3', 10) || 3, 12)]
+      );
+      selectedPosts = posts;
+    } catch (_) {}
+    const sectionsArr = (sections || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const layout = { version: 2, rows: [] };
+    if (sectionsArr.includes('hero'))
+      layout.rows.push({
+        preset: 'full',
+        columns: [
+          {
+            width: 12,
+            blocks: [
+              {
+                id: 'b' + Date.now(),
+                type: 'hero',
+                title: topic || 'Hero',
+                subtitle: intent || '',
+                image: '',
+                overlayOpacity: 0.5,
+                height: '60vh',
+                align: 'center',
+              },
+            ],
+          },
+        ],
+      });
+    if (sectionsArr.includes('posts')) {
+      const cols = selectedPosts.slice(0, 3).map((p) => ({
+        width: 4,
+        blocks: [
+          {
+            id: 'b' + (Date.now() + p.id),
+            type: 'post-link',
+            postId: p.id,
+            title: p.title,
+            slug: p.slug,
+            excerpt: p.whatsnew || '',
+          },
+        ],
+      }));
+      if (cols.length) layout.rows.push({ preset: 'three', columns: cols });
+    }
+    if (sectionsArr.includes('cta'))
+      layout.rows.push({
+        preset: 'full',
+        columns: [
+          {
+            width: 12,
+            blocks: [
+              {
+                id: 'b' + (Date.now() + 999),
+                type: 'text',
+                html: '<div class="text-center py-5"><a class="btn btn-primary btn-lg" href="#">Call To Action</a></div>',
+              },
+            ],
+          },
+        ],
+      });
+    const diagnostics = {
+      topic,
+      intent,
+      sections: sectionsArr,
+      styleProfile,
+      postsUsed: selectedPosts.map((p) => p.id),
+    };
+    const research = {
+      summary: '(Stub) Research summary not implemented',
+      articles: selectedPosts.map((p) => ({ title: p.title, link: '/blog/' + p.slug })),
+    };
+    if (dryRun) {
+      return res.json({ ok: true, layout, diagnostics, research });
+    }
+    await pool.query(
+      'INSERT INTO advanced_page_generation_logs (topic,intent,sections,style_profile,diagnostics,layout_json,research_json,site_key) VALUES (?,?,?,?,?,?,?,?)',
+      [
+        topic || '',
+        intent || '',
+        sectionsArr.join(',') || '',
+        styleProfile || '',
+        JSON.stringify(diagnostics),
+        JSON.stringify(layout),
+        JSON.stringify(research),
+        req.siteKey,
+      ]
+    );
+    if (!templateId) {
+      await pool.query(
+        'INSERT INTO advanced_pages (title, slug, layout_json, rendered_html, is_template, site_key) VALUES (?,?,?,?,0,?)',
+        [
+          topic || 'Generated Page',
+          await ensureUniqueSlug(safeSlug(topic || 'generated-page'), 0, req.siteKey),
+          JSON.stringify(layout),
+          renderAdvancedLayout(layout, {}),
+          0,
+          req.siteKey,
+        ]
+      );
+    }
+    res.json({ ok: true, layout, diagnostics });
+  } catch (e) {
+    console.error('Generate Adv Fehler', e);
+    res.apiError(500, {
+      error: 'Generierung fehlgeschlagen',
+      code: 'ADV_GEN_FAIL',
+      detail: e.message,
+    });
+  }
+});
+router.get('/advanced-pages/generation', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '20', 10) || 20, 100);
+    const [rows] = await pool.query(
+      'SELECT id,topic,intent,sections,created_at FROM advanced_page_generation_logs WHERE site_key=? ORDER BY id DESC LIMIT ' +
+        limit,
+      [req.siteKey]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.apiError(500, {
+      error: 'Generierungs Logs Fehler',
+      code: 'ADV_GEN_LIST',
+      detail: e.message,
+    });
+  }
+});
+router.get('/advanced-pages/generation/:id', isEditor, async (req, res) => {
+  await ensureAdvancedPagesTables();
+  try {
+    const [[row]] = await pool.query(
+      'SELECT * FROM advanced_page_generation_logs WHERE id=? AND site_key=?',
+      [req.params.id, req.siteKey]
+    );
+    if (!row)
+      return res.apiError(404, { error: 'Eintrag nicht gefunden', code: 'ADV_GEN_NOT_FOUND' });
+    res.json({
+      id: row.id,
+      topic: row.topic,
+      intent: row.intent,
+      sections: row.sections,
+      diagnostics: JSON.parse(row.diagnostics || '{}'),
+      layout: JSON.parse(row.layout_json || '{}'),
+      research: JSON.parse(row.research_json || '{}'),
+      created_at: row.created_at,
+    });
+  } catch (e) {
+    res.apiError(500, {
+      error: 'Generierungs Eintrag Fehler',
+      code: 'ADV_GEN_GET',
+      detail: e.message,
+    });
+  }
+});
 
 module.exports = router;

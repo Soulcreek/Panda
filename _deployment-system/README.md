@@ -4,9 +4,13 @@ This deployment system handles both static websites and Node.js applications lik
 
 ## Quick Start for Purview Panda (Node.js)
 
-1. **Configuration is already set up** in `deployment-config.env`
-2. **Use Node.js deployment**: `.\deploy-node.ps1`
-3. **For static frontend only**: `.\deploy.ps1`
+## Deprecated
+
+This folder contains the old deployment system and docs. It's kept for historical reference only.
+
+Authoritative guide: see ../DEPLOYMENT.md
+
+Scripts here are unsupported; prefer the AUTO-DEPLOY-MK tooling.
 
 ## Recent Updates (August 2025)
 

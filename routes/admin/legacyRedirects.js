@@ -10,12 +10,17 @@ const redirects = [
   ['/timeline-editor*', '/editors/timeline-editor'],
   ['/posts', '/editors/posts'],
   ['/media', '/editors/media'],
-  ['/podcasts', '/editors/podcasts']
+  ['/podcasts', '/editors/podcasts'],
 ];
 
-redirects.forEach(([from,to])=>{
-  router.get(from, isAuth, (req,res)=>{
-    const q = Object.keys(req.query||{}).length ? ('?'+Object.entries(req.query).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&')) : '';
+redirects.forEach(([from, to]) => {
+  router.get(from, isAuth, (req, res) => {
+    const q = Object.keys(req.query || {}).length
+      ? '?' +
+        Object.entries(req.query)
+          .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+          .join('&')
+      : '';
     res.redirect(301, to + q);
   });
 });

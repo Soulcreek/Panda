@@ -1,0 +1,43 @@
+{
+  "env": {
+    "es2022": true,
+    "node": true,
+    "jest": true
+  },
+  "extends": ["eslint:recommended", "plugin:prettier/recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-undef": "error",
+    "no-console": ["off"],
+    "prefer-const": "warn",
+    "no-empty": "off",
+    "no-inner-declarations": "warn",
+    "no-constant-condition": "warn",
+    "no-useless-escape": "warn",
+    "no-useless-catch": "warn"
+  },
+  "ignorePatterns": ["node_modules/", "docs/archive/", "AUTO-DEPLOY-MK/manifests/", "**/*.min.js"],
+  "overrides": [
+    {
+      "files": ["httpdocs/js/**/*.js", "httpdocs/js/inline/**/*.js"],
+      "env": { "browser": true },
+      "globals": {
+        "AOS": "readonly",
+        "bootstrap": "readonly",
+        "A11yDialog": "readonly",
+        "Pickers": "readonly",
+        "apiFetch": "readonly",
+        "apiShowError": "readonly"
+      }
+    },
+    {
+      "files": ["httpdocs/sw.js"],
+      "env": { "worker": true, "browser": true },
+      "globals": { "caches": "readonly", "location": "readonly" }
+    }
+  ]
+}

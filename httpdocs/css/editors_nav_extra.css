@@ -1,1 +1,14 @@
-.editors-nav-shell{backdrop-filter:blur(6px); background:#ffffffcc;} .editors-nav-shell .nav-link{color:#444;} .editors-nav-shell .nav-link.active{font-weight:600;color:#0d6efd;} html.dark-mode .editors-nav-shell{background:rgba(20,20,20,0.9)!important;}
+.editors-nav-shell {
+  backdrop-filter: blur(6px);
+  background: #ffffffcc;
+}
+.editors-nav-shell .nav-link {
+  color: #444;
+}
+.editors-nav-shell .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+html.dark-mode .editors-nav-shell {
+  background: rgba(20, 20, 20, 0.9) !important;
+}

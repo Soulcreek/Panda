@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "files": {
+    "main.js": "/js/main.js",
+    "styles.css": "/css/styles.css"
+  }
+}

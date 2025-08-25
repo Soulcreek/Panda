@@ -1,4 +1,5 @@
-# Purview Panda - Deployment Quick-Start
+# [Archived] Purview Panda - Deployment Quick-Start
+This document is deprecated. See ../../DEPLOYMENT.md for the authoritative guide.
 
 ## 🚀 Erstes Setup
 

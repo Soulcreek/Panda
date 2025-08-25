@@ -7,6 +7,8 @@ if (typeof currentPath === 'undefined') { var currentPath = ''; }
 if (typeof locale === 'undefined') { var locale = 'de'; }
 var __locale = (typeof locale !== 'undefined' && locale) ? locale : 'de';
 if (typeof title === 'undefined') { var title = ''; }
+// Ensure cspNonce exists so error pages or early renders don't throw when middleware
+if (typeof cspNonce === 'undefined') { var cspNonce = ''; }
 %>
 <html lang="<%= (typeof locale !== 'undefined' ? locale : 'de') %>" <%= (typeof userPrefs !== 'undefined' && userPrefs && userPrefs.theme==='dark') ? 'class="dark-mode"' : '' %> data-user-prefs="<%= encodeURIComponent(JSON.stringify((typeof userPrefs !== 'undefined' ? userPrefs : null)||null)) %>">
 <head>
@@ -34,7 +36,7 @@ if (typeof title === 'undefined') { var title = ''; }
 <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
     <div class="container">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="https://purviewpanda.de/uploads/1755977555447-Logo_dark-1.png" alt="<%= t('site.title') %>" height="36" class="d-inline-block align-text-top" id="siteLogo">
+                    <img src="/img/logo.png" data-logo-light="/img/logo.png" data-logo-dark="/uploads/1755977555447-Logo_dark-1.png" alt="<%= t('site.title') %>" height="36" class="d-inline-block align-text-top" id="siteLogo">
                 </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

@@ -1,6 +1,5 @@
-// Legacy editors.js has been deprecated in favor of modular routers under routes/editors/.
-// This file now only exports a router with a redirect notice for any access, to avoid breaking imports.
+// Legacy editors.js is deprecated. Export a no-op router to avoid redirect loops.
 const express = require('express');
 const router = express.Router();
-router.use((req,res)=>{ res.redirect(301, '/editors'+(req.path==='/'?'':req.path)); });
+router.use((req, res, next) => next());
 module.exports = router;

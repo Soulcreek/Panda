@@ -1,6 +1,29 @@
 /* Minimal styles for WIP splash */
-.wip-splash { min-height: 60vh; padding: 4rem 1rem; background: linear-gradient(135deg,#eef7fb,#f7fbff); }
-.wip-card { max-width: 760px; background: rgba(255,255,255,0.85); padding: 2.25rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(10,30,60,0.08); }
-.wip-card h1 { font-size: 2.25rem; color: #0b3a66; margin-bottom: 0.5rem; }
-.wip-card p { color: #405569; }
-@media (max-width:768px){ .wip-card{padding:1.25rem;} .wip-card h1{font-size:1.5rem;} }
+.wip-splash {
+  min-height: 60vh;
+  padding: 4rem 1rem;
+  background: linear-gradient(135deg, #eef7fb, #f7fbff);
+}
+.wip-card {
+  max-width: 760px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2.25rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(10, 30, 60, 0.08);
+}
+.wip-card h1 {
+  font-size: 2.25rem;
+  color: #0b3a66;
+  margin-bottom: 0.5rem;
+}
+.wip-card p {
+  color: #405569;
+}
+@media (max-width: 768px) {
+  .wip-card {
+    padding: 1.25rem;
+  }
+  .wip-card h1 {
+    font-size: 1.5rem;
+  }
+}

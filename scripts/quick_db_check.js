@@ -1,6 +1,6 @@
 require('dotenv').config();
 const pool = require('../db');
-(async ()=>{
+(async () => {
   try {
     const [r1] = await pool.query('SELECT 1');
     console.log('query ok:', r1 && r1[0]);

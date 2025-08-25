@@ -1,3 +1,5 @@
+<% /* Ensure a safe title before including header (guards older header.ejs) */ %>
+<% if (typeof title === 'undefined' || !title) { var title = 'Maintenance'; } %>
 <%- include('partials/header') %>
 
 <section class="wip-splash d-flex align-items-center justify-content-center text-center">
@@ -9,7 +11,7 @@
         <a href="/" class="btn btn-outline-secondary btn-lg">Nur ansehen (nicht empfohlen)</a>
     </div>
       <div class="mt-4">
-        <img src="https://purviewpanda.de/uploads/1755977322106-Panda_WIP-2.png" alt="Work in progress Panda" style="max-width:320px; opacity:.95; border-radius:.5rem; box-shadow:0 .5rem 1rem rgba(0,0,0,.12);">
+  <img src="/uploads/1755977322106-Panda_WIP-2.png" alt="Work in progress Panda" style="max-width:320px; opacity:.95; border-radius:.5rem; box-shadow:0 .5rem 1rem rgba(0,0,0,.12);">
       </div>
   </div>
 </section>

@@ -53,6 +53,17 @@
     </div>
   </div>
   <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
+        <div class="text-muted">Dokumentation</div>
+        <div class="mt-2 d-flex flex-column gap-2">
+          <a class="btn btn-sm btn-outline-primary" href="https://github.com/Soulcreek/Panda/blob/master/AUTO-DEPLOY-MK/DEPLOYMENT-README.md" target="_blank" rel="noopener">Deployment Runbook</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/Soulcreek/Panda/blob/master/DEPLOYMENT.md" target="_blank" rel="noopener">Deployment TL;DR</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/Soulcreek/Panda/blob/master/README.md" target="_blank" rel="noopener">Implementation Guide</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/Soulcreek/Panda/blob/master/DEVELOPMENT_PLAN_2025.md" target="_blank" rel="noopener">Development Plan 2025</a>
+        </div>
+      </div></div>
+    </div>
     <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm"><div class="card-body small d-flex flex-column">
         <div class="text-muted">Panda's Way Varianten</div>
@@ -78,7 +89,7 @@
           <td><%= p.id %></td>
           <td><%= p.title %></td>
           <td><span class="badge bg-<%= p.status==='published'?'success':'secondary' %>"><%= p.status %></span></td>
-          <td><%= p.updated_at.toISOString().slice(0,16).replace('T',' ') %></td>
+      <td><%= (p.updated_at && p.updated_at.toISOString) ? p.updated_at.toISOString().slice(0,16).replace('T',' ') : (p.updated_at || '') %></td>
           <td><a class="btn btn-sm btn-outline-primary" href="/editors/posts/edit/<%= p.id %>">Bearbeiten</a></td>
         </tr>
       <% }) %>

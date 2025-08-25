@@ -13,7 +13,7 @@ const connectionConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 10000 // 10 Sekunden Timeout
+  connectTimeout: 10000, // 10 Sekunden Timeout
 };
 
 // Bevorzugt den Socket-Pfad, wenn er in der .env-Datei vorhanden ist.
@@ -35,113 +35,165 @@ const dbHealth = {
   degraded: false,
   lastError: null,
   lastCheckedAt: null,
-  slowThresholdMs: parseInt(process.env.DB_SLOW_THRESHOLD_MS||'250',10), // default 250ms
+  slowThresholdMs: parseInt(process.env.DB_SLOW_THRESHOLD_MS || '250', 10), // default 250ms
   rollingAvgMs: null,
   totalQueries: 0,
   slowQueries: 0,
-  window: [] // recent durations (max 50)
+  window: [], // recent durations (max 50)
 };
 
 try {
   pool = mysql.createPool(connectionConfig);
   console.log('[DB] Pool created successfully');
-  
+
   // Simple instrumented wrapper functions that don't cause recursion
   const origQuery = pool.query.bind(pool);
   const origExecute = pool.execute.bind(pool);
-  
+
   // Create a simple wrapper object instead of a Proxy to avoid any recursion
   proxiedPool = {
     // Copy all pool properties/methods
     ...pool,
-    
+
     // Override query with instrumentation
-    query: async function(sql, params) {
+    query: async function (sql, params) {
       // Strip any callback arguments
-      const args = typeof params === 'function' ? [sql] : [sql, params].filter(a => a !== undefined);
-      
+      const args =
+        typeof params === 'function' ? [sql] : [sql, params].filter((a) => a !== undefined);
+
       const start = Date.now();
       try {
         const res = await origQuery(...args);
         const dur = Date.now() - start;
-        
+
         // Update health metrics
-        if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
+        if (sql === 'SELECT 1' || /SELECT 1/.test(sql)) {
+          dbHealth.lastPingMs = dur;
+        }
         dbHealth.totalQueries++;
-        dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
-        const sum = dbHealth.window.reduce((a,b)=>a+b,0);
+        dbHealth.window.push(dur);
+        if (dbHealth.window.length > 50) dbHealth.window.shift();
+        const sum = dbHealth.window.reduce((a, b) => a + b, 0);
         dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
-        if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
-        dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
+        if (dur > dbHealth.slowThresholdMs) {
+          dbHealth.slowQueries++;
+        }
+        dbHealth.degraded =
+          !!dbHealth.lastError ||
+          dur > dbHealth.slowThresholdMs ||
+          (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
         dbHealth.lastError = null;
         dbHealth.lastCheckedAt = new Date();
-        
+
         // Metrics
-        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
-        if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
-        
+        let metrics;
+        try {
+          metrics = require('./lib/metrics');
+        } catch (_) {
+          metrics = null;
+        }
+        if (metrics) {
+          metrics.observe('db_query_duration_seconds', dur / 1000);
+        }
+
         return res;
-      } catch(e){
+      } catch (e) {
         dbHealth.lastError = e.message;
         dbHealth.degraded = true;
         dbHealth.lastCheckedAt = new Date();
-        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
-        if(metrics){ metrics.inc('db_query_errors_total'); }
+        let metrics;
+        try {
+          metrics = require('./lib/metrics');
+        } catch (_) {
+          metrics = null;
+        }
+        if (metrics) {
+          metrics.inc('db_query_errors_total');
+        }
         throw e;
       }
     },
-    
+
     // Override execute with instrumentation
-    execute: async function(sql, params) {
-      // Strip any callback arguments  
-      const args = typeof params === 'function' ? [sql] : [sql, params].filter(a => a !== undefined);
-      
+    execute: async function (sql, params) {
+      // Strip any callback arguments
+      const args =
+        typeof params === 'function' ? [sql] : [sql, params].filter((a) => a !== undefined);
+
       const start = Date.now();
       try {
         const res = await origExecute(...args);
         const dur = Date.now() - start;
-        
+
         // Update health metrics (same as query)
-        if(sql === 'SELECT 1' || /SELECT 1/.test(sql)){ dbHealth.lastPingMs = dur; }
+        if (sql === 'SELECT 1' || /SELECT 1/.test(sql)) {
+          dbHealth.lastPingMs = dur;
+        }
         dbHealth.totalQueries++;
-        dbHealth.window.push(dur); if(dbHealth.window.length>50) dbHealth.window.shift();
-        const sum = dbHealth.window.reduce((a,b)=>a+b,0);
+        dbHealth.window.push(dur);
+        if (dbHealth.window.length > 50) dbHealth.window.shift();
+        const sum = dbHealth.window.reduce((a, b) => a + b, 0);
         dbHealth.rollingAvgMs = Math.round(sum / dbHealth.window.length);
-        if(dur > dbHealth.slowThresholdMs){ dbHealth.slowQueries++; }
-        dbHealth.degraded = !!dbHealth.lastError || dur > dbHealth.slowThresholdMs || (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
+        if (dur > dbHealth.slowThresholdMs) {
+          dbHealth.slowQueries++;
+        }
+        dbHealth.degraded =
+          !!dbHealth.lastError ||
+          dur > dbHealth.slowThresholdMs ||
+          (dbHealth.rollingAvgMs && dbHealth.rollingAvgMs > dbHealth.slowThresholdMs);
         dbHealth.lastError = null;
         dbHealth.lastCheckedAt = new Date();
-        
-        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
-        if(metrics){ metrics.observe('db_query_duration_seconds', dur/1000); }
-        
+
+        let metrics;
+        try {
+          metrics = require('./lib/metrics');
+        } catch (_) {
+          metrics = null;
+        }
+        if (metrics) {
+          metrics.observe('db_query_duration_seconds', dur / 1000);
+        }
+
         return res;
-      } catch(e){
+      } catch (e) {
         dbHealth.lastError = e.message;
-        dbHealth.degraded = true; 
+        dbHealth.degraded = true;
         dbHealth.lastCheckedAt = new Date();
-        let metrics; try { metrics = require('./lib/metrics'); } catch(_) { metrics = null; }
-        if(metrics){ metrics.inc('db_query_errors_total'); }
+        let metrics;
+        try {
+          metrics = require('./lib/metrics');
+        } catch (_) {
+          metrics = null;
+        }
+        if (metrics) {
+          metrics.inc('db_query_errors_total');
+        }
         throw e;
       }
-    }
+    },
   };
 
   // Testet die Verbindung sofort beim Start
-  pool.getConnection()
-    .then(connection => {
+  pool
+    .getConnection()
+    .then((connection) => {
       console.log('[DB] ERFOLG: Datenbank-Pool erstellt und Verbindungstest erfolgreich!');
       connection.release();
     })
-    .catch(err => {
-      console.error('[DB] WARN: Verbindungstest fehlgeschlagen. Server startet dennoch, DB-abhängige Seiten können fehlschlagen.');
-      console.error('[DB] Bitte prüfe deine .env Konfiguration (Host, User, Passwort, Socket-Pfad).');
+    .catch((err) => {
+      console.error(
+        '[DB] WARN: Verbindungstest fehlgeschlagen. Server startet dennoch, DB-abhängige Seiten können fehlschlagen.'
+      );
+      console.error(
+        '[DB] Bitte prüfe deine .env Konfiguration (Host, User, Passwort, Socket-Pfad).'
+      );
       console.error(err);
       // Do not exit hard; allow app to surface diagnostics routes/pages
     });
-
 } catch (err) {
-  console.error('[DB] FATAL: Der Datenbank-Pool konnte nicht erstellt werden. Prüfe deine .env Konfiguration.');
+  console.error(
+    '[DB] FATAL: Der Datenbank-Pool konnte nicht erstellt werden. Prüfe deine .env Konfiguration.'
+  );
   console.error(err);
   process.exit(1);
 }

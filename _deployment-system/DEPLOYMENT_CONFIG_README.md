@@ -1,4 +1,5 @@
-Deployment Config README
+# [Archived] Deployment Config README
+This document is deprecated. See ../../DEPLOYMENT.md for the authoritative guide.
 
 Place project-specific deployment settings in `deployment-config.env` in this folder.
 

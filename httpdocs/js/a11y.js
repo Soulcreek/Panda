@@ -6,29 +6,109 @@
  *   dlg.mount(); // appends to body and focuses first focusable
  *   dlg.close(); // programmatically close
  */
-(function(){
-  if(window.A11yDialog) return; // idempotent
-  function qsAll(el, sel){ return Array.from(el.querySelectorAll(sel)); }
-  function focusableElements(root){ return qsAll(root, 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(el=>!el.disabled && el.offsetParent!==null); }
-  function create(opts){
-    opts = opts||{};
+(function () {
+  if (window.A11yDialog) return; // idempotent
+  function qsAll(el, sel) {
+    return Array.from(el.querySelectorAll(sel));
+  }
+  function focusableElements(root) {
+    return qsAll(
+      root,
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    ).filter((el) => !el.disabled && el.offsetParent !== null);
+  }
+  function create(opts) {
+    opts = opts || {};
     const wrap = document.createElement('div');
     wrap.className = opts.className || 'a11y-dialog';
-    wrap.setAttribute('role','dialog');
-    wrap.setAttribute('aria-modal','true');
-    if(opts.label) wrap.setAttribute('aria-label', opts.label);
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    if (opts.label) wrap.setAttribute('aria-label', opts.label);
     wrap.tabIndex = -1;
     wrap.innerHTML = opts.html || '';
     let prevFocus = null;
     const listeners = { close: [] };
-    function emit(ev){ (listeners[ev]||[]).forEach(fn=>{ try { fn(); } catch(e){ console.warn('A11yDialog listener error', e);} }); }
-    function on(ev, fn){ if(!listeners[ev]) listeners[ev]=[]; listeners[ev].push(fn); return api; }
-    function trap(e){ if(e.key==='Escape'){ if(opts.escape !== false){ e.preventDefault(); close(); } } else if(e.key==='Tab'){ const items=focusableElements(wrap); if(!items.length) { e.preventDefault(); return; } const first=items[0]; const last=items[items.length-1]; if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); } else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); } } }
-    function mount(){ prevFocus = document.activeElement; document.body.appendChild(wrap); setTimeout(()=>{ const items=focusableElements(wrap); if(items.length) items[0].focus(); }, 20); document.addEventListener('keydown', trap); if(opts.closeSelector){ wrap.addEventListener('click', clickHandler); } if(opts.backdropClose){ wrap.addEventListener('mousedown', backdropHandler); }
-      return api; }
-    function backdropHandler(e){ if(e.target===wrap){ close(); } }
-    function clickHandler(e){ if(e.target.closest(opts.closeSelector)) { e.preventDefault(); close(); } }
-    function close(){ if(!wrap.parentNode) return; wrap.remove(); document.removeEventListener('keydown', trap); if(opts.closeSelector){ wrap.removeEventListener('click', clickHandler); } if(opts.backdropClose){ wrap.removeEventListener('mousedown', backdropHandler); } if(prevFocus && prevFocus.focus) { try { prevFocus.focus(); } catch(_){} } emit('close'); }
+    function emit(ev) {
+      (listeners[ev] || []).forEach((fn) => {
+        try {
+          fn();
+        } catch (e) {
+          console.warn('A11yDialog listener error', e);
+        }
+      });
+    }
+    function on(ev, fn) {
+      if (!listeners[ev]) listeners[ev] = [];
+      listeners[ev].push(fn);
+      return api;
+    }
+    function trap(e) {
+      if (e.key === 'Escape') {
+        if (opts.escape !== false) {
+          e.preventDefault();
+          close();
+        }
+      } else if (e.key === 'Tab') {
+        const items = focusableElements(wrap);
+        if (!items.length) {
+          e.preventDefault();
+          return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+    function mount() {
+      prevFocus = document.activeElement;
+      document.body.appendChild(wrap);
+      setTimeout(() => {
+        const items = focusableElements(wrap);
+        if (items.length) items[0].focus();
+      }, 20);
+      document.addEventListener('keydown', trap);
+      if (opts.closeSelector) {
+        wrap.addEventListener('click', clickHandler);
+      }
+      if (opts.backdropClose) {
+        wrap.addEventListener('mousedown', backdropHandler);
+      }
+      return api;
+    }
+    function backdropHandler(e) {
+      if (e.target === wrap) {
+        close();
+      }
+    }
+    function clickHandler(e) {
+      if (e.target.closest(opts.closeSelector)) {
+        e.preventDefault();
+        close();
+      }
+    }
+    function close() {
+      if (!wrap.parentNode) return;
+      wrap.remove();
+      document.removeEventListener('keydown', trap);
+      if (opts.closeSelector) {
+        wrap.removeEventListener('click', clickHandler);
+      }
+      if (opts.backdropClose) {
+        wrap.removeEventListener('mousedown', backdropHandler);
+      }
+      if (prevFocus && prevFocus.focus) {
+        try {
+          prevFocus.focus();
+        } catch (_) {}
+      }
+      emit('close');
+    }
     const api = { el: wrap, mount, close, on };
     return api;
   }

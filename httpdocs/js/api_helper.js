@@ -1,102 +1,139 @@
 // Unified API helper: wraps fetch and normalizes error display
 // Usage: apiFetch(url, { method:'POST', json:{...}, csrf:true })
 // Returns parsed JSON for 2xx; throws Error with .status, .payload on failure.
-(function(){
-  function buildHeaders(opts){
-    const h = opts && opts.headers ? {...opts.headers} : {};
-    if(opts && opts.json && !h['Content-Type']) h['Content-Type']='application/json';
-    if(opts && opts.csrf && window.CSRF_TOKEN){ h['CSRF-Token']=window.CSRF_TOKEN; }
+(function () {
+  function buildHeaders(opts) {
+    const h = opts && opts.headers ? { ...opts.headers } : {};
+    if (opts && opts.json && !h['Content-Type']) h['Content-Type'] = 'application/json';
+    if (opts && opts.csrf && window.CSRF_TOKEN) {
+      h['CSRF-Token'] = window.CSRF_TOKEN;
+    }
     return h;
   }
-  async function apiFetch(url, opts){
+  async function apiFetch(url, opts) {
     opts = opts || {};
-    const method = (opts.method || (opts.json? 'POST':'GET')).toUpperCase();
-    const maxRetries = (method === 'GET') ? (typeof opts.retry === 'number' ? opts.retry : (opts.retry ? opts.retry.retries : 2)) : 0;
+    const method = (opts.method || (opts.json ? 'POST' : 'GET')).toUpperCase();
+    const maxRetries =
+      method === 'GET'
+        ? typeof opts.retry === 'number'
+          ? opts.retry
+          : opts.retry
+            ? opts.retry.retries
+            : 2
+        : 0;
     const retryDelayBase = (opts.retry && opts.retry.delayMs) || 300;
     let attempt = 0;
     let lastErr;
-    while(true){
-      const fetchOpts = { method, headers: buildHeaders(opts), body: undefined, credentials: 'same-origin' };
-      if(opts.json) fetchOpts.body = JSON.stringify(opts.json);
+    while (true) {
+      const fetchOpts = {
+        method,
+        headers: buildHeaders(opts),
+        body: undefined,
+        credentials: 'same-origin',
+      };
+      if (opts.json) fetchOpts.body = JSON.stringify(opts.json);
       let resp, text;
-      try { resp = await fetch(url, fetchOpts); } catch(e){
-        lastErr = new Error('Netzwerkfehler: '+e.message);
-        if(attempt < maxRetries){
-          await new Promise(r=>setTimeout(r, retryDelayBase * Math.pow(2, attempt)));
-          attempt++; continue;
+      try {
+        resp = await fetch(url, fetchOpts);
+      } catch (e) {
+        lastErr = new Error('Netzwerkfehler: ' + e.message);
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, retryDelayBase * Math.pow(2, attempt)));
+          attempt++;
+          continue;
         }
         throw lastErr;
       }
-      const ct = resp.headers.get('content-type')||'';
-      if(!resp.ok){
+      const ct = resp.headers.get('content-type') || '';
+      if (!resp.ok) {
         // Retry only idempotent GET on 5xx (exclude 501 maybe) and network style statuses
-        if(method==='GET' && resp.status>=500 && resp.status!==501 && attempt < maxRetries){
-          attempt++; await new Promise(r=>setTimeout(r, retryDelayBase * Math.pow(2, attempt-1))); continue;
+        if (method === 'GET' && resp.status >= 500 && resp.status !== 501 && attempt < maxRetries) {
+          attempt++;
+          await new Promise((r) => setTimeout(r, retryDelayBase * Math.pow(2, attempt - 1)));
+          continue;
         }
       }
-      if(!ct.includes('application/json')){
+      if (!ct.includes('application/json')) {
         text = await resp.text();
-        if(!resp.ok) {
-          const plainErr = new Error('HTTP '+resp.status+' (kein JSON)');
+        if (!resp.ok) {
+          const plainErr = new Error('HTTP ' + resp.status + ' (kein JSON)');
           plainErr.status = resp.status;
           throw plainErr;
         }
-        return { raw:text };
+        return { raw: text };
       }
       const data = await resp.json();
-      if(!resp.ok){
-        const err = new Error(data.error || data.message || ('HTTP '+resp.status));
-        err.status = resp.status; err.payload = data; throw err;
+      if (!resp.ok) {
+        const err = new Error(data.error || data.message || 'HTTP ' + resp.status);
+        err.status = resp.status;
+        err.payload = data;
+        throw err;
       }
       return data;
     }
   }
-  function formatError(e){
-    if(!e) return 'Unbekannter Fehler';
-    if(e.payload){
+  function formatError(e) {
+    if (!e) return 'Unbekannter Fehler';
+    if (e.payload) {
       let msg = e.payload.error || e.message || 'Fehler';
-      if(e.payload.detail) msg += ': '+ e.payload.detail;
-      if(e.payload.hint) msg += '\nHinweis: '+ e.payload.hint;
+      if (e.payload.detail) msg += ': ' + e.payload.detail;
+      if (e.payload.hint) msg += '\nHinweis: ' + e.payload.hint;
       return msg;
     }
     return e.message || String(e);
   }
   // Basic toast implementation (Bootstrap 5 optional). Falls kein Toast-Container existiert -> alert fallback.
-  function showErrorToast(message, options){
+  function showErrorToast(message, options) {
     options = options || {};
-    const id='api-toast-container';
+    const id = 'api-toast-container';
     let container = document.getElementById(id);
-    if(!container){
+    if (!container) {
       container = document.createElement('div');
-      container.id=id;
-      container.style.position='fixed';
-      container.style.top='1rem';
-      container.style.right='1rem';
-      container.style.zIndex='1080';
+      container.id = id;
+      container.style.position = 'fixed';
+      container.style.top = '1rem';
+      container.style.right = '1rem';
+      container.style.zIndex = '1080';
       document.body.appendChild(container);
     }
-    if(window.bootstrap && bootstrap.Toast){
-      const wrapper=document.createElement('div');
-      wrapper.className='toast align-items-center text-bg-danger border-0 show';
-      wrapper.setAttribute('role','alert');
-      wrapper.setAttribute('aria-live','assertive');
-      wrapper.setAttribute('aria-atomic','true');
-      wrapper.innerHTML='<div class="d-flex"><div class="toast-body">'+escapeHtml(message).replace(/\n/g,'<br>')+'</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+    if (window.bootstrap && bootstrap.Toast) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'toast align-items-center text-bg-danger border-0 show';
+      wrapper.setAttribute('role', 'alert');
+      wrapper.setAttribute('aria-live', 'assertive');
+      wrapper.setAttribute('aria-atomic', 'true');
+      wrapper.innerHTML =
+        '<div class="d-flex"><div class="toast-body">' +
+        escapeHtml(message).replace(/\n/g, '<br>') +
+        '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
       container.appendChild(wrapper);
-      setTimeout(()=>{ try{ wrapper.remove(); }catch(_){} }, options.duration || 7000);
+      setTimeout(() => {
+        try {
+          wrapper.remove();
+        } catch (_) {}
+      }, options.duration || 7000);
     } else {
       // Fallback
       alert(message);
     }
   }
-  function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
+  function escapeHtml(str) {
+    return String(str).replace(
+      /[&<>"']/g,
+      (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]
+    );
+  }
   // Global unhandled rejection listener (only attaches once)
-  if(!window.__apiFetchUnhandledListener){
+  if (!window.__apiFetchUnhandledListener) {
     window.__apiFetchUnhandledListener = true;
-    window.addEventListener('unhandledrejection', ev=>{
+    window.addEventListener('unhandledrejection', (ev) => {
       const r = ev.reason;
-      if(r && (r.status || (r.payload && r.payload.error))){
-        try { apiShowError(formatError(r)); } catch(_){ /* ignore */ }
+      if (r && (r.status || (r.payload && r.payload.error))) {
+        try {
+          apiShowError(formatError(r));
+        } catch (_) {
+          /* ignore */
+        }
       }
     });
   }

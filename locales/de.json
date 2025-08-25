@@ -23,8 +23,8 @@
   "pandas.level1.block2.title": "Warum schützen?",
   "pandas.level1.block2.body": "Richtig bleiben. Privat bleiben. Verfügbar bleiben.",
   "pandas.level1.block3.title": "Wie starten?",
-  "pandas.level1.block3.body": "Starkes Passwort. Backup. Geräte sperren."
-  ,"home.hero.tagline": "Ihr Kompass in der Welt der Datensicherheit. Klar. Verständlich. Sicher.",
+  "pandas.level1.block3.body": "Starkes Passwort. Backup. Geräte sperren.",
+  "home.hero.tagline": "Ihr Kompass in der Welt der Datensicherheit. Klar. Verständlich. Sicher.",
   "home.hero.cta_blog": "Zum Blog",
   "home.latest_posts.heading": "Aktuelle Beiträge",
   "home.latest_posts.subtitle": "Entdecken Sie unsere neuesten Erkenntnisse zu Data Governance, Cybersicherheit und Technologie-Trends",
@@ -33,14 +33,14 @@
   "home.latest_posts.min_read": "min Lesezeit",
   "home.latest_posts.none": "Aktuell sind keine weiteren Beiträge vorhanden.",
   "home.featured.read_full_article": "Vollständigen Artikel lesen",
-  "home.author.read_more": "Mehr erfahren →"
-  ,"nav.purview.title": "Mehr über Microsoft Purview (öffentliche Info-Seite)",
+  "home.author.read_more": "Mehr erfahren →",
+  "nav.purview.title": "Mehr über Microsoft Purview (öffentliche Info-Seite)",
   "purview.title": "Microsoft Purview Knowledge Center",
   "purview.subtitle": "Datenverwaltung verstehen und wie sie auf unsere Inhaltsoperationen angewendet wird",
   "purview.what_is.title": "Was ist Microsoft Purview?",
   "purview.what_is.intro": "Microsoft Purview ist eine umfassende Datenverwaltungslösung, die Organisationen dabei hilft:",
   "purview.kpi.posts": "Veröffentlichte Beiträge",
-  "purview.kpi.media": "Medien-Assets", 
+  "purview.kpi.media": "Medien-Assets",
   "purview.kpi.podcasts": "Podcast-Episoden",
   "home.team.description": "Erfahren Sie mehr über unsere Mission und das Team hinter Purview Panda",
   "blog.published_on": "Veröffentlicht am:",
@@ -49,6 +49,6 @@
   "nav.login": "Anmelden",
   "editors.actions": "Aktionen",
   "editors.title": "Titel",
-  "editors.status": "Status", 
+  "editors.status": "Status",
   "editors.featured": "Featured"
 }
